@@ -1,0 +1,274 @@
+import React, { useEffect, useState } from 'react';
+import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyverse';
+import { LOCATIONS } from '../../constants/locations';
+import { CentralLibrary } from './CentralLibrary';
+import { LectureHallComplex } from './LectureHallComplex';
+import { BanyanTreeGrove } from './BanyanTreeGrove';
+import { OpenAirTheatre } from './OpenAirTheatre';
+import { CampusCafe } from './CampusCafe';
+import { SangamGardens } from './SangamGardens';
+import { GajendraCircle } from './GajendraCircle';
+import { StudyDock } from '../study/StudyDock';
+import { soundService } from '../../services/soundService';
+import {
+  ArrowLeft,
+  Users,
+  Sparkles,
+  Info,
+  AlertCircle,
+  ExternalLink,
+} from 'lucide-react';
+
+interface LocationViewProps {
+  locationId: LocationId;
+  onBackToCampus: () => void;
+  currentUser: StudentPresence;
+  allStudents: StudentPresence[];
+  onSelectSeat: (seatId: string) => void;
+  onLeaveSeat: () => void;
+  onChangeStudyTopic: (topic: string) => void;
+  timeOfDay: TimeOfDay;
+}
+
+export const LocationView: React.FC<LocationViewProps> = ({
+  locationId,
+  onBackToCampus,
+  currentUser,
+  allStudents,
+  onSelectSeat,
+  onLeaveSeat,
+  onChangeStudyTopic,
+  timeOfDay,
+}) => {
+  const [conflictAlert, setConflictAlert] = useState<string | null>(null);
+
+  // Normalize legacy 'city' alias to campus or fallback
+  const resolvedId = locationId === 'city' ? 'campus' : locationId;
+  const location = LOCATIONS[resolvedId] || LOCATIONS.library;
+
+  // Start the appropriate ambient soundscape when location loads
+  useEffect(() => {
+    if (location?.ambientTrack) {
+      soundService.startAmbience(location.ambientTrack);
+    }
+  }, [locationId, location?.ambientTrack]);
+
+  // Filter students who are currently in this location
+  const occupants = allStudents.filter((s) => s.location === locationId || (locationId === 'library' && s.location === 'library'));
+  const otherOccupants = occupants.filter((s) => s.sessionId !== currentUser.sessionId);
+
+  // Is current user seated in this location?
+  const isUserSeatedHere = currentUser.location === locationId && currentUser.seatId !== null;
+  const currentSeatDef = location.seats.find((s) => s.id === currentUser.seatId);
+
+  const handleSeatClick = (seatId: string) => {
+    // Check if taken by another student
+    const existing = otherOccupants.find((o) => o.seatId === seatId);
+    if (existing) {
+      setConflictAlert(
+        `This seat is currently occupied by ${existing.name}. Please choose another peaceful spot.`
+      );
+      setTimeout(() => setConflictAlert(null), 4000);
+      return;
+    }
+
+    soundService.playSitSound();
+    onSelectSeat(seatId);
+  };
+
+  const handleOpenCompanionTab = () => {
+    window.open(window.location.href, '_blank');
+  };
+
+  return (
+    <div className="w-full max-w-6xl mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-300">
+      {/* Top Header / Navigation Breadcrumb Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#e2d5c3]">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBackToCampus}
+            className="px-3.5 py-2 rounded-2xl bg-[#fffdfa] hover:bg-[#f1eae0] border border-[#e2d5c3] text-xs font-semibold text-[#54483c] flex items-center gap-2 shadow-2xs transition-all group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Return to Campus Map</span>
+          </button>
+
+          <div className="h-4 w-[1px] bg-[#d9cdbe]" />
+
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-base">{location.icon}</span>
+              <h1 className="font-serif-title text-xl font-bold text-[#2a2622] leading-tight">
+                {location.name}
+              </h1>
+            </div>
+            <p className="text-xs text-[#706456] italic">
+              {location.tagline}
+            </p>
+          </div>
+        </div>
+
+        {/* Occupant Counter & Seat Status */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f4ece1] border border-[#e2d5c3] text-xs font-medium text-[#4d4033]">
+            <Users className="w-3.5 h-3.5 text-[#5e776a]" />
+            <span>
+              <strong>{occupants.length}</strong> studying here
+            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping ml-1" />
+          </div>
+
+          <div className="text-xs text-[#7a6f62]">
+            {isUserSeatedHere ? (
+              <span className="text-[#2d5a43] font-semibold flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                Seated at {currentSeatDef?.name || 'seat'}
+              </span>
+            ) : (
+              <span className="text-[#8c7e6f]">Choose an available seat below</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Seat Conflict Toast Alert */}
+      {conflictAlert && (
+        <div className="p-3 bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl text-xs flex items-center justify-between shadow-md animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+            <span>{conflictAlert}</span>
+          </div>
+          <button
+            onClick={() => setConflictAlert(null)}
+            className="text-xs font-bold text-amber-800 hover:underline ml-4"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Main Illustrated Architectural Scene */}
+      <div className="relative">
+        {locationId === 'library' && (
+          <CentralLibrary
+            location={location}
+            occupants={occupants}
+            currentUser={currentUser}
+            onSelectSeat={handleSeatClick}
+            timeOfDay={timeOfDay}
+          />
+        )}
+        {locationId === 'lhc' && (
+          <LectureHallComplex
+            location={location}
+            occupants={occupants}
+            currentUser={currentUser}
+            onSelectSeat={handleSeatClick}
+            timeOfDay={timeOfDay}
+          />
+        )}
+        {locationId === 'banyan' && (
+          <BanyanTreeGrove
+            location={location}
+            occupants={occupants}
+            currentUser={currentUser}
+            onSelectSeat={handleSeatClick}
+            timeOfDay={timeOfDay}
+          />
+        )}
+        {locationId === 'oat' && (
+          <OpenAirTheatre
+            location={location}
+            occupants={occupants}
+            currentUser={currentUser}
+            onSelectSeat={handleSeatClick}
+            timeOfDay={timeOfDay}
+          />
+        )}
+        {locationId === 'cafe' && (
+          <CampusCafe
+            location={location}
+            occupants={occupants}
+            currentUser={currentUser}
+            onSelectSeat={handleSeatClick}
+            timeOfDay={timeOfDay}
+          />
+        )}
+        {locationId === 'park' && (
+          <SangamGardens
+            location={location}
+            occupants={occupants}
+            currentUser={currentUser}
+            onSelectSeat={handleSeatClick}
+            timeOfDay={timeOfDay}
+          />
+        )}
+        {locationId === 'gc' && (
+          <GajendraCircle
+            location={location}
+            occupants={occupants}
+            currentUser={currentUser}
+            onSelectSeat={handleSeatClick}
+            timeOfDay={timeOfDay}
+          />
+        )}
+      </div>
+
+      {/* Solitary / First-Arriver Encouragement Note */}
+      {otherOccupants.length === 0 && (
+        <div className="p-4 rounded-2xl bg-[#faf5ed] border border-[#e5d8c7] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#635546]">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-[#eee3d4] text-[#80674d]">
+              <Info className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-semibold text-[#3b3229]">
+                You're the first learner here right now.
+              </span>{' '}
+              Find your favorite spot. Fellow students exploring the campus will see your presence!
+            </div>
+          </div>
+
+          <button
+            onClick={handleOpenCompanionTab}
+            className="px-3 py-1.5 bg-[#2d5a43] hover:bg-[#234735] text-white rounded-xl text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs"
+          >
+            <span>Open Companion Window (Test Sync)</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Available Seats Summary Bar */}
+      <div className="p-4 rounded-2xl bg-[#fffdfa] border border-[#e6dcce] shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs text-[#695d4f]">
+        <div className="flex items-center gap-4">
+          <span className="font-semibold text-[#332e29]">
+            Seats in {location.name}:
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#84a98c]" />
+            <span>Available ({location.seats.length - occupants.length})</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#2d5a43]" />
+            <span>Occupied ({occupants.length})</span>
+          </div>
+        </div>
+
+        <div className="text-[11px] text-[#8a7c6e]">
+          Click any pulsing <span className="font-semibold">+</span> marker to occupy a seat and begin your session.
+        </div>
+      </div>
+
+      {/* Seated Bottom Dock */}
+      {isUserSeatedHere && (
+        <StudyDock
+          currentUser={currentUser}
+          currentSeatName={currentSeatDef?.name || 'Study Desk'}
+          onLeaveSeat={onLeaveSeat}
+          onChangeTopic={onChangeStudyTopic}
+        />
+      )}
+    </div>
+  );
+};
