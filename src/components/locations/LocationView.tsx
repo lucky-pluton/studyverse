@@ -56,12 +56,18 @@ export const LocationView: React.FC<LocationViewProps> = ({
   const resolvedId = locationId === 'city' ? 'campus' : locationId;
   const location = LOCATIONS[resolvedId] || LOCATIONS.library;
 
-  // Clean up location chat channel when unmounting or changing location
+  // Join location chat on entry and clean up when leaving or switching location
   useEffect(() => {
+    chatService.joinLocation(resolvedId, currentUser);
     return () => {
       chatService.leaveCurrentLocation();
     };
-  }, [locationId]);
+  }, [resolvedId, currentUser.sessionId]);
+
+  // Keep chatService updated when currentUser attributes change (e.g. DND)
+  useEffect(() => {
+    chatService.setCurrentUser(currentUser);
+  }, [currentUser]);
 
   // Start the appropriate ambient soundscape when location loads
   useEffect(() => {
