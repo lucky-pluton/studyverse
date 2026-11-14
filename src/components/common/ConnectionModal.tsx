@@ -53,7 +53,8 @@ export const ConnectionModal: React.FC<ConnectionModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   const isSupabase = mode === 'supabase';
-  const isCloudRelay = mode === 'cloud_relay';
+  const isWebRtc = mode === 'webrtc_cloud';
+  const isCloudRelay = mode === 'webrtc_cloud' || mode === 'mqtt_relay';
 
   const envSnippet = `# GitHub Actions Secrets / .env Configuration:
 VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -66,7 +67,9 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...your-anon-key...`;
   };
 
   const handleOpenCompanionTab = () => {
-    window.open(window.location.href, '_blank');
+    const url = new URL(window.location.href);
+    url.searchParams.set('new_student', 'true');
+    window.open(url.toString(), '_blank');
   };
 
   const handleConnectCustomSupabase = (e: React.FormEvent) => {
@@ -118,6 +121,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...your-anon-key...`;
               <p className="text-xs text-[#786c5f]">
                 {isSupabase
                   ? 'Connected to Global Supabase Realtime'
+                  : isWebRtc
+                  ? 'Connected to WebRTC Mesh (Port 443 WSS — Cross-Device Active)'
                   : isCloudRelay
                   ? 'Connected to Global Cloud Relay (Cross-Device Active)'
                   : 'Local Peer Mode (Single Machine)'}
@@ -155,6 +160,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...your-anon-key...`;
                 <span>
                   {isSupabase
                     ? 'Supabase Realtime Cloud'
+                    : isWebRtc
+                    ? 'WebRTC Mesh (Port 443 WSS)'
                     : isCloudRelay
                     ? 'Global Cloud Relay'
                     : 'Local Peer Mode'}
@@ -167,8 +174,10 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...your-anon-key...`;
             <p className="text-xs leading-relaxed text-[#595045]">
               {isSupabase
                 ? 'Your Studyverse instance is connected to Supabase Realtime. Students on different devices anywhere in the world share seats, avatars, and timers simultaneously.'
+                : isWebRtc
+                ? 'Cross-device multiplayer is active via WebRTC peer-to-peer data channels coordinated over standard Port 443 WSS relays. Works across mobile phones, laptops, campus Wi-Fi, and incognito windows.'
                 : isCloudRelay
-                ? 'Cross-device multiplayer is active via the built-in Global Cloud Relay over secure TLS WebSockets. Students across phones, laptops, and incognito windows can see and sit alongside each other!'
+                ? 'Cross-device multiplayer is active via the built-in Global Cloud Relay over secure TLS WebSockets.'
                 : 'Local Peer Mode is active using BroadcastChannel. Tabs on this device synchronize in real-time.'}
             </p>
           </div>

@@ -77,7 +77,9 @@ export const LocationView: React.FC<LocationViewProps> = ({
   };
 
   const handleOpenCompanionTab = () => {
-    window.open(window.location.href, '_blank');
+    const url = new URL(window.location.href);
+    url.searchParams.set('new_student', 'true');
+    window.open(url.toString(), '_blank');
   };
 
   return (

@@ -20,10 +20,40 @@ export function App() {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const isDemo = urlParams.get('demo') === 'true';
+      const isNewStudent =
+        urlParams.get('new_student') === 'true' || urlParams.get('companion') === 'true';
+
+      if (isNewStudent) {
+        sessionStorage.removeItem('studyverse_session');
+        sessionStorage.removeItem('studyverse_tab_window_id');
+      }
+
+      // Check whether this tab is a duplicated/cloned tab window
+      let isClonedTab = false;
+      if (!window.name || !window.name.startsWith('studyverse_win_')) {
+        const previousOwner = sessionStorage.getItem('studyverse_tab_window_id');
+        window.name = 'studyverse_win_' + Math.random().toString(36).substring(2, 9);
+        sessionStorage.setItem('studyverse_tab_window_id', window.name);
+        if (previousOwner !== null) {
+          isClonedTab = true;
+        }
+      }
 
       const stored = sessionStorage.getItem('studyverse_session');
       if (stored) {
         const parsed: StudentPresence = JSON.parse(stored);
+
+        // If tab was duplicated, allocate a fresh unique sessionId so tabs do not collide
+        if (isClonedTab) {
+          parsed.sessionId =
+            'student_' +
+            Math.random().toString(36).substring(2, 9) +
+            Date.now().toString(36).substring(4);
+          parsed.seatId = null;
+          parsed.seatEnteredAt = null;
+          sessionStorage.setItem('studyverse_session', JSON.stringify(parsed));
+        }
+
         const resolvedLocation = parsed.location === 'city' ? 'campus' : parsed.location || 'campus';
         setCurrentUser({ ...parsed, location: resolvedLocation });
         setCurrentLocation(resolvedLocation);

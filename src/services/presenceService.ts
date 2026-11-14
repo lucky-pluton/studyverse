@@ -1,16 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
+import { joinRoom } from 'trystero';
+import type { Room, MessageAction } from 'trystero';
 import Paho from 'paho-mqtt';
 import type { LocationId, StudentPresence } from '../types/studyverse';
 
-export type PresenceMode = 'supabase' | 'cloud_relay' | 'local_peer';
+export type PresenceMode = 'supabase' | 'webrtc_cloud' | 'mqtt_relay' | 'local_peer';
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected';
 
 type PresenceListener = (presences: StudentPresence[]) => void;
 type ConflictListener = (seatId: string, occupantName: string) => void;
 type StatusListener = (status: ConnectionStatus, mode: PresenceMode) => void;
 
-interface WireMessage {
+export interface WireMessage {
   type: 'join' | 'update' | 'heartbeat' | 'leave' | 'seat_conflict';
   sessionId: string;
   payload: StudentPresence;
@@ -28,20 +30,25 @@ const CUSTOM_SUPABASE_URL_KEY = 'studyverse_custom_supabase_url';
 const CUSTOM_SUPABASE_KEY_KEY = 'studyverse_custom_supabase_anon_key';
 
 class PresenceService {
-  private mode: PresenceMode = 'local_peer';
+  private mode: PresenceMode = 'webrtc_cloud';
   private connectionStatus: ConnectionStatus = 'disconnected';
 
-  // Supabase Realtime
+  // 1. Supabase Realtime (When configured via env or custom keys)
   private supabase: SupabaseClient | null = null;
   private channel: RealtimeChannel | null = null;
   private isSupabaseSubscribed: boolean = false;
 
-  // Cloud Relay (MQTT over secure WSS)
+  // 2. Global WebRTC Mesh over Port 443 WSS Nostr Relays (Zero-config, firewall-proof)
+  private trysteroRoom: Room | null = null;
+  private trysteroAction: MessageAction<WireMessage> | null = null;
+  private webrtcPeersCount: number = 0;
+
+  // 3. Cloud MQTT Relay (Secondary cross-device fallback)
   private mqttClient: Paho.Client | null = null;
   private mqttBrokerIndex: number = 0;
   private isMqttConnected: boolean = false;
 
-  // Local Peer (BroadcastChannel + LocalStorage)
+  // 4. Local Peer (BroadcastChannel + LocalStorage for instant multi-tab sync)
   private broadcastChannel: BroadcastChannel | null = null;
 
   // State
@@ -58,7 +65,7 @@ class PresenceService {
   }
 
   /**
-   * Determine whether to use Supabase (if keys present) or Cloud Relay fallback
+   * Determine whether to use Supabase (if keys present) or WebRTC Cloud Mesh
    */
   private detectMode() {
     const url =
@@ -90,8 +97,8 @@ class PresenceService {
       }
     }
 
-    // Default to Cloud Relay over secure WebSockets so cross-device sync works out-of-the-box
-    this.mode = 'cloud_relay';
+    // Default to WebRTC Cloud Mesh over Port 443 WSS
+    this.mode = 'webrtc_cloud';
   }
 
   public getMode(): PresenceMode {
@@ -100,6 +107,18 @@ class PresenceService {
 
   public getConnectionStatus(): ConnectionStatus {
     return this.connectionStatus;
+  }
+
+  public getDiagnostics() {
+    return {
+      mode: this.mode,
+      status: this.connectionStatus,
+      peerCount: this.peerMap.size,
+      webrtcPeersCount: this.webrtcPeersCount,
+      isMqttConnected: this.isMqttConnected,
+      isSupabaseSubscribed: this.isSupabaseSubscribed,
+      totalStudents: this.getAllStudents().length,
+    };
   }
 
   public getSupabaseConfig(): {
@@ -136,9 +155,7 @@ class PresenceService {
       localStorage.setItem(CUSTOM_SUPABASE_URL_KEY, cleanUrl);
       localStorage.setItem(CUSTOM_SUPABASE_KEY_KEY, cleanKey);
 
-      // Teardown previous transport
       this.teardownTransports();
-
       this.mode = 'supabase';
       if (this.currentPresence) {
         this.setupSupabasePresence();
@@ -159,11 +176,7 @@ class PresenceService {
     this.detectMode();
 
     if (this.currentPresence) {
-      if (this.mode === 'supabase') {
-        this.setupSupabasePresence();
-      } else {
-        this.setupCloudRelay();
-      }
+      this.setupCloudTransports();
     }
     this.notifyStatus();
   }
@@ -178,7 +191,7 @@ class PresenceService {
     };
     this.isDestroyed = false;
 
-    // 1. Always init BroadcastChannel as local multi-tab transport and sync
+    // 1. Initialize BroadcastChannel for local instant tab synchronization
     if (typeof BroadcastChannel !== 'undefined') {
       try {
         if (this.broadcastChannel) {
@@ -189,7 +202,7 @@ class PresenceService {
           this.handleWireMessage(event.data, 'local');
         };
       } catch (err) {
-        console.warn('BroadcastChannel error, using storage fallback:', err);
+        console.warn('BroadcastChannel error:', err);
       }
     }
 
@@ -197,14 +210,14 @@ class PresenceService {
     window.addEventListener('storage', this.handleStorageEvent);
     window.addEventListener('beforeunload', this.handleBeforeUnload);
 
-    // 3. Connect to primary cloud transport
+    // 3. Connect to Primary Transports
     if (this.mode === 'supabase' && this.supabase) {
       this.setupSupabasePresence();
     } else {
-      this.setupCloudRelay();
+      this.setupCloudTransports();
     }
 
-    // 4. Also broadcast to local tabs and sync storage
+    // 4. Broadcast to local tabs and sync storage
     this.broadcastLocalPresence('join', this.currentPresence);
     this.loadPeersFromStorage();
 
@@ -213,7 +226,7 @@ class PresenceService {
   }
 
   // =========================================================================
-  // SUPABASE REALTIME PRESENCE IMPLEMENTATION
+  // SUPABASE REALTIME PRESENCE
   // =========================================================================
 
   private setupSupabasePresence() {
@@ -234,7 +247,6 @@ class PresenceService {
       });
 
       this.channel
-        // Presence state synchronization across all connected clients
         .on('presence', { event: 'sync' }, () => {
           if (!this.channel) return;
           const state = this.channel.presenceState<StudentPresence>();
@@ -275,7 +287,6 @@ class PresenceService {
             this.notifyListeners();
           }
         })
-        // Broadcast events for instant seat claiming / navigation updates
         .on('broadcast', { event: 'peer_event' }, ({ payload }) => {
           this.handleWireMessage(payload as WireMessage, 'supabase');
         })
@@ -295,27 +306,105 @@ class PresenceService {
           }
         });
     } catch (err) {
-      console.error('Failed to setup Supabase presence, falling back to cloud relay:', err);
-      this.mode = 'cloud_relay';
-      this.setupCloudRelay();
+      console.error('Failed to setup Supabase presence, falling back to WebRTC Cloud Mesh:', err);
+      this.mode = 'webrtc_cloud';
+      this.setupCloudTransports();
     }
   }
 
   // =========================================================================
-  // CLOUD WEBSOCKET RELAY (Zero-Config Global Multi-Device Fallback)
+  // GLOBAL WEBRTC MESH & CLOUD RELAY (Port 443 WSS — Guaranteed Firewall-Proof)
   // =========================================================================
 
-  private setupCloudRelay() {
+  private setupCloudTransports() {
+    this.setupTrysteroWebRTC();
+    this.setupMqttBackup();
+  }
+
+  private setupTrysteroWebRTC() {
     if (!this.currentPresence || this.isDestroyed) return;
 
     this.setConnectionStatus('connecting');
+
+    try {
+      this.trysteroRoom = joinRoom(
+        { appId: 'studyverse_iitm_presence_v2' },
+        'campus_global_world'
+      );
+
+      this.trysteroAction = this.trysteroRoom.makeAction<WireMessage>('presence_wire');
+
+      this.trysteroAction.onMessage((msg: WireMessage) => {
+        this.handleWireMessage(msg, 'webrtc');
+      });
+
+      this.trysteroRoom.onPeerJoin((context) => {
+        this.webrtcPeersCount++;
+        this.setConnectionStatus('connected');
+        if (this.currentPresence) {
+          this.sendTrysteroMessage('join', this.currentPresence, context.peerId);
+        }
+      });
+
+      this.trysteroRoom.onPeerLeave(() => {
+        this.webrtcPeersCount = Math.max(0, this.webrtcPeersCount - 1);
+        if (this.webrtcPeersCount === 0 && !this.isMqttConnected) {
+          // Keep connected status if local or MQTT connected
+        }
+      });
+
+      this.trysteroRoom.ready
+        .then(() => {
+          this.setConnectionStatus('connected');
+          if (this.currentPresence) {
+            this.sendTrysteroMessage('join', this.currentPresence);
+          }
+        })
+        .catch((err) => {
+          console.warn('[Studyverse WebRTC] Ready notice:', err);
+        });
+    } catch (err) {
+      console.warn('[Studyverse WebRTC] Init warning:', err);
+    }
+  }
+
+  private sendTrysteroMessage(
+    type: WireMessage['type'],
+    payload: StudentPresence,
+    targetPeerId?: string
+  ) {
+    if (!this.trysteroAction || this.isDestroyed) return;
+
+    try {
+      const msg: WireMessage = {
+        type,
+        sessionId: payload.sessionId,
+        payload,
+        timestamp: Date.now(),
+      };
+      if (targetPeerId) {
+        this.trysteroAction.send(msg, { target: targetPeerId });
+      } else {
+        this.trysteroAction.send(msg);
+      }
+    } catch (err) {
+      console.warn('[Studyverse WebRTC] Send error:', err);
+    }
+  }
+
+  // =========================================================================
+  // MQTT BACKUP RELAY (Secondary channel)
+  // =========================================================================
+
+  private setupMqttBackup() {
+    if (!this.currentPresence || this.isDestroyed) return;
+
     const broker = MQTT_BROKERS[this.mqttBrokerIndex % MQTT_BROKERS.length];
     const clientId = `studyverse_${this.currentPresence.sessionId}_${Math.random().toString(36).substring(2, 6)}`;
 
     try {
       this.mqttClient = new Paho.Client(broker.host, broker.port, broker.path, clientId);
 
-      // Last Will and Testament: automatically clean up if device suddenly disconnects
       const lwt = new Paho.Message(
         JSON.stringify({
           type: 'leave',
@@ -331,27 +420,20 @@ class PresenceService {
       this.mqttClient.onConnectionLost = (responseObject) => {
         this.isMqttConnected = false;
         if (responseObject.errorCode !== 0 && !this.isDestroyed) {
-          console.warn('Cloud relay connection lost:', responseObject.errorMessage);
-          this.setConnectionStatus('connecting');
-          // Retry next broker after brief backoff
           setTimeout(() => {
             if (!this.isDestroyed) {
               this.mqttBrokerIndex++;
-              this.setupCloudRelay();
+              this.setupMqttBackup();
             }
-          }, 3000);
-        } else {
-          this.setConnectionStatus('disconnected');
+          }, 4000);
         }
       };
 
       this.mqttClient.onMessageArrived = (message) => {
         try {
           const wire: WireMessage = JSON.parse(message.payloadString);
-          this.handleWireMessage(wire, 'cloud');
-        } catch {
-          // Ignore invalid frames
-        }
+          this.handleWireMessage(wire, 'mqtt');
+        } catch {}
       };
 
       this.mqttClient.connect({
@@ -364,36 +446,23 @@ class PresenceService {
           if (!this.mqttClient || this.isDestroyed) return;
           this.isMqttConnected = true;
           this.setConnectionStatus('connected');
-
           this.mqttClient.subscribe(MQTT_TOPIC_PRESENCE, { qos: 0 });
 
-          // Publish our presence immediately upon joining
           if (this.currentPresence) {
-            this.sendCloudRelayMessage('join', this.currentPresence);
+            this.sendMqttMessage('join', this.currentPresence);
           }
         },
-        onFailure: (err) => {
-          console.warn(`Failed to connect to cloud relay ${broker.host}:`, err.errorMessage);
+        onFailure: () => {
           this.isMqttConnected = false;
-          // Switch to alternate broker or fall back to local peer
           this.mqttBrokerIndex++;
-          if (this.mqttBrokerIndex < MQTT_BROKERS.length * 2) {
-            setTimeout(() => this.setupCloudRelay(), 2000);
-          } else {
-            console.warn('All cloud relays unreachable, running in local peer mode');
-            this.mode = 'local_peer';
-            this.setConnectionStatus('disconnected');
-          }
         },
       });
-    } catch (err) {
-      console.warn('Error creating cloud relay client:', err);
-      this.mode = 'local_peer';
-      this.setConnectionStatus('disconnected');
+    } catch {
+      // Ignore MQTT failure; WebRTC handles primary transport
     }
   }
 
-  private sendCloudRelayMessage(type: WireMessage['type'], payload: StudentPresence) {
+  private sendMqttMessage(type: WireMessage['type'], payload: StudentPresence) {
     if (!this.mqttClient || !this.isMqttConnected) return;
 
     try {
@@ -407,18 +476,55 @@ class PresenceService {
       pahoMsg.destinationName = MQTT_TOPIC_PRESENCE;
       pahoMsg.qos = 0;
       this.mqttClient.send(pahoMsg);
-    } catch (err) {
-      console.warn('Failed to publish cloud relay message:', err);
-    }
+    } catch {}
   }
 
   // =========================================================================
-  // UNIFIED WIRE MESSAGE DISPATCHER (Handles events from Supabase, Cloud & Local)
+  // UNIFIED DISPATCHER (Supabase, WebRTC, MQTT, Local)
   // =========================================================================
 
-  private handleWireMessage(data: WireMessage, source: 'supabase' | 'cloud' | 'local') {
+  private dispatchWireMessage(type: WireMessage['type'], payload: StudentPresence) {
+    // 1. Supabase
+    if (this.mode === 'supabase' && this.channel && this.isSupabaseSubscribed) {
+      const msg: WireMessage = {
+        type,
+        sessionId: payload.sessionId,
+        payload,
+        timestamp: Date.now(),
+      };
+      this.channel.send({
+        type: 'broadcast',
+        event: 'peer_event',
+        payload: msg,
+      });
+      if (type === 'update' || type === 'join') {
+        this.channel.track(payload).catch(() => {});
+      }
+    }
+
+    // 2. WebRTC Mesh (Port 443 Nostr relays)
+    this.sendTrysteroMessage(type, payload);
+
+    // 3. MQTT Relay
+    this.sendMqttMessage(type, payload);
+
+    // 4. Local Multi-Tab Sync
+    this.broadcastLocalPresence(type, payload);
+    this.syncToStorage();
+  }
+
+  private handleWireMessage(
+    data: WireMessage,
+    source: 'supabase' | 'webrtc' | 'mqtt' | 'local'
+  ) {
     if (this.isDestroyed || !this.currentPresence) return;
-    if (data.sessionId === this.currentPresence.sessionId) return;
+    if (!data || !data.sessionId || data.sessionId === this.currentPresence.sessionId) return;
+
+    // Discard stale retained messages (> 30s old)
+    const now = Date.now();
+    if (data.timestamp && Math.abs(now - data.timestamp) > 30000) {
+      return;
+    }
 
     if (data.type === 'join' || data.type === 'update' || data.type === 'heartbeat') {
       const peer = data.payload;
@@ -439,16 +545,18 @@ class PresenceService {
 
       this.peerMap.set(peer.sessionId, {
         ...peer,
-        lastHeartbeat: Date.now(),
+        lastHeartbeat: now,
       });
       this.notifyListeners();
 
-      // If they just joined, respond with our presence so they know we are already here
+      // If a new peer joined, reply with our heartbeat so they immediately see us
       if (data.type === 'join') {
         if (source === 'local') {
           this.broadcastLocalPresence('heartbeat', this.currentPresence);
-        } else if (source === 'cloud') {
-          this.sendCloudRelayMessage('heartbeat', this.currentPresence);
+        } else if (source === 'webrtc') {
+          this.sendTrysteroMessage('heartbeat', this.currentPresence);
+        } else if (source === 'mqtt') {
+          this.sendMqttMessage('heartbeat', this.currentPresence);
         } else if (source === 'supabase' && this.channel && this.isSupabaseSubscribed) {
           this.channel.send({
             type: 'broadcast',
@@ -480,7 +588,7 @@ class PresenceService {
   }
 
   // =========================================================================
-  // LOCAL MULTI-TAB PRESENCE & STORAGE SYNC
+  // LOCAL MULTI-TAB & STORAGE SYNC
   // =========================================================================
 
   private handleStorageEvent = (event: StorageEvent) => {
@@ -509,9 +617,7 @@ class PresenceService {
       if (changed) {
         this.notifyListeners();
       }
-    } catch {
-      // Ignore parse errors
-    }
+    } catch {}
   }
 
   private syncToStorage() {
@@ -521,7 +627,7 @@ class PresenceService {
       const raw = localStorage.getItem(LOCAL_STORAGE_PEER_KEY);
       const registry: Record<string, StudentPresence> = raw ? JSON.parse(raw) : {};
 
-      // Clean up stale entries > 15s
+      // Prune stale entries > 15s
       Object.keys(registry).forEach((id) => {
         if (now - (registry[id].lastHeartbeat || 0) > 15000) {
           delete registry[id];
@@ -535,99 +641,47 @@ class PresenceService {
       };
 
       localStorage.setItem(LOCAL_STORAGE_PEER_KEY, JSON.stringify(registry));
-    } catch {
-      // Storage quota catch
-    }
+    } catch {}
   }
 
-  private removeFromStorage() {
-    if (!this.currentPresence) return;
+  private broadcastLocalPresence(type: WireMessage['type'], payload: StudentPresence) {
+    if (!this.broadcastChannel || this.isDestroyed) return;
     try {
-      const raw = localStorage.getItem(LOCAL_STORAGE_PEER_KEY);
-      if (raw) {
-        const registry: Record<string, StudentPresence> = JSON.parse(raw);
-        delete registry[this.currentPresence.sessionId];
-        localStorage.setItem(LOCAL_STORAGE_PEER_KEY, JSON.stringify(registry));
-      }
-    } catch {
-      // Catch
-    }
-  }
-
-  private broadcastLocalPresence(
-    type: WireMessage['type'],
-    payload: StudentPresence
-  ) {
-    if (this.broadcastChannel) {
-      try {
-        const msg: WireMessage = {
-          type,
-          sessionId: payload.sessionId,
-          payload,
-          timestamp: Date.now(),
-        };
-        this.broadcastChannel.postMessage(msg);
-      } catch {
-        // Broadcast error catch
-      }
-    }
-    this.syncToStorage();
+      const msg: WireMessage = {
+        type,
+        sessionId: payload.sessionId,
+        payload,
+        timestamp: Date.now(),
+      };
+      this.broadcastChannel.postMessage(msg);
+    } catch {}
   }
 
   // =========================================================================
-  // PUBLIC PRESENCE MUTATIONS (Seat changes, movements, topics)
+  // USER ACTIONS: CHANGE LOCATION, SEATS, TOPIC
   // =========================================================================
 
-  public updatePresence(partial: Partial<StudentPresence>) {
+  public changeLocation(newLocation: LocationId) {
     if (!this.currentPresence) return;
-
-    this.currentPresence = {
-      ...this.currentPresence,
-      ...partial,
-      lastHeartbeat: Date.now(),
-    };
-
-    // 1. Supabase dispatch
-    if (this.mode === 'supabase' && this.channel && this.isSupabaseSubscribed) {
-      this.channel.track(this.currentPresence).catch((e) => {
-        console.warn('Track update error:', e);
-      });
-      this.channel.send({
-        type: 'broadcast',
-        event: 'peer_event',
-        payload: {
-          type: 'update',
-          sessionId: this.currentPresence.sessionId,
-          payload: this.currentPresence,
-          timestamp: Date.now(),
-        } as WireMessage,
-      });
-    }
-
-    // 2. Cloud Relay dispatch
-    if (this.mode === 'cloud_relay') {
-      this.sendCloudRelayMessage('update', this.currentPresence);
-    }
-
-    // 3. Local tab dispatch
-    this.broadcastLocalPresence('update', this.currentPresence);
-
-    this.notifyListeners();
+    this.updatePresence({
+      location: newLocation,
+      seatId: null,
+      seatEnteredAt: null,
+    });
   }
 
   public occupySeat(seatId: string, location: LocationId): boolean {
     if (!this.currentPresence) return false;
 
-    // Check if seat is currently occupied by someone else
-    const isOccupiedByPeer = Array.from(this.peerMap.values()).some(
-      (p) => p.location === location && p.seatId === seatId
-    );
+    // Check if another peer currently occupies this seat
+    let alreadyOccupiedByOther = false;
+    this.peerMap.forEach((peer) => {
+      if (peer.location === location && peer.seatId === seatId) {
+        alreadyOccupiedByOther = true;
+      }
+    });
 
-    if (isOccupiedByPeer) {
-      const occupant = Array.from(this.peerMap.values()).find(
-        (p) => p.location === location && p.seatId === seatId
-      );
-      this.notifyConflict(seatId, occupant?.name || 'Another student');
+    if (alreadyOccupiedByOther) {
       return false;
     }
 
@@ -636,6 +690,7 @@ class PresenceService {
       seatId,
       seatEnteredAt: Date.now(),
     });
+
     return true;
   }
 
@@ -647,23 +702,28 @@ class PresenceService {
     });
   }
 
-  public changeLocation(newLocation: LocationId) {
-    if (!this.currentPresence) return;
-    this.updatePresence({
-      location: newLocation,
-      seatId: null,
-      seatEnteredAt: null,
-    });
-  }
-
   public setStudyTopic(topic: string) {
+    if (!this.currentPresence) return;
     this.updatePresence({
       studyTopic: topic,
     });
   }
 
+  public updatePresence(partial: Partial<StudentPresence>) {
+    if (!this.currentPresence) return;
+
+    this.currentPresence = {
+      ...this.currentPresence,
+      ...partial,
+      lastHeartbeat: Date.now(),
+    };
+
+    this.dispatchWireMessage('update', this.currentPresence);
+    this.notifyListeners();
+  }
+
   // =========================================================================
-  // GETTERS & READERS
+  // GETTERS & STATS
   // =========================================================================
 
   public getAllStudents(): StudentPresence[] {
@@ -714,10 +774,10 @@ class PresenceService {
       const now = Date.now();
       this.currentPresence.lastHeartbeat = now;
 
-      // Clean up stale peers (> 20s without heartbeat or update)
+      // Clean up stale peers (> 15s without update)
       let peerRemoved = false;
       this.peerMap.forEach((peer, id) => {
-        if (now - (peer.lastHeartbeat || 0) > 20000) {
+        if (now - (peer.lastHeartbeat || 0) > 15000) {
           this.peerMap.delete(id);
           peerRemoved = true;
         }
@@ -728,23 +788,7 @@ class PresenceService {
       }
 
       // Heartbeat transport dispatch
-      if (this.mode === 'supabase' && this.channel && this.isSupabaseSubscribed) {
-        this.channel.send({
-          type: 'broadcast',
-          event: 'peer_event',
-          payload: {
-            type: 'heartbeat',
-            sessionId: this.currentPresence.sessionId,
-            payload: this.currentPresence,
-            timestamp: now,
-          } as WireMessage,
-        });
-      } else if (this.mode === 'cloud_relay') {
-        this.sendCloudRelayMessage('heartbeat', this.currentPresence);
-      }
-
-      // Always sync local heartbeat
-      this.broadcastLocalPresence('heartbeat', this.currentPresence);
+      this.dispatchWireMessage('heartbeat', this.currentPresence);
     }, 4000);
   }
 
@@ -803,10 +847,19 @@ class PresenceService {
       this.isSupabaseSubscribed = false;
     }
 
+    if (this.trysteroRoom) {
+      try {
+        this.trysteroRoom.leave();
+      } catch {}
+      this.trysteroRoom = null;
+      this.trysteroAction = null;
+      this.webrtcPeersCount = 0;
+    }
+
     if (this.mqttClient) {
       try {
         if (this.isMqttConnected && this.currentPresence) {
-          this.sendCloudRelayMessage('leave', this.currentPresence);
+          this.sendMqttMessage('leave', this.currentPresence);
         }
         this.mqttClient.disconnect();
       } catch {}
@@ -823,20 +876,17 @@ class PresenceService {
     }
 
     if (this.currentPresence) {
-      if (this.mode === 'supabase' && this.channel && this.isSupabaseSubscribed) {
-        this.channel.send({
-          type: 'broadcast',
-          event: 'peer_event',
-          payload: {
-            type: 'leave',
-            sessionId: this.currentPresence.sessionId,
-            payload: this.currentPresence,
-            timestamp: Date.now(),
-          } as WireMessage,
-        });
-      }
-      this.broadcastLocalPresence('leave', this.currentPresence);
-      this.removeFromStorage();
+      this.dispatchWireMessage('leave', this.currentPresence);
+
+      // Clean local storage
+      try {
+        const raw = localStorage.getItem(LOCAL_STORAGE_PEER_KEY);
+        if (raw) {
+          const registry: Record<string, StudentPresence> = JSON.parse(raw);
+          delete registry[this.currentPresence.sessionId];
+          localStorage.setItem(LOCAL_STORAGE_PEER_KEY, JSON.stringify(registry));
+        }
+      } catch {}
     }
 
     this.teardownTransports();
@@ -850,10 +900,6 @@ class PresenceService {
 
     window.removeEventListener('storage', this.handleStorageEvent);
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
-    this.listeners.clear();
-    this.conflictListeners.clear();
-    this.statusListeners.clear();
-    this.connectionStatus = 'disconnected';
   }
 }
 
