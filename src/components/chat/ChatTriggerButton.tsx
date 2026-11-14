@@ -31,11 +31,18 @@ export const ChatTriggerButton: React.FC<ChatTriggerButtonProps> = ({
     };
   }, []);
 
+  const handleClick = () => {
+    if (!isOpen && typeof window !== 'undefined' && window.innerWidth < 768) {
+      window.dispatchEvent(new CustomEvent('studyverse:panel-opened', { detail: { panel: 'chat' } }));
+    }
+    onToggle();
+  };
+
   return (
     <button
-      onClick={onToggle}
+      onClick={handleClick}
       type="button"
-      className="fixed bottom-6 right-6 z-40 px-3.5 py-2.5 rounded-full bg-[#2d5a43] hover:bg-[#1e402e] text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border-2 border-[#fffdfa]/30 cursor-pointer group"
+      className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 px-3.5 py-2.5 rounded-full bg-[#2d5a43] hover:bg-[#1e402e] text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 border-2 border-[#fffdfa]/30 cursor-pointer group select-none"
       title={`${locationName} Room Chat${isQuiet ? ' (Do Not Disturb ON)' : ''}`}
       aria-label={`Open ${locationName} Chat`}
     >

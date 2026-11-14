@@ -329,8 +329,8 @@ export function App() {
         </p>
       </footer>
 
-      {/* Global Personal Focus / Pomodoro Timer */}
-      <FocusTimer />
+      {/* Global Unified Study Timer Utility (Pomodoro, Stopwatch, Study Duration) */}
+      <FocusTimer currentUser={currentUser} />
     </div>
   );
 }

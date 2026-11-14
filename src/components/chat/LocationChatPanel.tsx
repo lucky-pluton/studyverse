@@ -66,6 +66,18 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
     };
   }, [locationId, currentUser.sessionId, currentUser.isDnd]);
 
+  // Mutual collision avoidance with Timer utility on mobile viewports (< 768px)
+  useEffect(() => {
+    const handlePanelOpened = (e: Event) => {
+      const custom = e as CustomEvent<{ panel: string }>;
+      if (typeof window !== 'undefined' && window.innerWidth < 768 && custom.detail?.panel === 'timer') {
+        onClose();
+      }
+    };
+    window.addEventListener('studyverse:panel-opened', handlePanelOpened);
+    return () => window.removeEventListener('studyverse:panel-opened', handlePanelOpened);
+  }, [onClose]);
+
   // Keep internal quiet state in sync with currentUser.isDnd
   useEffect(() => {
     if (currentUser.isDnd !== undefined && currentUser.isDnd !== isQuiet) {
@@ -179,7 +191,7 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-sm h-[560px] max-h-[85vh] bg-[#fffdfa] rounded-3xl border-2 border-[#ded4c5] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-3 duration-200 text-[#302a24]"
+      className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-sm h-[560px] max-h-[85vh] bg-[#fffdfa] rounded-3xl border-2 border-[#ded4c5] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-3 duration-200 text-[#302a24]"
       role="dialog"
       aria-label={`${locationDef.name} Chat`}
     >

@@ -136,7 +136,15 @@ export const LocationView: React.FC<LocationViewProps> = ({
         {/* Occupant Counter, Chat Toggle, DND Toggle & Seat Status */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <button
-            onClick={() => setIsChatOpen((prev) => !prev)}
+            onClick={() => {
+              setIsChatOpen((prev) => {
+                const next = !prev;
+                if (next && typeof window !== 'undefined' && window.innerWidth < 768) {
+                  window.dispatchEvent(new CustomEvent('studyverse:panel-opened', { detail: { panel: 'chat' } }));
+                }
+                return next;
+              });
+            }}
             type="button"
             className={`px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               isChatOpen
