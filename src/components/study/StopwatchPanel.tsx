@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import type { StopwatchLap, StoredStopwatchState } from '../../types/stopwatch';
 import { formatStopwatchTime, formatLapSplit } from '../../utils/stopwatchFormatters';
+import { studyStatsService } from '../../services/studyStatsService';
 
 const STOPWATCH_STORAGE_KEY = 'studyverse_stopwatch_state';
 
@@ -28,6 +29,7 @@ export const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
   // References to guarantee exact timestamp math without interval drift
   const startTimeRef = useRef<number | null>(null);
   const accumulatedMsRef = useRef<number>(0);
+  const lastStatsSyncRef = useRef<number>(0);
 
   // Helper to persist state to localStorage
   const persistState = useCallback(
@@ -99,8 +101,15 @@ export const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     const tick = () => {
       if (!startTimeRef.current) return;
       const now = Date.now();
-      const current = accumulatedMsRef.current + (now - startTimeRef.current);
+      const currentRun = now - startTimeRef.current;
+      const current = accumulatedMsRef.current + currentRun;
       setElapsedMs(current);
+
+      // Throttled real-time sync with Study Statistics (~1s interval)
+      if (now - lastStatsSyncRef.current >= 1000) {
+        lastStatsSyncRef.current = now;
+        studyStatsService.updateStopwatchTime(current, currentRun);
+      }
     };
 
     tick();
@@ -118,6 +127,10 @@ export const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
+      if (startTimeRef.current) {
+        const curRun = Date.now() - startTimeRef.current;
+        studyStatsService.updateStopwatchTime(accumulatedMsRef.current + curRun, curRun);
+      }
     };
   }, [isRunning]);
 
@@ -126,9 +139,12 @@ export const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     const now = Date.now();
     startTimeRef.current = now;
     accumulatedMsRef.current = 0;
+    lastStatsSyncRef.current = now;
     setElapsedMs(0);
     setIsRunning(true);
     setShowResetConfirm(false);
+    studyStatsService.recordStopwatchSessionStart();
+    studyStatsService.updateStopwatchTime(0, 0);
     persistState(true, now, 0, laps);
   };
 
@@ -143,14 +159,18 @@ export const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     setIsRunning(false);
     setElapsedMs(totalMs);
     setShowResetConfirm(false);
+    studyStatsService.updateStopwatchTime(totalMs, currentRunMs);
     persistState(false, null, totalMs, laps);
   };
 
   const handleResume = () => {
     const now = Date.now();
     startTimeRef.current = now;
+    lastStatsSyncRef.current = now;
     setIsRunning(true);
     setShowResetConfirm(false);
+    studyStatsService.recordStopwatchSessionStart();
+    studyStatsService.updateStopwatchTime(accumulatedMsRef.current, 0);
     persistState(true, now, accumulatedMsRef.current, laps);
   };
 
@@ -191,6 +211,7 @@ export const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     setElapsedMs(0);
     setLaps([]);
     setShowResetConfirm(false);
+    studyStatsService.updateStopwatchTime(0, 0);
     persistState(false, null, 0, []);
   };
 

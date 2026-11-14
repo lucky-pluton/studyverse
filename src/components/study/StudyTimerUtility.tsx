@@ -11,13 +11,16 @@ import {
   Timer,
   ChevronUp,
   BookOpen,
+  TrendingUp,
 } from 'lucide-react';
 import { soundService } from '../../services/soundService';
 import { StopwatchPanel } from './StopwatchPanel';
+import { StudyStatsPanel } from './StudyStatsPanel';
+import { studyStatsService } from '../../services/studyStatsService';
 import { formatDuration } from '../common/TimerBadge';
 import type { StudentPresence } from '../../types/studyverse';
 
-export type TimerTab = 'pomodoro' | 'stopwatch';
+export type TimerTab = 'pomodoro' | 'stopwatch' | 'stats';
 export type FocusMode = 'pomodoro' | 'short-break' | 'deep-focus' | 'long-break' | 'custom';
 
 interface FocusPreset {
@@ -168,9 +171,13 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
     []
   );
 
-  // 3. Accurate Pomodoro countdown ticker
+  // 3. Accurate Pomodoro countdown ticker & Study Statistics focus tracker
+  const lastFocusTickRef = useRef<number>(Date.now());
+
   useEffect(() => {
     if (!isPomodoroRunning || !endTimestampRef.current) return;
+
+    lastFocusTickRef.current = Date.now();
 
     const tick = () => {
       if (!endTimestampRef.current) return;
@@ -179,11 +186,25 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
 
       setRemainingSeconds(left);
 
+      // Accumulate active focus time strictly during focus categories (breaks are excluded!)
+      const isFocus = PRESETS[mode].category === 'focus';
+      if (isFocus) {
+        const deltaSec = Math.floor((now - lastFocusTickRef.current) / 1000);
+        if (deltaSec >= 1) {
+          studyStatsService.addPomodoroFocusSeconds(deltaSec);
+          lastFocusTickRef.current = now;
+        }
+      }
+
       if (left <= 0) {
         setIsPomodoroRunning(false);
         endTimestampRef.current = null;
 
         const isBreak = PRESETS[mode].category === 'break';
+        if (!isBreak) {
+          studyStatsService.incrementCompletedPomodoro();
+        }
+
         const msg = isBreak
           ? 'Break complete! Ready to begin your next focus session?'
           : 'Focus session complete! Time for a short break.';
@@ -215,20 +236,24 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
+      // Flush any pending focus seconds when pausing/unmounting
+      if (PRESETS[mode].category === 'focus') {
+        const deltaSec = Math.floor((Date.now() - lastFocusTickRef.current) / 1000);
+        if (deltaSec >= 1) {
+          studyStatsService.addPomodoroFocusSeconds(deltaSec);
+        }
+      }
     };
   }, [isPomodoroRunning, mode, soundEnabled, customMinutes, persistPomodoroState]);
 
-  // 4. Mutual collision avoidance with Chat on constrained viewports (< 1100px)
+  // Listen for open-timer-stats custom event from Navbar or shortcuts
   useEffect(() => {
-    const handlePanelOpened = (e: Event) => {
-      const custom = e as CustomEvent<{ panel: string }>;
-      if (typeof window !== 'undefined' && window.innerWidth < 1100 && custom.detail?.panel === 'chat') {
-        setIsOpen(false);
-        window.dispatchEvent(new CustomEvent('studyverse:panel-closed', { detail: { panel: 'timer' } }));
-      }
+    const handleOpenStats = () => {
+      setActiveTab('stats');
+      setIsOpen(true);
     };
-    window.addEventListener('studyverse:panel-opened', handlePanelOpened);
-    return () => window.removeEventListener('studyverse:panel-opened', handlePanelOpened);
+    window.addEventListener('studyverse:open-timer-stats', handleOpenStats);
+    return () => window.removeEventListener('studyverse:open-timer-stats', handleOpenStats);
   }, []);
 
   const handleOpenUtility = () => {
@@ -516,12 +541,12 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
               </div>
             </div>
 
-            {/* 2. Segmented Tab Switcher (Pomodoro vs Stopwatch) */}
+            {/* 2. Segmented Tab Switcher (Pomodoro vs Stopwatch vs Statistics) */}
             <div className="flex p-1 bg-[#ede4d8] rounded-2xl gap-1 shrink-0">
               <button
                 onClick={() => setActiveTab('pomodoro')}
                 type="button"
-                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'pomodoro'
                     ? 'bg-white text-[#2d5a43] shadow-xs'
                     : 'text-[#6b5d4f] hover:text-[#332b24]'
@@ -536,7 +561,7 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
               <button
                 onClick={() => setActiveTab('stopwatch')}
                 type="button"
-                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   activeTab === 'stopwatch'
                     ? 'bg-white text-[#784824] shadow-xs'
                     : 'text-[#6b5d4f] hover:text-[#332b24]'
@@ -546,6 +571,18 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
                 {isStopwatchRunning && (
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                 )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('stats')}
+                type="button"
+                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeTab === 'stats'
+                    ? 'bg-white text-[#2d5a43] shadow-xs font-bold'
+                    : 'text-[#6b5d4f] hover:text-[#332b24]'
+                }`}
+              >
+                <span>📊 Stats</span>
               </button>
             </div>
 
@@ -672,22 +709,38 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
                   />
                 </div>
               )}
+
+              {/* TAB 3: STUDY STATISTICS */}
+              {activeTab === 'stats' && (
+                <div className="animate-in fade-in duration-150">
+                  <StudyStatsPanel
+                    currentUser={currentUser}
+                    isPomodoroRunning={isPomodoroRunning}
+                    isStopwatchRunning={isStopwatchRunning}
+                    currentPomodoroMode={mode}
+                  />
+                </div>
+              )}
             </div>
 
-            {/* 4. Footer: Persistent Study Duration Readout */}
+            {/* 4. Footer: Persistent Study Duration Readout & Stats Shortcut */}
             <div className="pt-2 border-t border-[#e8ded0] flex items-center justify-between text-[11px] text-[#6d5e4f] shrink-0 bg-[#fbf8f3] -mx-4 -mb-4 p-3 rounded-b-3xl">
               <div className="flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5 text-[#2d5a43]" />
                 <span>
-                  Study Session: <strong className="text-[#2b241e]">{sessionDuration}</strong>
+                  Session: <strong className="text-[#2b241e]">{sessionDuration}</strong>
                 </span>
               </div>
 
-              {currentUser?.studyTopic && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eee5d8] font-medium text-[#4a3f32] truncate max-w-[120px]">
-                  {currentUser.studyTopic}
-                </span>
-              )}
+              <button
+                onClick={() => setActiveTab(activeTab === 'stats' ? 'pomodoro' : 'stats')}
+                type="button"
+                className="text-[10px] px-2.5 py-1 rounded-full bg-[#eee5d8] hover:bg-[#e2d5c3] font-medium text-[#4a3f32] flex items-center gap-1.5 transition-colors cursor-pointer"
+                title={activeTab === 'stats' ? 'Return to Pomodoro timer' : 'View study statistics breakdown'}
+              >
+                <TrendingUp className="w-3 h-3 text-[#2d5a43]" />
+                <span>{activeTab === 'stats' ? 'Timers' : 'Stats'}</span>
+              </button>
             </div>
           </div>
         )}

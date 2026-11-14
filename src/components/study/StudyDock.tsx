@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import type { StudentPresence } from '../../types/studyverse';
 import { formatDuration, formatDetailedDuration } from '../common/TimerBadge';
 import { STUDY_TOPICS } from '../../constants/avatars';
-import { LogOut, Tag, Sparkles, CheckCircle2, Moon } from 'lucide-react';
+import { LogOut, Tag, CheckCircle2, Moon } from 'lucide-react';
 import { soundService } from '../../services/soundService';
 
 interface StudyDockProps {
   currentUser: StudentPresence;
   currentSeatName: string;
+  locationName?: string;
+  locationIcon?: string;
   onLeaveSeat: () => void;
   onChangeTopic: (topic: string) => void;
   onToggleDnd?: () => void;
@@ -16,6 +18,8 @@ interface StudyDockProps {
 export const StudyDock: React.FC<StudyDockProps> = ({
   currentUser,
   currentSeatName,
+  locationName,
+  locationIcon,
   onLeaveSeat,
   onChangeTopic,
   onToggleDnd,
@@ -36,38 +40,39 @@ export const StudyDock: React.FC<StudyDockProps> = ({
     onLeaveSeat();
   };
 
+  const displayName = locationName ? `${locationName} • ${currentSeatName}` : currentSeatName;
+
   return (
-    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-[450px] px-3 sm:px-4 animate-in slide-in-from-bottom-5 duration-300 pointer-events-none select-none">
-      <div className="pointer-events-auto bg-[#fffdfa]/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border-2 border-[#d9cdbe] shadow-2xl p-3 sm:p-3.5 text-[#35302a] flex flex-col gap-2.5 transition-all">
-        {/* TIER 1: Seat Info & Dual Live Timers */}
-        <div className="flex items-center justify-between gap-2.5 min-w-0 w-full">
-          {/* Left: Seat info & Seat status */}
+    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-4xl px-3 sm:px-4 pointer-events-none select-none animate-in slide-in-from-bottom-5 duration-300">
+      <div className="pointer-events-auto bg-[#fffdfa]/95 backdrop-blur-md rounded-2xl sm:rounded-3xl border-2 border-[#d9cdbe] shadow-2xl p-3 sm:p-3.5 lg:p-4 text-[#35302a] flex flex-col lg:flex-row items-center justify-between gap-3 lg:gap-4 transition-all">
+        {/* Top/Left Section: Location Icon, Currently Seated Indicator & Names */}
+        <div className="flex items-center justify-between lg:justify-start gap-2.5 sm:gap-3 min-w-0 w-full lg:w-auto shrink">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[#52796f] text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Sparkles className="w-4 h-4 text-amber-200" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#52796f] text-white flex items-center justify-center shrink-0 shadow-xs text-base sm:text-lg">
+              {locationIcon || '🏛️'}
             </div>
 
             <div className="text-left min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[#7a6d5f]">
+                <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[#7a6d5f]">
                   Currently Seated
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
               </div>
               <div
-                className="font-serif-title font-bold text-xs sm:text-sm text-[#27231f] truncate max-w-[140px] sm:max-w-[170px]"
-                title={currentSeatName}
+                className="font-serif-title font-bold text-xs sm:text-sm text-[#27231f] truncate max-w-[170px] sm:max-w-[210px] xl:max-w-[260px]"
+                title={displayName}
               >
-                {currentSeatName}
+                {displayName}
               </div>
             </div>
           </div>
 
-          {/* Right: Dual Live Timers (Seat Time vs Session) */}
-          <div className="flex items-center gap-2.5 py-1 px-2.5 bg-[#f3ece0] rounded-xl border border-[#e5d9c7] shrink-0">
+          {/* On screens < lg: Show dual live timers beside seat info on row 1 */}
+          <div className="flex lg:hidden items-center gap-2 py-1 px-2.5 bg-[#f3ece0] rounded-xl border border-[#e5d9c7] shrink-0">
             <div className="text-center">
               <span className="block text-[8px] uppercase tracking-wider text-[#7a6f62] font-semibold">
-                Seat Time
+                Seat
               </span>
               <span className="font-mono-timer text-xs font-bold text-[#345946]">
                 {seatTime}
@@ -87,8 +92,31 @@ export const StudyDock: React.FC<StudyDockProps> = ({
           </div>
         </div>
 
-        {/* TIER 2: Action Controls Row (DND + Focus Topic + Leave Seat) */}
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#ebdcd0]/80 w-full min-w-0">
+        {/* Center Section: Dual Live Timers (Desktop Horizontal Row) */}
+        <div className="hidden lg:flex items-center gap-3 py-1.5 px-3.5 bg-[#f3ece0] rounded-xl border border-[#e5d9c7] shrink-0">
+          <div className="text-center">
+            <span className="block text-[9px] uppercase tracking-wider text-[#7a6f62] font-semibold">
+              Seat Time
+            </span>
+            <span className="font-mono-timer text-sm font-bold text-[#345946]">
+              {seatTime}
+            </span>
+          </div>
+
+          <div className="w-[1px] h-6 bg-[#d9cdbe]" />
+
+          <div className="text-center">
+            <span className="block text-[9px] uppercase tracking-wider text-[#7a6f62] font-semibold">
+              Session
+            </span>
+            <span className="font-mono-timer text-xs font-semibold text-[#665a4c]">
+              {sessionTime}
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom/Right Section: DND Toggle, Deep Focus Tag & Leave Seat Button */}
+        <div className="flex items-center justify-between lg:justify-end gap-2 sm:gap-2.5 w-full lg:w-auto shrink-0 pt-2 lg:pt-0 border-t border-[#ebdcd0]/70 lg:border-t-0">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             {/* DND Toggle Button */}
             {onToggleDnd && (
@@ -116,7 +144,7 @@ export const StudyDock: React.FC<StudyDockProps> = ({
               </button>
             )}
 
-            {/* Study Topic Picker Button */}
+            {/* Study Focus Selector */}
             <div className="relative min-w-0">
               <button
                 onClick={() => setShowTopicMenu(!showTopicMenu)}
@@ -164,11 +192,11 @@ export const StudyDock: React.FC<StudyDockProps> = ({
             </div>
           </div>
 
-          {/* Leave Seat button (Always safely inside the container's right boundary) */}
+          {/* Leave Seat button (Always completely inside the right boundary) */}
           <button
             onClick={handleLeave}
             type="button"
-            className="px-3 sm:px-3.5 py-1.5 bg-[#8b4343] hover:bg-[#723232] text-white text-[11px] sm:text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-sm transition-all shrink-0 cursor-pointer active:scale-95"
+            className="px-3 sm:px-3.5 py-1.5 bg-[#8b4343] hover:bg-[#723232] text-white text-[11px] sm:text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-sm transition-all shrink-0 cursor-pointer active:scale-95 whitespace-nowrap"
             title="Leave this seat and stand up"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />

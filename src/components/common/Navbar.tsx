@@ -9,6 +9,7 @@ import {
   LogOut,
   MapPin,
   Wifi,
+  TrendingUp,
 } from 'lucide-react';
 import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyverse';
 import { soundService } from '../../services/soundService';
@@ -281,6 +282,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="text-[11px] font-bold">
                 {isDnd ? 'DND On' : 'DND'}
               </span>
+            </button>
+
+            {/* Study Statistics Shortcut Button */}
+            <button
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('studyverse:open-timer-stats'));
+              }}
+              type="button"
+              className="px-2.5 py-1.5 rounded-xl border bg-[#fbf8f3] hover:bg-[#ede5d8] border-[#ded3c2] text-[#4d4033] transition-colors cursor-pointer flex items-center gap-1.5"
+              title="Open Study Statistics & Focus Breakdown"
+              aria-label="Open Study Statistics"
+            >
+              <TrendingUp className="w-3.5 h-3.5 text-[#2d5a43]" />
+              <span className="hidden md:inline text-[11px] font-bold text-[#2d5a43]">Stats</span>
             </button>
 
             {/* Day / Sunset / Night Toggle */}

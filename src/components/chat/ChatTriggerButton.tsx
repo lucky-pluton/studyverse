@@ -32,9 +32,6 @@ export const ChatTriggerButton: React.FC<ChatTriggerButtonProps> = ({
   }, []);
 
   const handleClick = () => {
-    if (!isOpen && typeof window !== 'undefined' && window.innerWidth < 1100) {
-      window.dispatchEvent(new CustomEvent('studyverse:panel-opened', { detail: { panel: 'chat' } }));
-    }
     onToggle();
   };
 

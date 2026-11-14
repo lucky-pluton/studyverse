@@ -66,19 +66,6 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
     };
   }, [locationId, currentUser.sessionId, currentUser.isDnd]);
 
-  // Mutual collision avoidance with Timer utility on constrained viewports (< 1100px)
-  useEffect(() => {
-    const handlePanelOpened = (e: Event) => {
-      const custom = e as CustomEvent<{ panel: string }>;
-      if (typeof window !== 'undefined' && window.innerWidth < 1100 && custom.detail?.panel === 'timer') {
-        onClose();
-        window.dispatchEvent(new CustomEvent('studyverse:panel-closed', { detail: { panel: 'chat' } }));
-      }
-    };
-    window.addEventListener('studyverse:panel-opened', handlePanelOpened);
-    return () => window.removeEventListener('studyverse:panel-opened', handlePanelOpened);
-  }, [onClose]);
-
   // Keep internal quiet state in sync with currentUser.isDnd
   useEffect(() => {
     if (currentUser.isDnd !== undefined && currentUser.isDnd !== isQuiet) {
