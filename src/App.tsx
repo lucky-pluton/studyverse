@@ -6,6 +6,7 @@ import { OnboardingFlow } from './components/onboarding/OnboardingFlow';
 import { Navbar } from './components/common/Navbar';
 import { CampusMap } from './components/campus/CampusMap';
 import { LocationView } from './components/locations/LocationView';
+import { FocusTimer } from './components/study/FocusTimer';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<StudentPresence | null>(null);
@@ -254,6 +255,9 @@ export function App() {
           Not an official institute website. For quiet companions studying together everywhere.
         </p>
       </footer>
+
+      {/* Global Personal Focus / Pomodoro Timer */}
+      <FocusTimer />
     </div>
   );
 }

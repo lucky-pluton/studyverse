@@ -18,3 +18,4 @@ Each study location on the campus map SHALL display a floating occupancy status 
 #### Scenario: Occupancy changes in real time
 - **WHEN** a student occupies or vacates a seat at a study destination
 - **THEN** the occupancy status badge and count updates immediately across all connected clients.
+

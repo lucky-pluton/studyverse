@@ -123,6 +123,27 @@ Every major campus destination has its own physical, illustrated study room with
 
 ---
 
+## ⏱️ Personal Focus & Pomodoro Productivity Timer
+
+- **Presets**: 25m Pomodoro, 5m Short Break, 50m Deep Focus, 10m Long Break, and 1-120m Custom Slider.
+- **Background-Drift Immune**: Uses absolute target timestamps (`endTimestamp`) stored in `localStorage` (`studyverse_focus_timer`) so timers never freeze or lose time during tab throttling.
+- **Audio & Completion Prompts**: Plays a gentle 4-note peaceful crystal chime via Web Audio API and surfaces an in-app prompt to transition into a break or repeat session.
+- **Independent from Session Tracking**: Runs as a private, client-side productivity tool without disrupting seat occupancy or the campus study duration tracker.
+
+---
+
+## 🎨 Chibi Avatar System & Floating Study Timers
+
+- **Classic Chibi Proportions**: Cute rounded features, oversized heads (~1:1 ratio), expressive eyes with dual sparkle highlights, and blushing cheeks.
+- **Location-Appropriate Sitting Poses**:
+  - **Desk Pose**: For Central Library and Lecture Hall Complex with study desks and props.
+  - **Bench Pose**: For Sangam Gardens and Open Air Theatre with wooden slats and dangling legs.
+  - **Café Table Pose**: For Campus Café with round bistro tabletops and coffee mugs.
+  - **Tree Lawn Pose**: For Banyan Tree Grove and Gajendra Circle cross-legged on green grass.
+- **Tiny Floating Study Timers**: Soft cream pills with dark typography and an emerald presence dot positioned immediately above character heads, updating continuously.
+
+---
+
 ## 📋 OpenSpec Spec-Driven Development (SDD)
 
 Studyverse integrates with [OpenSpec](https://openspec.dev/) by Fission-AI for spec-driven engineering and AI agent alignment:
@@ -139,6 +160,7 @@ Active specifications are maintained under `openspec/specs/`:
 - `openspec/specs/campus-map/spec.md`: Campus Map & Occupancy
 - `openspec/specs/chibi-avatars/spec.md`: Chibi Avatar System & Sitting Poses
 - `openspec/specs/floating-study-timers/spec.md`: Tiny Floating Study Timers
+- `openspec/specs/focus-timer/spec.md`: Personal Focus & Pomodoro Timer
 - `openspec/specs/multiplayer-presence/spec.md`: Real-time Multiplayer Presence & Seat Exclusivity
 
 ---

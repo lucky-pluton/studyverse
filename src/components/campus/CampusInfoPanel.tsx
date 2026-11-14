@@ -23,7 +23,7 @@ export const CampusInfoPanel: React.FC<CampusInfoPanelProps> = ({
   className = '',
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'discovery'>('overview');
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   // Calculate live campus metrics
   const totalStudents = students.length;

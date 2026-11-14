@@ -18,3 +18,4 @@ Each study seat SHALL be exclusive to one student at a time.
 #### Scenario: Seat contention
 - **WHEN** two students attempt to claim the same seat concurrently
 - **THEN** the earlier occupant retains the seat and the second student is gently notified to select another spot.
+

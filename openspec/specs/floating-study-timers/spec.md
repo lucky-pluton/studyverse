@@ -18,3 +18,4 @@ The timer SHALL continuously recalculate and increment in real time without requ
 #### Scenario: Active study session
 - **WHEN** time elapses while a student is studying in a seat
 - **THEN** the floating pill updates seamlessly across all connected clients.
+

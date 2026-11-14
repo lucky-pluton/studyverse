@@ -6,13 +6,11 @@ import { LocationPreviewCard } from './LocationPreviewCard';
 import { CampusInfoPanel } from './CampusInfoPanel';
 import { CampusAvatarAnchor } from './CampusAvatarAnchor';
 import {
-  Users,
   ZoomIn,
   ZoomOut,
   RotateCcw,
   Lock,
   Compass,
-  ArrowRight,
 } from 'lucide-react';
 
 interface CampusMapProps {
@@ -74,66 +72,25 @@ export const CampusMap: React.FC<CampusMapProps> = ({
 
   const handleMouseUp = () => setIsDragging(false);
 
-  // Helper for live occupancy badges
-  const renderOccupancyStatusBadge = (locId: string, capacity: number) => {
-    const count = getOccupantCount(locId);
-    const percent = Math.round((count / capacity) * 100);
-
-    if (count === 0) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f1f5f2] text-[10px] font-semibold text-[#5a7364] border border-[#d2dfd7]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#84a98c]" />
-          <span>0 studying</span>
-        </span>
-      );
-    }
-
-    if (percent >= 100) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fef2f2] text-[10px] font-semibold text-[#991b1b] border border-[#fecaca] animate-pulse">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-          <span>{count} • Full</span>
-        </span>
-      );
-    }
-
-    if (percent >= 75) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#fffbeb] text-[10px] font-semibold text-[#92400e] border border-[#fde68a]">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-          <span>{count} • Nearly Full</span>
-        </span>
-      );
-    }
-
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f0fdf4] text-[10px] font-semibold text-[#166534] border border-[#bbf7d0]">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-        <Users className="w-3 h-3" />
-        <span>{count} studying</span>
-      </span>
-    );
-  };
-
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-5 space-y-6 animate-in fade-in duration-300">
       {/* Top Campus Welcome Banner & Live Census Bar */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#eaf3ee] via-[#f7f3ec] to-[#e8eee9] p-6 sm:p-7 border-2 border-[#d5e2d9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-5 overflow-hidden">
+      <div className="relative rounded-3xl bg-gradient-to-r from-[#eaf3ee] via-[#f7f3ec] to-[#e8eee9] p-4 sm:p-5 border-2 border-[#d5e2d9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 overflow-hidden">
         <div className="absolute right-4 -bottom-8 w-44 h-44 opacity-5 pointer-events-none text-9xl font-serif">
           🏛️
         </div>
 
-        <div className="space-y-1.5 z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#dbe8e0] text-xs font-semibold text-[#294d3a]">
+        <div className="space-y-1 z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-[#dbe8e0] text-xs font-semibold text-[#294d3a]">
             <Compass className="w-3.5 h-3.5 text-[#24523b]" />
             <span>IIT Madras Virtual Campus</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
           </div>
 
-          <h1 className="font-serif-title text-2xl sm:text-3xl font-bold text-[#1f3529] tracking-tight">
+          <h1 className="font-serif-title text-xl sm:text-2xl font-bold text-[#1f3529] tracking-tight">
             Live Campus Occupancy Map, {currentUser.name}.
           </h1>
-          <p className="text-xs sm:text-sm text-[#506357] max-w-2xl leading-relaxed">
+          <p className="text-xs text-[#506357] max-w-2xl leading-relaxed">
             {students.length <= 1
               ? "You're among the first learners to arrive today. Stroll down Delhi Avenue, settle under the Banyan Tree, or find a quiet desk in the Central Library."
               : `You are studying alongside ${students.length - 1} other student${
@@ -144,22 +101,22 @@ export const CampusMap: React.FC<CampusMapProps> = ({
 
         {/* Live Campus Telemetry Badge */}
         <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 z-10 w-full sm:w-auto">
-          <div className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-[#fffdfa] border border-[#ceddd4] shadow-xs flex items-center justify-between sm:justify-end gap-4">
-            <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
+          <div className="w-full sm:w-auto px-3.5 py-2 rounded-2xl bg-[#fffdfa] border border-[#ceddd4] shadow-xs flex items-center justify-between sm:justify-end gap-3.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
             <div className="text-left sm:text-right">
-              <span className="block text-[10px] uppercase font-bold text-[#62776a] tracking-wider">
+              <span className="block text-[9px] uppercase font-bold text-[#62776a] tracking-wider">
                 Online On Campus
               </span>
-              <span className="font-serif-title text-lg font-bold text-[#1b3326]">
+              <span className="font-serif-title text-base font-bold text-[#1b3326]">
                 {students.length} Student{students.length === 1 ? '' : 's'}
               </span>
             </div>
-            <div className="h-7 w-[1px] bg-[#dce7e1]" />
+            <div className="h-6 w-[1px] bg-[#dce7e1]" />
             <div className="text-left sm:text-right">
-              <span className="block text-[10px] uppercase font-bold text-[#62776a] tracking-wider">
+              <span className="block text-[9px] uppercase font-bold text-[#62776a] tracking-wider">
                 Occupied Spots
               </span>
-              <span className="font-serif-title text-lg font-bold text-[#2d5a43]">
+              <span className="font-serif-title text-base font-bold text-[#2d5a43]">
                 {activeLocationsCount} of {Object.keys(LOCATIONS).length}
               </span>
             </div>
@@ -174,7 +131,7 @@ export const CampusMap: React.FC<CampusMapProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        className={`relative w-full aspect-[16/9] max-h-[720px] min-h-[500px] rounded-3xl overflow-hidden border-2 border-[#c5d8cc] shadow-2xl bg-[#e5efe7] select-none ${
+        className={`relative w-full h-[78vh] min-h-[580px] max-h-[860px] rounded-3xl overflow-hidden border-2 border-[#c5d8cc] shadow-2xl bg-[#e5efe7] select-none ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
       >
@@ -349,32 +306,25 @@ export const CampusMap: React.FC<CampusMapProps> = ({
             onClick={() => setSelectedPreviewLocation(selectedPreviewLocation === 'library' ? null : 'library')}
             onMouseEnter={() => setHoveredLocation('library')}
             onMouseLeave={() => setHoveredLocation(null)}
-            className="interactive-destination absolute top-[21%] left-[48%] -translate-x-1/2 p-3 rounded-2xl bg-[#fffdfa] border-2 transition-all duration-300 cursor-pointer shadow-lg group hover:scale-105 z-30"
+            className="interactive-destination absolute top-[23%] left-[48%] -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full bg-[#fffdfa]/95 backdrop-blur-md border shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer group flex items-center gap-2 hover:scale-105 z-30"
             style={{
               borderColor: hoveredLocation === 'library' || selectedPreviewLocation === 'library' ? '#2d5a43' : '#cbd5e1',
             }}
           >
-            <div className="flex flex-col items-center text-center relative">
-              <div className="w-13 h-13 rounded-2xl bg-[#e5eee8] flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                🏛️
-              </div>
-              <span className="font-serif-title text-xs font-bold text-[#1f382a] mt-1.5 block">
+            <span className="text-sm">🏛️</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-serif-title text-xs font-bold text-[#1f382a] group-hover:text-[#2d5a43]">
                 Central Library
               </span>
-              <span className="text-[9px] text-[#556e5f] font-medium">
-                Academic Stacks
+              <span className="text-[10px] text-[#556e5f] font-medium flex items-center gap-1">
+                • <span className={`w-1.5 h-1.5 rounded-full ${getOccupantCount('library') > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-300'}`} />
+                <span className="font-semibold text-[#294d3a]">{getOccupantCount('library')} studying</span>
               </span>
-
-              {/* Real-time Occupancy Indicator */}
-              <div className="mt-1.5">
-                {renderOccupancyStatusBadge('library', LOCATIONS.library.seats.length)}
-              </div>
-
-              {/* LIVE AVATARS CLUSTER AT CENTRAL LIBRARY */}
-              <div className="mt-2">
-                <LocationAvatarCluster students={getStudentsAtLocation('library')} maxVisible={3} />
-              </div>
             </div>
+
+            {getStudentsAtLocation('library').length > 0 && (
+              <LocationAvatarCluster students={getStudentsAtLocation('library')} maxVisible={2} />
+            )}
 
             {/* PREVIEW POPOVER (Desktop Hover / Mobile Click) */}
             {(hoveredLocation === 'library' || selectedPreviewLocation === 'library') && (
@@ -394,31 +344,25 @@ export const CampusMap: React.FC<CampusMapProps> = ({
             onClick={() => setSelectedPreviewLocation(selectedPreviewLocation === 'lhc' ? null : 'lhc')}
             onMouseEnter={() => setHoveredLocation('lhc')}
             onMouseLeave={() => setHoveredLocation(null)}
-            className="interactive-destination absolute top-[26%] left-[23%] -translate-x-1/2 p-3 rounded-2xl bg-[#fffdfa] border-2 transition-all duration-300 cursor-pointer shadow-lg group hover:scale-105 z-30"
+            className="interactive-destination absolute top-[27%] left-[23%] -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full bg-[#fffdfa]/95 backdrop-blur-md border shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer group flex items-center gap-2 hover:scale-105 z-30"
             style={{
               borderColor: hoveredLocation === 'lhc' || selectedPreviewLocation === 'lhc' ? '#784824' : '#cbd5e1',
             }}
           >
-            <div className="flex flex-col items-center text-center relative">
-              <div className="w-13 h-13 rounded-2xl bg-[#f7ede4] flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                🎓
-              </div>
-              <span className="font-serif-title text-xs font-bold text-[#442c1c] mt-1.5 block">
-                Lecture Hall Complex
+            <span className="text-sm">🎓</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-serif-title text-xs font-bold text-[#442c1c] group-hover:text-[#784824]">
+                Lecture Hall
               </span>
-              <span className="text-[9px] text-[#715440] font-medium">
-                LHC & Classrooms
+              <span className="text-[10px] text-[#715440] font-medium flex items-center gap-1">
+                • <span className={`w-1.5 h-1.5 rounded-full ${getOccupantCount('lhc') > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-300'}`} />
+                <span className="font-semibold text-[#442c1c]">{getOccupantCount('lhc')} studying</span>
               </span>
-
-              <div className="mt-1.5">
-                {renderOccupancyStatusBadge('lhc', LOCATIONS.lhc.seats.length)}
-              </div>
-
-              {/* LIVE AVATARS CLUSTER AT LHC */}
-              <div className="mt-2">
-                <LocationAvatarCluster students={getStudentsAtLocation('lhc')} maxVisible={3} />
-              </div>
             </div>
+
+            {getStudentsAtLocation('lhc').length > 0 && (
+              <LocationAvatarCluster students={getStudentsAtLocation('lhc')} maxVisible={2} />
+            )}
 
             {/* PREVIEW POPOVER */}
             {(hoveredLocation === 'lhc' || selectedPreviewLocation === 'lhc') && (
@@ -438,35 +382,29 @@ export const CampusMap: React.FC<CampusMapProps> = ({
             onClick={() => setSelectedPreviewLocation(selectedPreviewLocation === 'banyan' ? null : 'banyan')}
             onMouseEnter={() => setHoveredLocation('banyan')}
             onMouseLeave={() => setHoveredLocation(null)}
-            className="interactive-destination absolute top-[52%] left-[39%] -translate-x-1/2 p-3 rounded-2xl bg-[#fffdfa] border-2 transition-all duration-300 cursor-pointer shadow-lg group hover:scale-105 z-30"
+            className="interactive-destination absolute top-[51%] left-[39%] -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full bg-[#fffdfa]/95 backdrop-blur-md border shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer group flex items-center gap-2 hover:scale-105 z-30"
             style={{
               borderColor: hoveredLocation === 'banyan' || selectedPreviewLocation === 'banyan' ? '#365338' : '#cbd5e1',
             }}
           >
-            <div className="flex flex-col items-center text-center relative">
-              <div className="w-13 h-13 rounded-2xl bg-[#e6ede6] flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                🌳
-              </div>
-              <span className="font-serif-title text-xs font-bold text-[#1e3822] mt-1.5 block">
-                Banyan Tree Grove
+            <span className="text-sm">🌳</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-serif-title text-xs font-bold text-[#1e3822] group-hover:text-[#365338]">
+                Banyan Tree
               </span>
-              <span className="text-[9px] text-[#486b4e] font-medium">
-                Tree-side Shady Benches
+              <span className="text-[10px] text-[#486b4e] font-medium flex items-center gap-1">
+                • <span className={`w-1.5 h-1.5 rounded-full ${getOccupantCount('banyan') > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-300'}`} />
+                <span className="font-semibold text-[#1e3822]">{getOccupantCount('banyan')} studying</span>
               </span>
-
-              <div className="mt-1.5">
-                {renderOccupancyStatusBadge('banyan', LOCATIONS.banyan.seats.length)}
-              </div>
-
-              {/* LIVE AVATARS CLUSTER AT BANYAN GROVE */}
-              <div className="mt-2">
-                <LocationAvatarCluster students={getStudentsAtLocation('banyan')} maxVisible={3} />
-              </div>
             </div>
+
+            {getStudentsAtLocation('banyan').length > 0 && (
+              <LocationAvatarCluster students={getStudentsAtLocation('banyan')} maxVisible={2} />
+            )}
 
             {/* PREVIEW POPOVER */}
             {(hoveredLocation === 'banyan' || selectedPreviewLocation === 'banyan') && (
-              <div className="preview-card-container absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50">
+              <div className="preview-card-container absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
                 <LocationPreviewCard
                   location={LOCATIONS.banyan}
                   students={getStudentsAtLocation('banyan')}
@@ -482,31 +420,25 @@ export const CampusMap: React.FC<CampusMapProps> = ({
             onClick={() => setSelectedPreviewLocation(selectedPreviewLocation === 'oat' ? null : 'oat')}
             onMouseEnter={() => setHoveredLocation('oat')}
             onMouseLeave={() => setHoveredLocation(null)}
-            className="interactive-destination absolute top-[28%] left-[76%] -translate-x-1/2 p-3 rounded-2xl bg-[#fffdfa] border-2 transition-all duration-300 cursor-pointer shadow-lg group hover:scale-105 z-30"
+            className="interactive-destination absolute top-[29%] left-[76%] -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full bg-[#fffdfa]/95 backdrop-blur-md border shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer group flex items-center gap-2 hover:scale-105 z-30"
             style={{
               borderColor: hoveredLocation === 'oat' || selectedPreviewLocation === 'oat' ? '#475569' : '#cbd5e1',
             }}
           >
-            <div className="flex flex-col items-center text-center relative">
-              <div className="w-13 h-13 rounded-2xl bg-[#f1f5f9] flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                🎭
-              </div>
-              <span className="font-serif-title text-xs font-bold text-[#1e293b] mt-1.5 block">
+            <span className="text-sm">🎭</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-serif-title text-xs font-bold text-[#1e293b] group-hover:text-[#475569]">
                 Open Air Theatre
               </span>
-              <span className="text-[9px] text-[#64748b] font-medium">
-                OAT Amphitheatre
+              <span className="text-[10px] text-[#64748b] font-medium flex items-center gap-1">
+                • <span className={`w-1.5 h-1.5 rounded-full ${getOccupantCount('oat') > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-300'}`} />
+                <span className="font-semibold text-[#1e293b]">{getOccupantCount('oat')} studying</span>
               </span>
-
-              <div className="mt-1.5">
-                {renderOccupancyStatusBadge('oat', LOCATIONS.oat.seats.length)}
-              </div>
-
-              {/* LIVE AVATARS CLUSTER AT OAT */}
-              <div className="mt-2">
-                <LocationAvatarCluster students={getStudentsAtLocation('oat')} maxVisible={3} />
-              </div>
             </div>
+
+            {getStudentsAtLocation('oat').length > 0 && (
+              <LocationAvatarCluster students={getStudentsAtLocation('oat')} maxVisible={2} />
+            )}
 
             {/* PREVIEW POPOVER */}
             {(hoveredLocation === 'oat' || selectedPreviewLocation === 'oat') && (
@@ -526,31 +458,25 @@ export const CampusMap: React.FC<CampusMapProps> = ({
             onClick={() => setSelectedPreviewLocation(selectedPreviewLocation === 'cafe' ? null : 'cafe')}
             onMouseEnter={() => setHoveredLocation('cafe')}
             onMouseLeave={() => setHoveredLocation(null)}
-            className="interactive-destination absolute top-[68%] left-[24%] -translate-x-1/2 p-3 rounded-2xl bg-[#fffdfa] border-2 transition-all duration-300 cursor-pointer shadow-lg group hover:scale-105 z-30"
+            className="interactive-destination absolute top-[69%] left-[24%] -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full bg-[#fffdfa]/95 backdrop-blur-md border shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer group flex items-center gap-2 hover:scale-105 z-30"
             style={{
               borderColor: hoveredLocation === 'cafe' || selectedPreviewLocation === 'cafe' ? '#845328' : '#cbd5e1',
             }}
           >
-            <div className="flex flex-col items-center text-center relative">
-              <div className="w-13 h-13 rounded-2xl bg-[#faede4] flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                ☕
-              </div>
-              <span className="font-serif-title text-xs font-bold text-[#442817] mt-1.5 block">
+            <span className="text-sm">☕</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-serif-title text-xs font-bold text-[#442817] group-hover:text-[#845328]">
                 Campus Café
               </span>
-              <span className="text-[9px] text-[#785b48] font-medium">
-                Himalaya Coffee & Patio
+              <span className="text-[10px] text-[#785b48] font-medium flex items-center gap-1">
+                • <span className={`w-1.5 h-1.5 rounded-full ${getOccupantCount('cafe') > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-300'}`} />
+                <span className="font-semibold text-[#442817]">{getOccupantCount('cafe')} studying</span>
               </span>
-
-              <div className="mt-1.5">
-                {renderOccupancyStatusBadge('cafe', LOCATIONS.cafe.seats.length)}
-              </div>
-
-              {/* LIVE AVATARS CLUSTER AT CAFÉ */}
-              <div className="mt-2">
-                <LocationAvatarCluster students={getStudentsAtLocation('cafe')} maxVisible={3} />
-              </div>
             </div>
+
+            {getStudentsAtLocation('cafe').length > 0 && (
+              <LocationAvatarCluster students={getStudentsAtLocation('cafe')} maxVisible={2} />
+            )}
 
             {/* PREVIEW POPOVER */}
             {(hoveredLocation === 'cafe' || selectedPreviewLocation === 'cafe') && (
@@ -570,31 +496,25 @@ export const CampusMap: React.FC<CampusMapProps> = ({
             onClick={() => setSelectedPreviewLocation(selectedPreviewLocation === 'park' ? null : 'park')}
             onMouseEnter={() => setHoveredLocation('park')}
             onMouseLeave={() => setHoveredLocation(null)}
-            className="interactive-destination absolute top-[66%] left-[72%] -translate-x-1/2 p-3 rounded-2xl bg-[#fffdfa] border-2 transition-all duration-300 cursor-pointer shadow-lg group hover:scale-105 z-30"
+            className="interactive-destination absolute top-[67%] left-[72%] -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full bg-[#fffdfa]/95 backdrop-blur-md border shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer group flex items-center gap-2 hover:scale-105 z-30"
             style={{
               borderColor: hoveredLocation === 'park' || selectedPreviewLocation === 'park' ? '#2f6044' : '#cbd5e1',
             }}
           >
-            <div className="flex flex-col items-center text-center relative">
-              <div className="w-13 h-13 rounded-2xl bg-[#e7f2ec] flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                🦌
-              </div>
-              <span className="font-serif-title text-xs font-bold text-[#1b3d2b] mt-1.5 block">
+            <span className="text-sm">🦌</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-serif-title text-xs font-bold text-[#1b3d2b] group-hover:text-[#2f6044]">
                 Sangam Gardens
               </span>
-              <span className="text-[9px] text-[#4f6e5c] font-medium">
-                Lotus Pond & Deer Trail
+              <span className="text-[10px] text-[#4f6e5c] font-medium flex items-center gap-1">
+                • <span className={`w-1.5 h-1.5 rounded-full ${getOccupantCount('park') > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-300'}`} />
+                <span className="font-semibold text-[#1b3d2b]">{getOccupantCount('park')} studying</span>
               </span>
-
-              <div className="mt-1.5">
-                {renderOccupancyStatusBadge('park', LOCATIONS.park.seats.length)}
-              </div>
-
-              {/* LIVE AVATARS CLUSTER AT SANGAM GARDENS */}
-              <div className="mt-2">
-                <LocationAvatarCluster students={getStudentsAtLocation('park')} maxVisible={3} />
-              </div>
             </div>
+
+            {getStudentsAtLocation('park').length > 0 && (
+              <LocationAvatarCluster students={getStudentsAtLocation('park')} maxVisible={2} />
+            )}
 
             {/* PREVIEW POPOVER */}
             {(hoveredLocation === 'park' || selectedPreviewLocation === 'park') && (
@@ -614,31 +534,25 @@ export const CampusMap: React.FC<CampusMapProps> = ({
             onClick={() => setSelectedPreviewLocation(selectedPreviewLocation === 'gc' ? null : 'gc')}
             onMouseEnter={() => setHoveredLocation('gc')}
             onMouseLeave={() => setHoveredLocation(null)}
-            className="interactive-destination absolute top-[43%] left-[58%] -translate-x-1/2 p-3 rounded-2xl bg-[#fffdfa] border-2 transition-all duration-300 cursor-pointer shadow-lg group hover:scale-105 z-30"
+            className="interactive-destination absolute top-[43%] left-[58%] -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full bg-[#fffdfa]/95 backdrop-blur-md border shadow-md hover:shadow-xl transition-all duration-200 cursor-pointer group flex items-center gap-2 hover:scale-105 z-30"
             style={{
               borderColor: hoveredLocation === 'gc' || selectedPreviewLocation === 'gc' ? '#1e40af' : '#cbd5e1',
             }}
           >
-            <div className="flex flex-col items-center text-center relative">
-              <div className="w-13 h-13 rounded-2xl bg-[#eff6ff] flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform">
-                🐘
-              </div>
-              <span className="font-serif-title text-xs font-bold text-[#172554] mt-1.5 block">
+            <span className="text-sm">🐘</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-serif-title text-xs font-bold text-[#172554] group-hover:text-[#1e40af]">
                 Gajendra Circle
               </span>
-              <span className="text-[9px] text-[#2563eb] font-medium">
-                GC Landmark Pavilion
+              <span className="text-[10px] text-[#2563eb] font-medium flex items-center gap-1">
+                • <span className={`w-1.5 h-1.5 rounded-full ${getOccupantCount('gc') > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-300'}`} />
+                <span className="font-semibold text-[#172554]">{getOccupantCount('gc')} studying</span>
               </span>
-
-              <div className="mt-1.5">
-                {renderOccupancyStatusBadge('gc', LOCATIONS.gc.seats.length)}
-              </div>
-
-              {/* LIVE AVATARS CLUSTER AT GC */}
-              <div className="mt-2">
-                <LocationAvatarCluster students={getStudentsAtLocation('gc')} maxVisible={3} />
-              </div>
             </div>
+
+            {getStudentsAtLocation('gc').length > 0 && (
+              <LocationAvatarCluster students={getStudentsAtLocation('gc')} maxVisible={2} />
+            )}
 
             {/* PREVIEW POPOVER */}
             {(hoveredLocation === 'gc' || selectedPreviewLocation === 'gc') && (
@@ -752,88 +666,6 @@ export const CampusMap: React.FC<CampusMapProps> = ({
         students={students}
         onEnterLocation={onEnterLocation}
       />
-
-      {/* Campus Destinations Quick Navigation Cards Grid */}
-      <div className="space-y-4 pt-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-serif-title text-xl font-bold text-[#1f3529]">
-              Campus Study Destinations
-            </h2>
-            <p className="text-xs text-[#526a5c]">
-              Choose where you want to work today. Move freely between them anytime.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.values(LOCATIONS).map((loc) => {
-            const locStudents = getStudentsAtLocation(loc.id);
-            const occupantCount = locStudents.length;
-
-            return (
-              <div
-                key={loc.id}
-                onClick={() => onEnterLocation(loc.id)}
-                className="group relative p-4 rounded-3xl bg-[#fffdfa] border-2 border-[#d5e2d9] hover:border-[#2d5a43] shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden"
-              >
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div
-                      className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl shadow-xs"
-                      style={{ backgroundColor: loc.badgeBg }}
-                    >
-                      {loc.icon}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#f1f7f3] text-[11px] font-semibold text-[#294d3a]">
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          occupantCount > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-300'
-                        }`}
-                      />
-                      <span>
-                        {occupantCount} {occupantCount === 1 ? 'learner' : 'learners'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="text-[9px] uppercase font-bold tracking-wider text-[#648070]">
-                      {loc.category}
-                    </span>
-                    <h3 className="font-serif-title text-base font-bold text-[#1a3326] group-hover:text-[#2d5a43] transition-colors leading-tight">
-                      {loc.name}
-                    </h3>
-                    <p className="text-[11px] text-[#556e5f] italic mt-0.5 line-clamp-1">
-                      "{loc.tagline}"
-                    </p>
-                  </div>
-
-                  <p className="text-[11px] text-[#4d6657] leading-relaxed line-clamp-2">
-                    {loc.description}
-                  </p>
-
-                  {/* Micro avatar row in destination card */}
-                  {locStudents.length > 0 && (
-                    <div className="pt-1 flex items-center justify-between text-[10px] text-[#5f7a6a]">
-                      <span>Studying here now:</span>
-                      <LocationAvatarCluster students={locStudents} maxVisible={3} />
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-3 mt-3 border-t border-[#e2ece5] flex items-center justify-between text-xs font-semibold text-[#2d5a43] group-hover:text-[#183d2b] transition-colors">
-                  <span>Enter Study Spot</span>
-                  <div className="w-6 h-6 rounded-full bg-[#e8f1ec] group-hover:bg-[#2d5a43] group-hover:text-white flex items-center justify-center transition-all group-hover:translate-x-1">
-                    <ArrowRight className="w-3 h-3" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Upcoming Destination Modal */}
       {comingSoonModal && (

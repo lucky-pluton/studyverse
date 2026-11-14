@@ -42,7 +42,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
     setStep(4);
   };
 
-  const handleEnterCity = () => {
+  const handleEnterCampus = () => {
     // Joyful soft confetti burst
     confetti({
       particleCount: 60,
@@ -278,10 +278,10 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
                 <span>You're ready, {name}</span>
               </div>
               <h2 className="font-serif-title text-2xl sm:text-3xl font-bold text-[#292521] leading-tight">
-                Your study journey begins here.
+                Enter Your Campus
               </h2>
               <p className="text-sm sm:text-base text-[#615648] leading-relaxed italic">
-                "Find your favourite corner, settle in, and let the company of fellow learners keep you going."
+                "Your study space is waiting. Find your favourite corner, settle in, and study alongside others."
               </p>
             </div>
 
@@ -291,7 +291,8 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
                 <span>What to expect inside:</span>
               </div>
               <ul className="space-y-1 pl-6 list-disc text-[11px] text-[#716454]">
-                <li>Silent, ambient companionship — no meetings or pressure.</li>
+                <li>Silent, ambient campus companionship — no meetings or pressure.</li>
+                <li>Explore the library, lecture halls, banyan grove, café, and gardens.</li>
                 <li>Your seat timer will start automatically when you sit down.</li>
                 <li>Real-time synchronization with fellow students.</li>
               </ul>
@@ -300,10 +301,10 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
             <div className="pt-2">
               <button
                 type="button"
-                onClick={handleEnterCity}
-                className="w-full sm:w-auto px-10 py-4 bg-[#324f42] hover:bg-[#253d33] text-white font-serif-title text-base font-bold rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-3"
+                onClick={handleEnterCampus}
+                className="w-full sm:w-auto px-10 py-4 bg-[#324f42] hover:bg-[#253d33] text-white font-serif-title text-base font-bold rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-3 cursor-pointer"
               >
-                <span>ENTER THE CITY</span>
+                <span>ENTER CAMPUS</span>
                 <Sparkles className="w-5 h-5 text-amber-300" />
               </button>
             </div>
@@ -312,7 +313,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
               <button
                 type="button"
                 onClick={() => setStep(3)}
-                className="text-xs text-[#8c7f71] hover:underline"
+                className="text-xs text-[#8c7f71] hover:underline cursor-pointer"
               >
                 Change character or name
               </button>

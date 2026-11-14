@@ -22,3 +22,4 @@ The avatar renderer SHALL adapt the character's posture based on the study locat
 #### Scenario: Student sits under a tree
 - **WHEN** a student studies at the Banyan Tree Grove or Gajendra Circle
 - **THEN** the avatar displays a cross-legged sitting posture on a soft green lawn patch.
+
