@@ -9,9 +9,13 @@ import {
   Sparkles,
   AlertCircle,
   Minimize2,
+  Volume2,
+  VolumeX,
+  Music,
 } from 'lucide-react';
 import type { LocationId, StudentPresence, ChatMessage, AvatarConfig } from '../../types/studyverse';
 import { chatService } from '../../services/chatService';
+import { soundService } from '../../services/soundService';
 import { QUICK_STUDY_REACTIONS, MAX_CHAT_MESSAGE_LENGTH } from '../../constants/chat';
 import { AVATAR_CATALOG } from '../../constants/avatars';
 import { AvatarRenderer } from '../common/AvatarRenderer';
@@ -37,6 +41,7 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isQuiet, setIsQuiet] = useState(chatService.isQuiet() || !!currentUser.isDnd);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(chatService.isChatSoundEnabled());
   const [cooldownSec, setCooldownSec] = useState<number>(0);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState<string | null>(null);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
@@ -60,9 +65,14 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
       setIsQuiet(quiet);
     });
 
+    const unsubscribeSound = chatService.onSoundChange((enabled) => {
+      setIsSoundEnabled(enabled);
+    });
+
     return () => {
       unsubscribeMessages();
       unsubscribeQuiet();
+      unsubscribeSound();
     };
   }, [locationId, currentUser.sessionId, currentUser.isDnd]);
 
@@ -152,6 +162,52 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
     setTimeout(() => setFeedbackNotice(null), 3000);
   };
 
+  const handleToggleSound = () => {
+    soundService.ensureAudioActivated().then((active) => {
+      if (!active) {
+        setFeedbackNotice('Click anywhere on the campus to allow notification sounds in your browser.');
+      }
+    });
+
+    const next = chatService.toggleChatSound();
+    setIsSoundEnabled(next);
+
+    if (isDndActive) {
+      setFeedbackNotice(
+        next
+          ? 'Chat sound enabled, but Do Not Disturb is ON (All notifications silenced).'
+          : 'Chat sound notifications muted.'
+      );
+      setTimeout(() => setFeedbackNotice(null), 3500);
+      return;
+    }
+
+    if (next) {
+      soundService.playChatChime();
+      setFeedbackNotice('Chat sound notifications enabled (soft chime previewed).');
+    } else {
+      setFeedbackNotice('Chat sound notifications muted (messages arrive silently).');
+    }
+    setTimeout(() => setFeedbackNotice(null), 3000);
+  };
+
+  const handlePreviewSound = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    soundService.ensureAudioActivated().then((active) => {
+      if (!active) {
+        setFeedbackNotice('Click anywhere on campus to enable notification sounds in your browser.');
+        return;
+      }
+    });
+    soundService.playChatChime();
+    setFeedbackNotice(
+      isDndActive
+        ? 'Previewing gentle chime (Note: Live notifications are silenced while DND is ON).'
+        : 'Playing gentle notification chime preview.'
+    );
+    setTimeout(() => setFeedbackNotice(null), 3000);
+  };
+
   const handleReportMessage = (msgId: string) => {
     chatService.reportMessage(msgId);
     setActiveMenuMsgId(null);
@@ -211,6 +267,45 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Sound Notifications Toggle */}
+          <button
+            onClick={handleToggleSound}
+            type="button"
+            className={`p-1.5 rounded-xl text-xs flex items-center gap-1 border transition-colors cursor-pointer ${
+              isSoundEnabled && !isDndActive
+                ? 'bg-[#faf6f0] hover:bg-[#ede5d8] text-[#4d4032] border-[#e0d4c4]'
+                : 'bg-[#fdf2f2] hover:bg-[#fbe6e6] text-[#8e4a49] border-[#edd0d0]'
+            }`}
+            title={
+              isDndActive
+                ? 'Do Not Disturb is ON (All sound notifications silenced)'
+                : isSoundEnabled
+                ? 'Chat sound notifications ON. Click to mute.'
+                : 'Chat sound notifications OFF. Click to unmute.'
+            }
+            aria-label={isSoundEnabled ? 'Mute Chat Notification Sounds' : 'Unmute Chat Notification Sounds'}
+          >
+            {isSoundEnabled && !isDndActive ? (
+              <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
+            ) : (
+              <VolumeX className="w-3.5 h-3.5 text-rose-600" />
+            )}
+            <span className="text-[10px] font-semibold hidden md:inline">
+              {isDndActive ? 'Muted' : isSoundEnabled ? 'Sound' : 'Muted'}
+            </span>
+          </button>
+
+          {/* Preview Chime Button */}
+          <button
+            onClick={handlePreviewSound}
+            type="button"
+            className="p-1.5 rounded-xl hover:bg-[#ede5d8] text-[#6d5f50] border border-[#e0d4c4] bg-[#faf6f0] transition-colors cursor-pointer"
+            title="Preview gentle notification chime"
+            aria-label="Preview notification sound"
+          >
+            <Music className="w-3.5 h-3.5 text-[#446d5c]" />
+          </button>
+
           {/* Do Not Disturb / Quiet Toggle */}
           <button
             onClick={handleToggleQuietStudy}

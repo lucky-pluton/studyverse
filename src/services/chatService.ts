@@ -4,6 +4,7 @@ import type { Room, MessageAction } from 'trystero';
 import Paho from 'paho-mqtt';
 import type { LocationId, StudentPresence, ChatMessage } from '../types/studyverse';
 import { presenceService } from './presenceService';
+import { soundService } from './soundService';
 import {
   MAX_CHAT_MESSAGE_LENGTH,
   CHAT_RATE_LIMIT_MS,
@@ -14,9 +15,11 @@ type ChatMessageListener = (messages: ChatMessage[]) => void;
 type UnreadListener = (count: number) => void;
 type QuietModeListener = (isQuiet: boolean) => void;
 type ConnectionStatusListener = (status: 'connected' | 'connecting' | 'disconnected') => void;
+type ChatSoundListener = (enabled: boolean) => void;
 
 const QUIET_STUDY_STORAGE_KEY = 'studyverse_quiet_study_mode';
 const DND_STORAGE_KEY = 'studyverse_dnd_enabled';
+const CHAT_SOUND_STORAGE_KEY = 'studyverse_chat_sound_enabled';
 
 const MQTT_BROKERS = [
   { host: 'broker.emqx.io', port: 8084, path: '/mqtt' },
@@ -40,12 +43,16 @@ class ChatService {
   private unreadListeners: Set<UnreadListener> = new Set();
   private quietListeners: Set<QuietModeListener> = new Set();
   private statusListeners: Set<ConnectionStatusListener> = new Set();
+  private soundListeners: Set<ChatSoundListener> = new Set();
 
   // State
   private unreadCount: number = 0;
   private isChatOpen: boolean = false;
   private isQuietStudy: boolean = false;
+  private isSoundEnabled: boolean = true;
   private lastSentTimestamp: number = 0;
+  private lastNotificationSoundTimestamp: number = 0;
+  private roomJoinedTimestamp: number = 0;
   private isDestroyed: boolean = false;
 
   // Transport 1: Supabase Realtime Broadcast
@@ -75,6 +82,13 @@ class ChatService {
         localStorage.getItem(QUIET_STUDY_STORAGE_KEY) === 'true';
     } catch {
       this.isQuietStudy = false;
+    }
+
+    try {
+      const storedSound = localStorage.getItem(CHAT_SOUND_STORAGE_KEY);
+      this.isSoundEnabled = storedSound !== null ? storedSound === 'true' : true;
+    } catch {
+      this.isSoundEnabled = true;
     }
   }
 
@@ -133,6 +147,38 @@ class ChatService {
       this.unreadCount = 0;
       this.notifyUnread();
     }
+  }
+
+  // =========================================================================
+  // CHAT SOUND PREFERENCE & NOTIFICATION CONTROLS
+  // =========================================================================
+
+  public isChatSoundEnabled(): boolean {
+    return this.isSoundEnabled;
+  }
+
+  public setChatSoundEnabled(enabled: boolean) {
+    this.isSoundEnabled = enabled;
+    try {
+      localStorage.setItem(CHAT_SOUND_STORAGE_KEY, enabled ? 'true' : 'false');
+    } catch {}
+    this.soundListeners.forEach((fn) => fn(enabled));
+  }
+
+  public toggleChatSound(): boolean {
+    const next = !this.isSoundEnabled;
+    this.setChatSoundEnabled(next);
+    return next;
+  }
+
+  public onSoundChange(listener: ChatSoundListener): () => void {
+    this.soundListeners.add(listener);
+    return () => this.soundListeners.delete(listener);
+  }
+
+  public previewNotificationSound() {
+    soundService.ensureAudioActivated();
+    soundService.playChatChime();
   }
 
   // =========================================================================
@@ -336,6 +382,7 @@ class ChatService {
 
     this.currentLocationId = locationId;
     this.currentUser = currentUser;
+    this.roomJoinedTimestamp = Date.now();
     if (currentUser.isDnd !== undefined) {
       this.isQuietStudy = currentUser.isDnd;
     } else if (this.isQuietStudy) {
@@ -443,6 +490,7 @@ class ChatService {
     }
 
     this.currentLocationId = null;
+    this.roomJoinedTimestamp = 0;
     this.messages = [];
     this.receivedMessageIds.clear();
     this.pendingMqttMessages = [];
@@ -586,6 +634,24 @@ class ChatService {
       this.notifyUnread();
     }
 
+    // Gentle Real-Time Audio Notification:
+    // Only play sound if:
+    // 1. NOT from self (never play for messages sent by the current user)
+    // 2. DND is NOT active (DND always takes priority over sound settings)
+    // 3. Sound preference is ENABLED
+    // 4. Message is newly received in this room session (excludes historical or stale replay)
+    // 5. Throttled: at least 1200ms has elapsed since the last notification sound
+    if (!isFromSelf && !this.isDnd() && this.isSoundEnabled) {
+      const now = Date.now();
+      const isNewAfterJoin = msg.timestamp >= (this.roomJoinedTimestamp - 2000);
+      const isThrottled = now - this.lastNotificationSoundTimestamp < 1200;
+
+      if (isNewAfterJoin && !isThrottled) {
+        this.lastNotificationSoundTimestamp = now;
+        soundService.playChatChime();
+      }
+    }
+
     this.notifyMessages();
   }
 
@@ -683,3 +749,7 @@ class ChatService {
 }
 
 export const chatService = new ChatService();
+
+if (typeof window !== 'undefined') {
+  (window as unknown as { chatService?: ChatService }).chatService = chatService;
+}

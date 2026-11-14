@@ -26,8 +26,27 @@ class SoundEngine {
       this.masterGain.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
+  }
+
+  public ensureAudioActivated(): Promise<boolean> {
+    try {
+      this.initContext();
+      if (this.ctx && this.ctx.state === 'suspended') {
+        return this.ctx
+          .resume()
+          .then(() => this.ctx?.state === 'running')
+          .catch(() => false);
+      }
+      return Promise.resolve(this.ctx?.state === 'running');
+    } catch {
+      return Promise.resolve(false);
+    }
+  }
+
+  public isAudioActive(): boolean {
+    return !!this.ctx && this.ctx.state === 'running';
   }
 
   public setVolume(vol: number) {
@@ -129,6 +148,54 @@ class SoundEngine {
       });
     } catch {
       // Audio catch
+    }
+  }
+
+  /**
+   * Soft, warm real-time chat notification chime (150-300ms).
+   * Dual-tone acoustic sine droplet (D5 587.33Hz + A5 880Hz) with gentle linear attack
+   * and smooth exponential decay. Never piercing, harsh, or startling.
+   */
+  public playChatChime() {
+    try {
+      this.initContext();
+      if (!this.ctx || !this.masterGain || this.isMuted) return;
+
+      if ((this.ctx.state as string) === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+      if ((this.ctx.state as string) !== 'running') {
+        return;
+      }
+
+      const now = this.ctx.currentTime;
+      const notes = [
+        { freq: 587.33, offset: 0, gain: 0.055, decay: 0.22 },
+        { freq: 880.00, offset: 0.06, gain: 0.045, decay: 0.26 },
+      ];
+
+      notes.forEach(({ freq, offset, gain: peakGain, decay }) => {
+        if (!this.ctx || !this.masterGain) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        const start = now + offset;
+        osc.frequency.setValueAtTime(freq, start);
+
+        // Soft linear ramp attack to avoid click
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(peakGain, start + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + decay);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(start);
+        osc.stop(start + decay + 0.05);
+      });
+    } catch {
+      // Audio policy catch
     }
   }
 
@@ -359,3 +426,17 @@ class SoundEngine {
 }
 
 export const soundService = new SoundEngine();
+
+if (typeof window !== 'undefined') {
+  (window as unknown as { soundService?: SoundEngine }).soundService = soundService;
+}
+
+// Passive browser interaction hook to unlock AudioContext on the first user gesture
+if (typeof window !== 'undefined') {
+  const unlockAudio = () => {
+    soundService.ensureAudioActivated();
+  };
+  window.addEventListener('pointerdown', unlockAudio, { passive: true });
+  window.addEventListener('keydown', unlockAudio, { passive: true });
+  window.addEventListener('touchstart', unlockAudio, { passive: true });
+}
