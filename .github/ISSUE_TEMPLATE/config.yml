@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Studyverse Documentation & Contributing Guide
+    url: https://github.com/lucky-pluton/studyverse/blob/main/CONTRIBUTING.md
+    about: Read our guide on how to contribute improvements through the fork-and-pull-request workflow.
+  - name: Live Campus Experience
+    url: https://lucky-pluton.github.io/studyverse/
+    about: Visit the live virtual campus deployment on GitHub Pages.

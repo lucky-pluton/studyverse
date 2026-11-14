@@ -132,15 +132,11 @@ Every major campus destination has its own physical, illustrated study room with
 
 ---
 
-## 🎨 Chibi Avatar System & Floating Study Timers
+## 🌙 Do Not Disturb (DND) Quiet Mode
 
-- **Classic Chibi Proportions**: Cute rounded features, oversized heads (~1:1 ratio), expressive eyes with dual sparkle highlights, and blushing cheeks.
-- **Location-Appropriate Sitting Poses**:
-  - **Desk Pose**: For Central Library and Lecture Hall Complex with study desks and props.
-  - **Bench Pose**: For Sangam Gardens and Open Air Theatre with wooden slats and dangling legs.
-  - **Café Table Pose**: For Campus Café with round bistro tabletops and coffee mugs.
-  - **Tree Lawn Pose**: For Banyan Tree Grove and Gajendra Circle cross-legged on green grass.
-- **Tiny Floating Study Timers**: Soft cream pills with dark typography and an emerald presence dot positioned immediately above character heads, updating continuously.
+- **Quiet Focus Sanctuary**: Enjoy studying alongside others without interruptions or expectations to interact.
+- **Muted Alerts & Subtle Moon Indicator**: Automatically mutes chat notifications and audio while displaying a subtle `🌙` indicator beside your chibi avatar on seats, floating timers, and the campus map.
+- **Persistent Across Campus**: Preserved as you move between study destinations and explore the grounds.
 
 ---
 
@@ -178,6 +174,17 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+---
+
+## 🤝 Contributing
+
+We welcome improvements from developers and students through our maintainer-controlled **Fork-and-Pull-Request** workflow.
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for full instructions on:
+- How to fork and set up the repository locally.
+- Design principles and chibi illustration guidelines.
+- How pull request reviews, automated CI builds, and maintainer approvals work.
 
 ---
 
