@@ -29,12 +29,19 @@ export const LocationAvatarCluster: React.FC<LocationAvatarClusterProps> = ({
           <div
             key={student.sessionId || idx}
             className="relative transition-transform duration-200 hover:scale-125 hover:z-30 cursor-pointer"
-            title={`${student.name} • ${student.studyTopic || 'Studying'}${timeSeated ? ` (${timeSeated})` : ''}`}
+            title={`${student.name}${student.isDnd ? ' 🌙 (Quiet Study)' : ''} • ${student.studyTopic || 'Studying'}${timeSeated ? ` (${timeSeated})` : ''}`}
           >
             {/* Avatar thumbnail container */}
             <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#f4ece1] border-2 border-white shadow-xs overflow-hidden flex items-center justify-center ring-1 ring-black/10">
               <AvatarRenderer config={student.avatarConfig} size="xs" showProp={false} animate={false} />
             </div>
+
+            {/* DND Moon indicator */}
+            {student.isDnd && (
+              <span className="absolute -top-1 -right-1 text-[8px] leading-none z-20 select-none pointer-events-none">
+                🌙
+              </span>
+            )}
 
             {/* Micro timer badge */}
             {timeSeated && (

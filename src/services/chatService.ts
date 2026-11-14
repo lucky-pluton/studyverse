@@ -14,6 +14,7 @@ type UnreadListener = (count: number) => void;
 type QuietModeListener = (isQuiet: boolean) => void;
 
 const QUIET_STUDY_STORAGE_KEY = 'studyverse_quiet_study_mode';
+const DND_STORAGE_KEY = 'studyverse_dnd_enabled';
 
 class ChatService {
   private currentLocationId: LocationId | null = null;
@@ -44,7 +45,9 @@ class ChatService {
 
   constructor() {
     try {
-      this.isQuietStudy = localStorage.getItem(QUIET_STUDY_STORAGE_KEY) === 'true';
+      this.isQuietStudy =
+        localStorage.getItem(DND_STORAGE_KEY) === 'true' ||
+        localStorage.getItem(QUIET_STUDY_STORAGE_KEY) === 'true';
     } catch {
       this.isQuietStudy = false;
     }
@@ -68,9 +71,17 @@ class ChatService {
     return this.isQuietStudy;
   }
 
+  public isDnd(): boolean {
+    return this.isQuietStudy || !!this.currentUser?.isDnd;
+  }
+
   public setQuietStudy(enabled: boolean) {
     this.isQuietStudy = enabled;
+    if (this.currentUser) {
+      this.currentUser.isDnd = enabled;
+    }
     try {
+      localStorage.setItem(DND_STORAGE_KEY, enabled ? 'true' : 'false');
       localStorage.setItem(QUIET_STUDY_STORAGE_KEY, enabled ? 'true' : 'false');
     } catch {}
     if (enabled) {
@@ -78,6 +89,17 @@ class ChatService {
       this.notifyUnread();
     }
     this.quietListeners.forEach((fn) => fn(enabled));
+  }
+
+  public setDnd(enabled: boolean) {
+    this.setQuietStudy(enabled);
+  }
+
+  public setCurrentUser(user: StudentPresence) {
+    this.currentUser = user;
+    if (user.isDnd !== undefined && user.isDnd !== this.isQuietStudy) {
+      this.setQuietStudy(user.isDnd);
+    }
   }
 
   public setChatOpen(open: boolean) {
@@ -96,6 +118,9 @@ class ChatService {
     // If already in this location channel, just update current user
     if (this.currentLocationId === locationId && this.currentUser?.sessionId === currentUser.sessionId) {
       this.currentUser = currentUser;
+      if (currentUser.isDnd !== undefined) {
+        this.isQuietStudy = currentUser.isDnd;
+      }
       return;
     }
 
@@ -104,6 +129,11 @@ class ChatService {
 
     this.currentLocationId = locationId;
     this.currentUser = currentUser;
+    if (currentUser.isDnd !== undefined) {
+      this.isQuietStudy = currentUser.isDnd;
+    } else if (this.isQuietStudy) {
+      currentUser.isDnd = true;
+    }
     this.messages = [];
     this.receivedMessageIds.clear();
     this.unreadCount = 0;
@@ -219,6 +249,14 @@ class ChatService {
       return { success: false, error: 'You are not in a study location.' };
     }
 
+    // Do Not Disturb Mode enforcement: disable sending
+    if (this.isDnd()) {
+      return {
+        success: false,
+        error: "You're in Do Not Disturb mode. Enjoy your quiet study time.",
+      };
+    }
+
     const now = Date.now();
 
     // 1. Rate Limiting (1 message per 1000ms)
@@ -329,9 +367,9 @@ class ChatService {
       this.messages.shift();
     }
 
-    // Increment unread count if chat is closed and Quiet Study is OFF
+    // Increment unread count if chat is closed and DND / Quiet Study is OFF
     const isFromSelf = msg.sessionId === this.currentUser?.sessionId;
-    if (!this.isChatOpen && !isFromSelf && !this.isQuietStudy) {
+    if (!this.isChatOpen && !isFromSelf && !this.isDnd()) {
       this.unreadCount += 1;
       this.notifyUnread();
     }

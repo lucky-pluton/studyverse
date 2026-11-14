@@ -33,6 +33,8 @@ interface NavbarProps {
     parkCount: number;
     gcCount: number;
   };
+  isDnd?: boolean;
+  onToggleDnd?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -43,6 +45,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   timeOfDay,
   onChangeTimeOfDay,
   stats,
+  isDnd = false,
+  onToggleDnd,
 }) => {
   const [isMuted, setIsMuted] = useState(soundService.getIsMuted());
   const [volume, setVolume] = useState(soundService.getVolume());
@@ -257,6 +261,28 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
+            {/* Do Not Disturb (DND) Toggle */}
+            <button
+              onClick={onToggleDnd}
+              type="button"
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                isDnd
+                  ? 'bg-[#253f31] text-amber-200 border-[#1a2d23] shadow-xs ring-1 ring-amber-300/40'
+                  : 'bg-[#f4efe8] hover:bg-[#eae3d9] border-[#e2d6c7] text-[#635546]'
+              }`}
+              title={
+                isDnd
+                  ? 'Do Not Disturb is ON — Enjoy studying alongside others without interruptions. Click to turn OFF.'
+                  : 'Do Not Disturb — Enjoy studying alongside others without interruptions. Click to turn ON.'
+              }
+              aria-label="Toggle Do Not Disturb Mode"
+            >
+              <Moon className={`w-3.5 h-3.5 ${isDnd ? 'fill-amber-300 text-amber-300' : 'text-[#7a6a57]'}`} />
+              <span className="text-[11px] font-bold">
+                {isDnd ? 'DND On' : 'DND'}
+              </span>
+            </button>
+
             {/* Day / Sunset / Night Toggle */}
             <button
               onClick={cycleTimeOfDay}
@@ -277,8 +303,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <AvatarRenderer config={currentUser.avatarConfig} size="xs" showProp={false} />
               </div>
               <div className="hidden sm:flex flex-col text-left">
-                <span className="text-xs font-semibold text-[#1f3529] leading-tight truncate max-w-[100px]">
-                  {currentUser.name}
+                <span className="text-xs font-semibold text-[#1f3529] leading-tight truncate max-w-[110px] flex items-center gap-1">
+                  <span>{currentUser.name}</span>
+                  {isDnd && <span title="Do Not Disturb Active" className="text-[11px]">🌙</span>}
                 </span>
                 <SessionTimeDisplay sessionEnteredAt={currentUser.sessionEnteredAt} className="text-[10px] px-1.5 py-0 border-none bg-transparent shadow-none" />
               </div>

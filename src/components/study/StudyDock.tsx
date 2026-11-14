@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { StudentPresence } from '../../types/studyverse';
 import { formatDuration, formatDetailedDuration } from '../common/TimerBadge';
 import { STUDY_TOPICS } from '../../constants/avatars';
-import { LogOut, Tag, Sparkles, CheckCircle2 } from 'lucide-react';
+import { LogOut, Tag, Sparkles, CheckCircle2, Moon } from 'lucide-react';
 import { soundService } from '../../services/soundService';
 
 interface StudyDockProps {
@@ -10,6 +10,7 @@ interface StudyDockProps {
   currentSeatName: string;
   onLeaveSeat: () => void;
   onChangeTopic: (topic: string) => void;
+  onToggleDnd?: () => void;
 }
 
 export const StudyDock: React.FC<StudyDockProps> = ({
@@ -17,6 +18,7 @@ export const StudyDock: React.FC<StudyDockProps> = ({
   currentSeatName,
   onLeaveSeat,
   onChangeTopic,
+  onToggleDnd,
 }) => {
   const [, setTick] = useState(0);
   const [showTopicMenu, setShowTopicMenu] = useState(false);
@@ -79,8 +81,30 @@ export const StudyDock: React.FC<StudyDockProps> = ({
           </div>
         </div>
 
-        {/* Right: Topic Pill & Leave Seat Button */}
+        {/* Right: Topic Pill, DND Toggle & Leave Seat Button */}
         <div className="flex items-center gap-2 relative">
+          {/* DND Toggle Button */}
+          {onToggleDnd && (
+            <button
+              onClick={onToggleDnd}
+              type="button"
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                currentUser.isDnd
+                  ? 'bg-[#253f31] text-amber-200 border-[#1a2d23] shadow-xs ring-1 ring-amber-300/40'
+                  : 'bg-[#f5ede3] hover:bg-[#ebdccf] border-[#e2d5c3] text-[#5a4d3f]'
+              }`}
+              title={
+                currentUser.isDnd
+                  ? 'Do Not Disturb is ON (Enjoy studying alongside others without interruptions). Click to turn OFF.'
+                  : 'Enable Do Not Disturb (Enjoy studying alongside others without interruptions).'
+              }
+              aria-label="Toggle Do Not Disturb Mode"
+            >
+              <Moon className={`w-3.5 h-3.5 ${currentUser.isDnd ? 'fill-amber-300 text-amber-300' : 'text-[#8b6540]'}`} />
+              <span className="hidden sm:inline">{currentUser.isDnd ? 'DND On' : 'DND'}</span>
+            </button>
+          )}
+
           {/* Study Topic Picker Button */}
           <div className="relative">
             <button

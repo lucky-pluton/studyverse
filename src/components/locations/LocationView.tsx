@@ -21,6 +21,7 @@ import {
   AlertCircle,
   ExternalLink,
   MessageSquare,
+  Moon,
 } from 'lucide-react';
 
 interface LocationViewProps {
@@ -32,6 +33,8 @@ interface LocationViewProps {
   onLeaveSeat: () => void;
   onChangeStudyTopic: (topic: string) => void;
   timeOfDay: TimeOfDay;
+  isDnd?: boolean;
+  onToggleDnd?: () => void;
 }
 
 export const LocationView: React.FC<LocationViewProps> = ({
@@ -43,6 +46,8 @@ export const LocationView: React.FC<LocationViewProps> = ({
   onLeaveSeat,
   onChangeStudyTopic,
   timeOfDay,
+  isDnd = false,
+  onToggleDnd,
 }) => {
   const [conflictAlert, setConflictAlert] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -122,7 +127,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
           </div>
         </div>
 
-        {/* Occupant Counter, Chat Toggle & Seat Status */}
+        {/* Occupant Counter, Chat Toggle, DND Toggle & Seat Status */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <button
             onClick={() => setIsChatOpen((prev) => !prev)}
@@ -137,6 +142,28 @@ export const LocationView: React.FC<LocationViewProps> = ({
             <MessageSquare className="w-3.5 h-3.5 text-emerald-700" />
             <span>Chat</span>
           </button>
+
+          {/* DND Quick Toggle */}
+          {onToggleDnd && (
+            <button
+              onClick={onToggleDnd}
+              type="button"
+              className={`px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                isDnd
+                  ? 'bg-[#253f31] text-amber-200 border-[#1a2d23] shadow-xs ring-1 ring-amber-300/40'
+                  : 'bg-[#fffdfa] hover:bg-[#f1eae0] border-[#d8ccbc] text-[#3f3428]'
+              }`}
+              title={
+                isDnd
+                  ? 'Do Not Disturb is ON (Enjoy studying alongside others without interruptions). Click to turn OFF.'
+                  : 'Enable Do Not Disturb (Enjoy studying alongside others without interruptions).'
+              }
+              aria-label="Toggle Do Not Disturb Mode"
+            >
+              <Moon className={`w-3.5 h-3.5 ${isDnd ? 'fill-amber-300 text-amber-300' : 'text-slate-500'}`} />
+              <span>{isDnd ? 'DND On' : 'DND'}</span>
+            </button>
+          )}
 
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f4ece1] border border-[#e2d5c3] text-xs font-medium text-[#4d4033]">
             <Users className="w-3.5 h-3.5 text-[#5e776a]" />
@@ -295,6 +322,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
           currentSeatName={currentSeatDef?.name || 'Study Desk'}
           onLeaveSeat={onLeaveSeat}
           onChangeTopic={onChangeStudyTopic}
+          onToggleDnd={onToggleDnd}
         />
       )}
 
@@ -312,6 +340,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
         occupantsCount={occupants.length}
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
+        onToggleDnd={onToggleDnd}
       />
     </div>
   );

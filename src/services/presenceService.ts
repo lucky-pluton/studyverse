@@ -713,6 +713,13 @@ class PresenceService {
     });
   }
 
+  public setDnd(isDnd: boolean) {
+    if (!this.currentPresence) return;
+    this.updatePresence({
+      isDnd,
+    });
+  }
+
   public updatePresence(partial: Partial<StudentPresence>) {
     if (!this.currentPresence) return;
 

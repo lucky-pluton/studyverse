@@ -23,6 +23,7 @@ interface LocationChatPanelProps {
   occupantsCount: number;
   isOpen: boolean;
   onClose: () => void;
+  onToggleDnd?: () => void;
 }
 
 export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
@@ -31,10 +32,11 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
   occupantsCount,
   isOpen,
   onClose,
+  onToggleDnd,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
-  const [isQuiet, setIsQuiet] = useState(chatService.isQuiet());
+  const [isQuiet, setIsQuiet] = useState(chatService.isQuiet() || !!currentUser.isDnd);
   const [cooldownSec, setCooldownSec] = useState<number>(0);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState<string | null>(null);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
@@ -43,6 +45,7 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const locationDef = LOCATIONS[locationId] || LOCATIONS.library;
+  const isDndActive = isQuiet || !!currentUser.isDnd;
 
   // Initialize and subscribe to chat for this location
   useEffect(() => {
@@ -61,7 +64,14 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
       unsubscribeMessages();
       unsubscribeQuiet();
     };
-  }, [locationId, currentUser.sessionId]);
+  }, [locationId, currentUser.sessionId, currentUser.isDnd]);
+
+  // Keep internal quiet state in sync with currentUser.isDnd
+  useEffect(() => {
+    if (currentUser.isDnd !== undefined && currentUser.isDnd !== isQuiet) {
+      setIsQuiet(currentUser.isDnd);
+    }
+  }, [currentUser.isDnd]);
 
   // Keep chat open status in sync
   useEffect(() => {
@@ -94,6 +104,11 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isDndActive) {
+      setFeedbackNotice("You're in Do Not Disturb mode. Enjoy your quiet study time.");
+      setTimeout(() => setFeedbackNotice(null), 3500);
+      return;
+    }
     if (!inputText.trim()) return;
 
     if (cooldownSec > 0) {
@@ -113,7 +128,7 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
   };
 
   const handleSendReaction = (text: string) => {
-    if (cooldownSec > 0) return;
+    if (isDndActive || cooldownSec > 0) return;
     const res = chatService.sendMessage(text, 'reaction');
     if (res.success) {
       setCooldownSec(1);
@@ -121,13 +136,18 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
   };
 
   const handleToggleQuietStudy = () => {
-    const next = !isQuiet;
-    chatService.setQuietStudy(next);
-    setIsQuiet(next);
+    if (onToggleDnd) {
+      onToggleDnd();
+    } else {
+      const next = !isDndActive;
+      chatService.setQuietStudy(next);
+      setIsQuiet(next);
+    }
+    const nextState = !isDndActive;
     setFeedbackNotice(
-      next
-        ? 'Quiet Study enabled. Notifications silenced while you focus.'
-        : 'Quiet Study disabled. Notifications active.'
+      nextState
+        ? "You're in Do Not Disturb mode. Enjoy your quiet study time."
+        : 'Do Not Disturb disabled. Normal chat restored.'
     );
     setTimeout(() => setFeedbackNotice(null), 3000);
   };
@@ -184,24 +204,24 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
-          {/* Quiet Study Mode Toggle */}
+          {/* Do Not Disturb / Quiet Toggle */}
           <button
             onClick={handleToggleQuietStudy}
             type="button"
             className={`p-1.5 rounded-xl text-xs flex items-center gap-1 border transition-colors cursor-pointer ${
-              isQuiet
-                ? 'bg-[#334e3f] text-white border-[#273d32] shadow-2xs'
+              isDndActive
+                ? 'bg-[#253f31] text-amber-200 border-[#1a2d23] shadow-2xs ring-1 ring-amber-300/40'
                 : 'bg-[#faf6f0] hover:bg-[#ede5d8] text-[#55483a] border-[#e0d4c4]'
             }`}
             title={
-              isQuiet
-                ? 'Quiet Study is ON (Notifications silenced). Click to turn OFF.'
-                : 'Enable Quiet Study to silence notifications.'
+              isDndActive
+                ? 'Do Not Disturb is ON (Notifications silenced). Click to turn OFF.'
+                : 'Enable Do Not Disturb (Silence notifications).'
             }
           >
-            {isQuiet ? <Moon className="w-3.5 h-3.5 text-amber-200" /> : <Bell className="w-3.5 h-3.5" />}
+            {isDndActive ? <Moon className="w-3.5 h-3.5 fill-amber-300 text-amber-300" /> : <Bell className="w-3.5 h-3.5" />}
             <span className="text-[10px] font-semibold hidden sm:inline">
-              {isQuiet ? 'Quiet' : 'Alerts'}
+              {isDndActive ? 'DND On' : 'Alerts'}
             </span>
           </button>
 
@@ -358,14 +378,33 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
           <button
             key={r.id}
             type="button"
-            disabled={cooldownSec > 0}
+            disabled={isDndActive || cooldownSec > 0}
             onClick={() => handleSendReaction(r.text)}
-            className="px-2 py-0.5 rounded-full bg-[#fffdfa] hover:bg-[#ede5d8] border border-[#e0d5c5] text-[11px] text-[#4d4032] shrink-0 font-medium transition-colors cursor-pointer disabled:opacity-50"
+            className="px-2 py-0.5 rounded-full bg-[#fffdfa] hover:bg-[#ede5d8] border border-[#e0d5c5] text-[11px] text-[#4d4032] shrink-0 font-medium transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {r.emoji} {r.label}
           </button>
         ))}
       </div>
+
+      {/* Do Not Disturb Banner */}
+      {isDndActive && (
+        <div className="px-3.5 py-2.5 bg-gradient-to-r from-[#edf4ef] via-[#f7f3ec] to-[#edf4ef] border-t border-[#ded4c5] flex items-center justify-between text-xs text-[#2d4d3c] shrink-0 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🌙</span>
+            <span className="font-medium text-[11px] leading-tight text-[#233d2f]">
+              You're in Do Not Disturb mode. Enjoy your quiet study time.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleToggleQuietStudy}
+            className="px-2 py-0.5 rounded-lg bg-white hover:bg-[#eae3d5] text-[#2d5a43] border border-[#c8dacf] font-semibold text-[10px] shadow-2xs shrink-0 cursor-pointer transition-colors"
+          >
+            Turn Off
+          </button>
+        </div>
+      )}
 
       {/* Input Form Footer */}
       <form
@@ -376,22 +415,33 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
           <input
             ref={inputRef}
             type="text"
+            disabled={isDndActive}
             value={inputText}
             maxLength={MAX_CHAT_MESSAGE_LENGTH}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={`Message ${locationDef.name}...`}
-            className="w-full pl-3 pr-12 py-2 bg-[#faf6f0] border border-[#ded2c1] rounded-2xl text-xs text-[#2b251e] placeholder-[#9c8e7e] focus:outline-hidden focus:border-[#2d5a43] focus:bg-white transition-all shadow-inner"
+            placeholder={
+              isDndActive
+                ? "You're in Do Not Disturb mode. Enjoy your quiet study time."
+                : `Message ${locationDef.name}...`
+            }
+            className={`w-full pl-3 pr-12 py-2 rounded-2xl text-xs transition-all shadow-inner ${
+              isDndActive
+                ? 'bg-[#f0ebe3] border border-[#ded5c6] text-[#8c7f70] cursor-not-allowed placeholder-[#8c7f70]'
+                : 'bg-[#faf6f0] border border-[#ded2c1] text-[#2b251e] placeholder-[#9c8e7e] focus:outline-hidden focus:border-[#2d5a43] focus:bg-white'
+            }`}
           />
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-[#9c8f80] font-mono pointer-events-none">
-            {inputText.length}/{MAX_CHAT_MESSAGE_LENGTH}
-          </span>
+          {!isDndActive && (
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-[#9c8f80] font-mono pointer-events-none">
+              {inputText.length}/{MAX_CHAT_MESSAGE_LENGTH}
+            </span>
+          )}
         </div>
 
         <button
           type="submit"
-          disabled={!inputText.trim() || cooldownSec > 0}
+          disabled={isDndActive || !inputText.trim() || cooldownSec > 0}
           className="w-9 h-9 rounded-2xl bg-[#2d5a43] hover:bg-[#1e402e] disabled:bg-[#d6cbbe] disabled:cursor-not-allowed text-white flex items-center justify-center transition-all shadow-xs cursor-pointer shrink-0"
-          title="Send message"
+          title={isDndActive ? "In Do Not Disturb mode" : "Send message"}
           aria-label="Send message"
         >
           <Send className="w-4 h-4" />

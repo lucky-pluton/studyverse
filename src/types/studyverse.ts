@@ -39,6 +39,7 @@ export interface StudentPresence {
   seatEnteredAt: number | null; // UTC timestamp ms
   sessionEnteredAt: number;     // UTC timestamp ms
   studyTopic?: string;
+  isDnd?: boolean;              // Do Not Disturb (Quiet Study) mode
   lastHeartbeat: number;
 }
 

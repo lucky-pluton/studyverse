@@ -57,6 +57,7 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
             studentName={occupant.name}
             isSelf={isSelf}
             studyTopic={occupant.studyTopic}
+            isDnd={occupant.isDnd}
           />
 
           {/* Occupant Chibi Avatar with study activity & location pose */}

@@ -109,7 +109,7 @@ export const CampusAvatarAnchor: React.FC<CampusAvatarAnchorProps> = ({
                 {/* Tiny Floating Study Timer immediately above chibi avatar's head */}
                 {student.seatEnteredAt && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 pointer-events-none z-30 whitespace-nowrap">
-                    <TinyFloatingTimer seatEnteredAt={student.seatEnteredAt} />
+                    <TinyFloatingTimer seatEnteredAt={student.seatEnteredAt} isDnd={student.isDnd} />
                   </div>
                 )}
 
@@ -127,8 +127,9 @@ export const CampusAvatarAnchor: React.FC<CampusAvatarAnchorProps> = ({
                 {/* COMPACT TOOLTIP: Nickname, Location, and Time Seated */}
                 {isHovered && (
                   <div className="absolute -top-16 left-1/2 -translate-x-1/2 px-2.5 py-1.5 rounded-xl bg-[#fffdfa]/95 backdrop-blur-xs border border-[#cfdcd2] shadow-xl text-left whitespace-nowrap z-50 pointer-events-none animate-in fade-in zoom-in-95">
-                    <div className="font-serif-title font-bold text-xs text-[#1e382b] leading-tight">
-                      {student.name}
+                    <div className="font-serif-title font-bold text-xs text-[#1e382b] leading-tight flex items-center gap-1">
+                      <span>{student.name}</span>
+                      {student.isDnd && <span title="Do Not Disturb (Quiet Study)">🌙</span>}
                     </div>
                     <div className="text-[10px] text-[#556e5f] font-medium mt-0.5">
                       {locationName}
@@ -205,8 +206,9 @@ export const CampusAvatarAnchor: React.FC<CampusAvatarAnchorProps> = ({
                       <AvatarRenderer config={student.avatarConfig} size="sm" showProp={false} />
                     </div>
                     <div>
-                      <span className="font-serif-title font-bold text-xs text-[#1e382b] block leading-tight">
-                        {student.name}
+                      <span className="font-serif-title font-bold text-xs text-[#1e382b] flex items-center gap-1 leading-tight">
+                        <span>{student.name}</span>
+                        {student.isDnd && <span title="Do Not Disturb (Quiet Study)">🌙</span>}
                       </span>
                       <span className="text-[10px] text-[#4d6b59] font-medium block">
                         {formatDurationDescriptive(student.seatEnteredAt)}

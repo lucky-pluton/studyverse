@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { LocationId, StudentPresence, TimeOfDay } from './types/studyverse';
 import { presenceService } from './services/presenceService';
 import { soundService } from './services/soundService';
+import { chatService } from './services/chatService';
 import { OnboardingFlow } from './components/onboarding/OnboardingFlow';
 import { Navbar } from './components/common/Navbar';
 import { CampusMap } from './components/campus/CampusMap';
@@ -22,6 +23,7 @@ export function App() {
       const isDemo = urlParams.get('demo') === 'true';
       const isNewStudent =
         urlParams.get('new_student') === 'true' || urlParams.get('companion') === 'true';
+      const isDndStored = localStorage.getItem('studyverse_dnd_enabled') === 'true';
 
       if (isNewStudent) {
         sessionStorage.removeItem('studyverse_session');
@@ -55,9 +57,15 @@ export function App() {
         }
 
         const resolvedLocation = parsed.location === 'city' ? 'campus' : parsed.location || 'campus';
-        setCurrentUser({ ...parsed, location: resolvedLocation });
+        const userWithDnd: StudentPresence = {
+          ...parsed,
+          location: resolvedLocation,
+          isDnd: isDndStored || parsed.isDnd || false,
+        };
+        setCurrentUser(userWithDnd);
         setCurrentLocation(resolvedLocation);
-        presenceService.init({ ...parsed, location: resolvedLocation });
+        presenceService.init(userWithDnd);
+        chatService.setCurrentUser(userWithDnd);
       } else if (isDemo) {
         const demoUser: StudentPresence = {
           sessionId: `demo-${Date.now()}`,
@@ -82,12 +90,14 @@ export function App() {
           seatId: null,
           seatEnteredAt: null,
           sessionEnteredAt: Date.now() - 42 * 60 * 1000,
+          isDnd: isDndStored,
           lastHeartbeat: Date.now(),
         };
         sessionStorage.setItem('studyverse_session', JSON.stringify(demoUser));
         setCurrentUser(demoUser);
         setCurrentLocation('campus');
         presenceService.init(demoUser);
+        chatService.setCurrentUser(demoUser);
       }
     } catch {
       // Session storage error catch
@@ -101,13 +111,14 @@ export function App() {
     const unsubscribePresence = presenceService.subscribe((students) => {
       setAllStudents(students);
 
-      // Keep currentUser state in sync if seat was updated
+      // Keep currentUser state in sync if seat or DND was updated
       const updatedSelf = students.find((s) => s.sessionId === currentUser.sessionId);
       if (
         updatedSelf &&
         (updatedSelf.seatId !== currentUser.seatId ||
           updatedSelf.location !== currentUser.location ||
-          updatedSelf.studyTopic !== currentUser.studyTopic)
+          updatedSelf.studyTopic !== currentUser.studyTopic ||
+          updatedSelf.isDnd !== currentUser.isDnd)
       ) {
         setCurrentUser((prev) => (prev ? { ...prev, ...updatedSelf } : updatedSelf));
         sessionStorage.setItem('studyverse_session', JSON.stringify(updatedSelf));
@@ -134,11 +145,34 @@ export function App() {
   }, [currentUser, currentLocation]);
 
   const handleOnboardingComplete = (presence: StudentPresence) => {
-    setCurrentUser(presence);
+    const isDndStored = localStorage.getItem('studyverse_dnd_enabled') === 'true';
+    const userWithDnd: StudentPresence = {
+      ...presence,
+      isDnd: isDndStored,
+    };
+    setCurrentUser(userWithDnd);
     setCurrentLocation('campus');
-    sessionStorage.setItem('studyverse_session', JSON.stringify(presence));
-    presenceService.init(presence);
+    sessionStorage.setItem('studyverse_session', JSON.stringify(userWithDnd));
+    presenceService.init(userWithDnd);
+    chatService.setCurrentUser(userWithDnd);
     soundService.startAmbience('campus');
+  };
+
+  const handleToggleDnd = () => {
+    if (!currentUser) return;
+    const nextDnd = !currentUser.isDnd;
+    const updated: StudentPresence = {
+      ...currentUser,
+      isDnd: nextDnd,
+    };
+    setCurrentUser(updated);
+    try {
+      sessionStorage.setItem('studyverse_session', JSON.stringify(updated));
+      localStorage.setItem('studyverse_dnd_enabled', nextDnd ? 'true' : 'false');
+    } catch {}
+    presenceService.setDnd(nextDnd);
+    chatService.setQuietStudy(nextDnd);
+    chatService.setCurrentUser(updated);
   };
 
   const handleNavigate = (newLocation: LocationId) => {
@@ -242,6 +276,8 @@ export function App() {
         timeOfDay={timeOfDay}
         onChangeTimeOfDay={setTimeOfDay}
         stats={stats}
+        isDnd={currentUser.isDnd}
+        onToggleDnd={handleToggleDnd}
       />
 
       {/* Global Toast for seat conflict or alerts */}
@@ -276,6 +312,8 @@ export function App() {
             onLeaveSeat={handleLeaveSeat}
             onChangeStudyTopic={handleChangeStudyTopic}
             timeOfDay={timeOfDay}
+            isDnd={currentUser.isDnd}
+            onToggleDnd={handleToggleDnd}
           />
         )}
       </main>

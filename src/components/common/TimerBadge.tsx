@@ -6,6 +6,7 @@ interface FloatingSeatTimerProps {
   studentName: string;
   isSelf?: boolean;
   studyTopic?: string;
+  isDnd?: boolean;
   className?: string;
 }
 
@@ -13,6 +14,7 @@ export interface TinyFloatingTimerProps {
   seatEnteredAt: number | null;
   className?: string;
   isSelf?: boolean;
+  isDnd?: boolean;
 }
 
 export const formatDuration = (timestampMs: number | null): string => {
@@ -73,6 +75,7 @@ export const TinyFloatingTimer: React.FC<TinyFloatingTimerProps> = ({
   seatEnteredAt,
   className = '',
   isSelf = false,
+  isDnd = false,
 }) => {
   const [, setTick] = useState(0);
 
@@ -98,6 +101,7 @@ export const TinyFloatingTimer: React.FC<TinyFloatingTimerProps> = ({
       <span className="font-mono-timer text-[8.5px] sm:text-[9px] font-bold tracking-tight leading-none text-[#2d251f]">
         {timeString}
       </span>
+      {isDnd && <span className="text-[8px] leading-none ml-0.5">🌙</span>}
     </div>
   );
 };
@@ -110,6 +114,7 @@ export const FloatingSeatTimer: React.FC<FloatingSeatTimerProps> = ({
   studentName,
   isSelf = false,
   studyTopic,
+  isDnd = false,
   className = '',
 }) => {
   const [, setTick] = useState(0);
@@ -136,7 +141,10 @@ export const FloatingSeatTimer: React.FC<FloatingSeatTimerProps> = ({
             : 'bg-[#fffdf9]/95 text-[#2b251f] border-[#e2d7c7]'
         }`}
       >
-        <span className="font-semibold tracking-tight text-[11px]">{studentName}</span>
+        <span className="font-semibold tracking-tight text-[11px] flex items-center gap-1">
+          <span>{studentName}</span>
+          {isDnd && <span title="Do Not Disturb (Quiet Study)" className="text-[10px]">🌙</span>}
+        </span>
         {isSelf && <span className="text-[9px] font-bold text-[#426b52]">(you)</span>}
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
         <span className="font-mono-timer text-[10px] font-bold text-[#2d5a43] bg-[#f2ede4] px-1.5 py-0.2 rounded">
