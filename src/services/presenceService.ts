@@ -109,6 +109,10 @@ class PresenceService {
     return this.connectionStatus;
   }
 
+  public getSupabaseClient(): SupabaseClient | null {
+    return this.supabase;
+  }
+
   public getDiagnostics() {
     return {
       mode: this.mode,

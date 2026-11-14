@@ -80,3 +80,22 @@ export interface CampusStats {
   parkCount: number;
   gcCount: number;
 }
+
+export interface ChatMessage {
+  id: string;
+  sessionId: string;
+  senderName: string;
+  avatarId: string;
+  avatarConfig?: AvatarConfig;
+  text: string;
+  timestamp: number;
+  locationId: LocationId;
+  type?: 'chat' | 'reaction';
+}
+
+export interface QuickStudyReaction {
+  id: string;
+  emoji: string;
+  label: string;
+  text: string;
+}

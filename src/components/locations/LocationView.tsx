@@ -10,6 +10,9 @@ import { SangamGardens } from './SangamGardens';
 import { GajendraCircle } from './GajendraCircle';
 import { StudyDock } from '../study/StudyDock';
 import { soundService } from '../../services/soundService';
+import { chatService } from '../../services/chatService';
+import { LocationChatPanel } from '../chat/LocationChatPanel';
+import { ChatTriggerButton } from '../chat/ChatTriggerButton';
 import {
   ArrowLeft,
   Users,
@@ -17,6 +20,7 @@ import {
   Info,
   AlertCircle,
   ExternalLink,
+  MessageSquare,
 } from 'lucide-react';
 
 interface LocationViewProps {
@@ -41,10 +45,18 @@ export const LocationView: React.FC<LocationViewProps> = ({
   timeOfDay,
 }) => {
   const [conflictAlert, setConflictAlert] = useState<string | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // Normalize legacy 'city' alias to campus or fallback
   const resolvedId = locationId === 'city' ? 'campus' : locationId;
   const location = LOCATIONS[resolvedId] || LOCATIONS.library;
+
+  // Clean up location chat channel when unmounting or changing location
+  useEffect(() => {
+    return () => {
+      chatService.leaveCurrentLocation();
+    };
+  }, [locationId]);
 
   // Start the appropriate ambient soundscape when location loads
   useEffect(() => {
@@ -110,8 +122,22 @@ export const LocationView: React.FC<LocationViewProps> = ({
           </div>
         </div>
 
-        {/* Occupant Counter & Seat Status */}
-        <div className="flex items-center gap-3">
+        {/* Occupant Counter, Chat Toggle & Seat Status */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <button
+            onClick={() => setIsChatOpen((prev) => !prev)}
+            type="button"
+            className={`px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              isChatOpen
+                ? 'bg-[#2d5a43] text-white border-[#1e402e] shadow-2xs'
+                : 'bg-[#fffdfa] hover:bg-[#f1eae0] border-[#d8ccbc] text-[#3f3428]'
+            }`}
+            title="Toggle Room Chat"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Chat</span>
+          </button>
+
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f4ece1] border border-[#e2d5c3] text-xs font-medium text-[#4d4033]">
             <Users className="w-3.5 h-3.5 text-[#5e776a]" />
             <span>
@@ -271,6 +297,22 @@ export const LocationView: React.FC<LocationViewProps> = ({
           onChangeTopic={onChangeStudyTopic}
         />
       )}
+
+      {/* Floating Chat Trigger Button */}
+      <ChatTriggerButton
+        locationName={location.name}
+        isOpen={isChatOpen}
+        onToggle={() => setIsChatOpen((prev) => !prev)}
+      />
+
+      {/* Location Real-Time Chat Panel */}
+      <LocationChatPanel
+        locationId={resolvedId}
+        currentUser={currentUser}
+        occupantsCount={occupants.length}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
     </div>
   );
 };
