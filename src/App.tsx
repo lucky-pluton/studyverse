@@ -73,7 +73,12 @@ export function App() {
 
       // Keep currentUser state in sync if seat was updated
       const updatedSelf = students.find((s) => s.sessionId === currentUser.sessionId);
-      if (updatedSelf) {
+      if (
+        updatedSelf &&
+        (updatedSelf.seatId !== currentUser.seatId ||
+          updatedSelf.location !== currentUser.location ||
+          updatedSelf.studyTopic !== currentUser.studyTopic)
+      ) {
         setCurrentUser((prev) => (prev ? { ...prev, ...updatedSelf } : updatedSelf));
         sessionStorage.setItem('studyverse_session', JSON.stringify(updatedSelf));
       }

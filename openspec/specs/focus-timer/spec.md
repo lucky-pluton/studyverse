@@ -32,3 +32,4 @@ Upon countdown completion, the system SHALL play a peaceful 4-note chime (when u
 #### Scenario: Timer reaches zero
 - **WHEN** a focus countdown concludes (reaches 0:00)
 - **THEN** a chime sound plays and a banner appears offering a break or repeat session.
+
