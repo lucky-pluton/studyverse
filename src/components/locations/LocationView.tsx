@@ -51,6 +51,29 @@ export const LocationView: React.FC<LocationViewProps> = ({
 }) => {
   const [conflictAlert, setConflictAlert] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isTimerOpen, setIsTimerOpen] = useState(false);
+
+  // Track timer panel status to coordinate layout on constrained screens (< 1100px)
+  useEffect(() => {
+    const handlePanelOpened = (e: Event) => {
+      const custom = e as CustomEvent<{ panel: string }>;
+      if (custom.detail?.panel === 'timer') {
+        setIsTimerOpen(true);
+      }
+    };
+    const handlePanelClosed = (e: Event) => {
+      const custom = e as CustomEvent<{ panel: string }>;
+      if (custom.detail?.panel === 'timer') {
+        setIsTimerOpen(false);
+      }
+    };
+    window.addEventListener('studyverse:panel-opened', handlePanelOpened);
+    window.addEventListener('studyverse:panel-closed', handlePanelClosed);
+    return () => {
+      window.removeEventListener('studyverse:panel-opened', handlePanelOpened);
+      window.removeEventListener('studyverse:panel-closed', handlePanelClosed);
+    };
+  }, []);
 
   // Normalize legacy 'city' alias to campus or fallback
   const resolvedId = locationId === 'city' ? 'campus' : locationId;
@@ -139,7 +162,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
             onClick={() => {
               setIsChatOpen((prev) => {
                 const next = !prev;
-                if (next && typeof window !== 'undefined' && window.innerWidth < 768) {
+                if (next && typeof window !== 'undefined' && window.innerWidth < 1100) {
                   window.dispatchEvent(new CustomEvent('studyverse:panel-opened', { detail: { panel: 'chat' } }));
                 }
                 return next;
@@ -331,13 +354,15 @@ export const LocationView: React.FC<LocationViewProps> = ({
 
       {/* Seated Bottom Dock */}
       {isUserSeatedHere && (
-        <StudyDock
-          currentUser={currentUser}
-          currentSeatName={currentSeatDef?.name || 'Study Desk'}
-          onLeaveSeat={onLeaveSeat}
-          onChangeTopic={onChangeStudyTopic}
-          onToggleDnd={onToggleDnd}
-        />
+        <div className={(isChatOpen || isTimerOpen) ? 'hidden xl:block' : 'block'}>
+          <StudyDock
+            currentUser={currentUser}
+            currentSeatName={currentSeatDef?.name || 'Study Desk'}
+            onLeaveSeat={onLeaveSeat}
+            onChangeTopic={onChangeStudyTopic}
+            onToggleDnd={onToggleDnd}
+          />
+        </div>
       )}
 
       {/* Floating Chat Trigger Button */}

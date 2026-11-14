@@ -218,12 +218,13 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
     };
   }, [isPomodoroRunning, mode, soundEnabled, customMinutes, persistPomodoroState]);
 
-  // 4. Mutual collision avoidance with Chat on mobile viewports (< 768px)
+  // 4. Mutual collision avoidance with Chat on constrained viewports (< 1100px)
   useEffect(() => {
     const handlePanelOpened = (e: Event) => {
       const custom = e as CustomEvent<{ panel: string }>;
-      if (typeof window !== 'undefined' && window.innerWidth < 768 && custom.detail?.panel === 'chat') {
+      if (typeof window !== 'undefined' && window.innerWidth < 1100 && custom.detail?.panel === 'chat') {
         setIsOpen(false);
+        window.dispatchEvent(new CustomEvent('studyverse:panel-closed', { detail: { panel: 'timer' } }));
       }
     };
     window.addEventListener('studyverse:panel-opened', handlePanelOpened);
@@ -232,8 +233,15 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
 
   const handleOpenUtility = () => {
     setIsOpen(true);
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('studyverse:panel-opened', { detail: { panel: 'timer' } }));
+    }
+  };
+
+  const handleCloseUtility = () => {
+    setIsOpen(false);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('studyverse:panel-closed', { detail: { panel: 'timer' } }));
     }
   };
 
@@ -497,7 +505,7 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
                 )}
 
                 <button
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleCloseUtility}
                   type="button"
                   className="p-1.5 rounded-lg text-[#887b6e] hover:bg-[#f1eae0] transition-colors cursor-pointer"
                   title="Minimize Timers"
