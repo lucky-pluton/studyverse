@@ -140,7 +140,71 @@ Every major campus destination has its own physical, illustrated study room with
 
 ---
 
-## 📋 OpenSpec Spec-Driven Development (SDD)
+## 🛠️ Technology Stack Architecture
+
+The Studyverse tech stack is segregated into distinct, modular layers:
+
+### 1. 🔷 Language & Type System (TypeScript)
+* **TypeScript (`~7.0.2` / Modern `ES2023`)**:
+  * Primary programming language throughout the entire application, enforcing strict end-to-end type safety from networking wire protocols to UI rendering.
+* **Segregated Domain Type Definitions (`src/types/`)**:
+  * [`src/types/studyverse.ts`](src/types/studyverse.ts): Core campus domain models (`StudentPresence`, `LocationId`, `AvatarConfig`, `ChatMessage`, `Seat`, `CampusSpot`).
+  * [`src/types/statistics.ts`](src/types/statistics.ts): Independent study metrics, session tracking, distribution ratios, and timer records.
+  * [`src/types/stopwatch.ts`](src/types/stopwatch.ts): Stopwatch state, lap accumulation, and interval timings.
+* **Compiler Configuration (`tsconfig.app.json` & `tsconfig.json`)**:
+  * Project references isolating app code from build configurations.
+  * `bundler` module resolution with `verbatimModuleSyntax` and `erasableSyntaxOnly` for zero runtime overhead and clean type-stripping.
+  * Strict linting rules: `noUnusedLocals`, `noUnusedParameters`, and `noFallthroughCasesInSwitch`.
+
+### 2. ⚛️ Core Frontend Framework
+* **React 19 (`react` & `react-dom` `19.3.1`)**:
+  * Functional component architecture with modern React hooks (`useState`, `useEffect`, `useRef`, `useCallback`, `useMemo`).
+  * **Zero Component Library Dependency**: Pure custom React components built specifically for the interactive campus map, chibi avatars, floating docks, chat panel, stopwatch, and pomodoro timer.
+
+### 3. 🎨 Styling & Design System
+* **Tailwind CSS v4 (`4.3.5` via `@tailwindcss/vite`)**:
+  * Next-generation CSS-first utility engine with instant build times.
+  * **IIT Madras Campus Theme**: Calming organic palette featuring forest rain-tree green (`#2d5a43`), warm cream parchment (`#faf6f0`), and teak wood accents (`#ded2c1`).
+* **Lucide React (`1.72.0`)**:
+  * Consistent, lightweight SVG iconography across all campus navigation, timers, and chat panels.
+* **Canvas Confetti (`1.9.4`)**:
+  * Client-side particle animations celebrating focus milestone completions.
+
+### 4. 🌐 Real-Time Multiplayer & Networking (4-Tier Hybrid Stack)
+* **Tier 1 — Supabase Realtime (`@supabase/supabase-js` `2.119.0`)**:
+  * Presence Channels (`studyverse_campus_presence`) for seat occupancy & presence sync.
+  * Broadcast Channels (`studyverse_chat_{locationId}`) for location-isolated chat & audio notifications.
+* **Tier 2 — Global WebRTC Cloud Mesh (`trystero` `0.27.0`)**:
+  * Peer-to-peer data mesh over Port 443 WSS Nostr relays for zero-config global multiplayer.
+* **Tier 3 — Cloud MQTT WebSocket Relay (`paho-mqtt` `1.1.0` & `@types/paho-mqtt`)**:
+  * Public EMQX/HiveMQ WebSocket broker relay for reliable cross-network fallback.
+* **Tier 4 — Local Multi-Tab Sync (`BroadcastChannel` & WebStorage)**:
+  * Zero-configuration same-device synchronization across multiple tabs and windows.
+
+### 5. 🔊 Procedural Audio Engine
+* **Web Audio API (Browser Native Standards)**:
+  * Pure procedural audio synthesis implemented in `src/services/soundService.ts` with **zero external audio file dependencies** (guaranteed offline reliability, 0 network requests, zero 404s).
+  * Synthesizes ambient soundscapes (Central Library AC/rain hum, Banyan Tree rustling leaves & birdsong, Campus Café acoustic warmth).
+  * Procedural dual-tone notification chime (D5 587.33Hz + A5 880Hz) with linear attack & smooth exponential decay.
+  * Autonomous browser audio autoplay policy handling (`suspended` &rarr; `running`).
+
+### 6. ⚡ Build, Tooling & Quality Assurance
+* **Vite 8 (`8.3.6` with `@vitejs/plugin-react` `6.1.2`)**:
+  * Ultra-fast ESM development server and Rollup/Rolldown production bundler.
+* **Oxlint (`1.90.0`)**:
+  * High-performance Rust-based JavaScript/TypeScript linter.
+* **Puppeteer Core (`25.17.0`)**:
+  * Multi-context browser automation test suites validating real-time multiplayer presence, dual-user chat chimes, and responsive layout containment.
+* **OpenSpec (`@fission-ai/openspec`)**:
+  * Spec-Driven Development (SDD) schema and requirement validation.
+
+### 7. 🚀 Hosting & CI/CD
+* **GitHub Pages**:
+  * Static production deployment at [https://lucky-pluton.github.io/studyverse/](https://lucky-pluton.github.io/studyverse/).
+* **GitHub Actions (`.github/workflows/deploy.yml`)**:
+  * Automated type-checking (`tsc -b`), production bundling (`vite build`), and GitHub Pages deployment on push to `main`.
+
+---
 
 Studyverse integrates with [OpenSpec](https://openspec.dev/) by Fission-AI for spec-driven engineering and AI agent alignment:
 
