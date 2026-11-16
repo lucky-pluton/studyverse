@@ -313,7 +313,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-[#dbe7e0]">
               <div
                 className="w-8 h-8 rounded-full overflow-hidden bg-[#e0eee6] border border-[#bcd2c6] flex items-center justify-center shrink-0 shadow-2xs"
-                title={`${currentUser.name} (${currentUser.avatarConfig.summary})`}
+                title={`${currentUser.name} (${currentUser.avatarConfig?.summary || currentUser.avatarConfig?.name || 'Student'})`}
               >
                 <AvatarRenderer config={currentUser.avatarConfig} size="xs" showProp={false} />
               </div>

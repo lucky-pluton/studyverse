@@ -6,9 +6,11 @@ export type AmbientTrackType = 'library' | 'lhc' | 'banyan' | 'oat' | 'cafe' | '
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private notificationGain: GainNode | null = null;
   private isMuted: boolean = false;
   private volume: number = 0.35;
   private currentTrack: string | null = null;
+  private audioStateListeners: Set<(isActive: boolean) => void> = new Set();
 
   // Active nodes for ambient loops
   private noiseNode: AudioNode | null = null;
@@ -21,13 +23,32 @@ class SoundEngine {
     if (!this.ctx) {
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioContextClass();
+
+      // Master gain for ambient soundscape loops (controlled by navbar mute & volume slider)
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : this.volume, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
+
+      // Dedicated notification gain (independent of ambient soundscape mute/volume)
+      this.notificationGain = this.ctx.createGain();
+      this.notificationGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
+      this.notificationGain.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
+      this.ctx.resume().then(() => {
+        this.notifyAudioState();
+      }).catch(() => {});
     }
+  }
+
+  public onAudioStateChange(listener: (isActive: boolean) => void): () => void {
+    this.audioStateListeners.add(listener);
+    return () => this.audioStateListeners.delete(listener);
+  }
+
+  private notifyAudioState() {
+    const active = this.isAudioActive();
+    this.audioStateListeners.forEach((fn) => fn(active));
   }
 
   public ensureAudioActivated(): Promise<boolean> {
@@ -36,10 +57,16 @@ class SoundEngine {
       if (this.ctx && this.ctx.state === 'suspended') {
         return this.ctx
           .resume()
-          .then(() => this.ctx?.state === 'running')
+          .then(() => {
+            const active = this.ctx?.state === 'running';
+            this.notifyAudioState();
+            return active;
+          })
           .catch(() => false);
       }
-      return Promise.resolve(this.ctx?.state === 'running');
+      const active = this.ctx?.state === 'running';
+      this.notifyAudioState();
+      return Promise.resolve(active);
     } catch {
       return Promise.resolve(false);
     }
@@ -154,49 +181,70 @@ class SoundEngine {
   /**
    * Soft, warm real-time chat notification chime (150-300ms).
    * Dual-tone acoustic sine droplet (D5 587.33Hz + A5 880Hz) with gentle linear attack
-   * and smooth exponential decay. Never piercing, harsh, or startling.
+   * and smooth exponential decay. Independent of ambient sound mute/volume.
    */
-  public playChatChime() {
+  public async playChatChime(): Promise<{ success: boolean; state: string; error?: string }> {
     try {
       this.initContext();
-      if (!this.ctx || !this.masterGain || this.isMuted) return;
-
-      if ((this.ctx.state as string) === 'suspended') {
-        this.ctx.resume().catch(() => {});
-      }
-      if ((this.ctx.state as string) !== 'running') {
-        return;
+      if (!this.ctx || !this.notificationGain) {
+        return { success: false, state: 'uninitialized', error: 'AudioContext unavailable' };
       }
 
-      const now = this.ctx.currentTime;
-      const notes = [
-        { freq: 587.33, offset: 0, gain: 0.055, decay: 0.22 },
-        { freq: 880.00, offset: 0.06, gain: 0.045, decay: 0.26 },
-      ];
+      if (this.ctx.state === 'suspended') {
+        try {
+          await this.ctx.resume();
+          this.notifyAudioState();
+        } catch (resumeErr: unknown) {
+          const msg = resumeErr instanceof Error ? resumeErr.message : String(resumeErr);
+          return { success: false, state: this.ctx.state, error: `Audio resume blocked: ${msg}` };
+        }
+      }
 
-      notes.forEach(({ freq, offset, gain: peakGain, decay }) => {
-        if (!this.ctx || !this.masterGain) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+      if (this.ctx.state !== 'running') {
+        return {
+          success: false,
+          state: this.ctx.state,
+          error: 'Browser autoplay policy: user interaction required'
+        };
+      }
 
-        osc.type = 'sine';
-        const start = now + offset;
-        osc.frequency.setValueAtTime(freq, start);
-
-        // Soft linear ramp attack to avoid click
-        gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.linearRampToValueAtTime(peakGain, start + 0.012);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + decay);
-
-        osc.connect(gain);
-        gain.connect(this.masterGain);
-
-        osc.start(start);
-        osc.stop(start + decay + 0.05);
-      });
-    } catch {
-      // Audio policy catch
+      this.triggerChimeSynthesis();
+      return { success: true, state: 'running' };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, state: this.ctx?.state || 'error', error: msg };
     }
+  }
+
+  private triggerChimeSynthesis() {
+    if (!this.ctx || !this.notificationGain) return;
+
+    const now = this.ctx.currentTime;
+    const notes = [
+      { freq: 587.33, offset: 0, gain: 0.08, decay: 0.22 },
+      { freq: 880.00, offset: 0.06, gain: 0.065, decay: 0.26 },
+    ];
+
+    notes.forEach(({ freq, offset, gain: peakGain, decay }) => {
+      if (!this.ctx || !this.notificationGain) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      const start = now + offset;
+      osc.frequency.setValueAtTime(freq, start);
+
+      // Soft linear ramp attack to avoid click
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.linearRampToValueAtTime(peakGain, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + decay);
+
+      osc.connect(gain);
+      gain.connect(this.notificationGain);
+
+      osc.start(start);
+      osc.stop(start + decay + 0.05);
+    });
   }
 
   public startAmbience(track: AmbientTrackType) {

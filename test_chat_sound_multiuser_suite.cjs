@@ -414,65 +414,69 @@ const puppeteer = require('puppeteer-core');
     }
 
     // =========================================================================
-    // UI TEST: Preview Button and Sound Toggle Controls in LocationChatPanel
+    // UI TEST: Test Sound Button and Sound Toggle Controls in LocationChatPanel
     // =========================================================================
-    console.log('\n--- UI Test: Sound Toggle & Preview Controls in LocationChatPanel ---');
+    console.log('\n--- UI Test: Sound Toggle & Test Sound Controls in LocationChatPanel ---');
 
     // Open chat panel on User B
     await pageB.evaluate(() => {
-      const chatBtn = Array.from(document.querySelectorAll('button')).find(b => b.getAttribute('aria-label')?.includes('Chat'));
+      const chatBtn = document.querySelector('button[aria-label*="Chat"]');
       if (chatBtn) chatBtn.click();
     });
     await new Promise(r => setTimeout(r, 500));
 
-    // Verify UI buttons exist: Sound toggle and Preview Chime
+    // Verify UI buttons exist: Sound toggle and Test Sound
     const uiButtonsCheck = await pageB.evaluate(() => {
-      const soundBtn = Array.from(document.querySelectorAll('button')).find(b => 
-        b.getAttribute('aria-label')?.includes('Notification Sounds')
-      );
-      const previewBtn = Array.from(document.querySelectorAll('button')).find(b => 
-        b.getAttribute('aria-label')?.includes('Preview') || b.getAttribute('title')?.includes('Preview')
-      );
+      const soundBtn = document.querySelector('[data-testid="toggle-chat-sound-btn"]') ||
+        Array.from(document.querySelectorAll('button')).find(b => 
+          b.getAttribute('aria-label')?.includes('Notification Sounds')
+        );
+      const testSoundBtn = document.querySelector('[data-testid="test-chat-sound-btn"]') ||
+        Array.from(document.querySelectorAll('button')).find(b => 
+          b.getAttribute('aria-label')?.includes('Test') || b.getAttribute('title')?.includes('Test')
+        );
       return {
         hasSoundBtn: !!soundBtn,
-        hasPreviewBtn: !!previewBtn,
+        hasTestSoundBtn: !!testSoundBtn,
         soundBtnTitle: soundBtn?.getAttribute('title'),
-        previewBtnTitle: previewBtn?.getAttribute('title')
+        testSoundBtnTitle: testSoundBtn?.getAttribute('title')
       };
     });
     console.log('UI Buttons Inspection:', uiButtonsCheck);
 
-    if (!uiButtonsCheck.hasSoundBtn || !uiButtonsCheck.hasPreviewBtn) {
-      console.error('FAIL: Sound toggle or Preview button missing in chat header!');
+    if (!uiButtonsCheck.hasSoundBtn || !uiButtonsCheck.hasTestSoundBtn) {
+      console.error('FAIL: Sound toggle or Test Sound button missing in chat header!');
       allPassed = false;
     } else {
-      console.log('PASS: Both Sound Toggle and Preview Chime buttons rendered in chat header.');
+      console.log('PASS: Both Sound Toggle and Test Sound buttons rendered in chat header.');
     }
 
-    // Test clicking Preview Chime button
+    // Test clicking Test Sound button
     await pageB.evaluate(() => { window.__chimeEvents = []; });
     await pageB.evaluate(() => {
-      const previewBtn = Array.from(document.querySelectorAll('button')).find(b => 
-        b.getAttribute('aria-label')?.includes('Preview') || b.getAttribute('title')?.includes('Preview')
-      );
-      if (previewBtn) previewBtn.click();
+      const testBtn = document.querySelector('[data-testid="test-chat-sound-btn"]') ||
+        Array.from(document.querySelectorAll('button')).find(b => 
+          b.getAttribute('aria-label')?.includes('Test') || b.getAttribute('title')?.includes('Test')
+        );
+      if (testBtn) testBtn.click();
     });
     await new Promise(r => setTimeout(r, 400));
 
-    const previewChimeResult = await pageB.evaluate(() => window.__chimeEvents.length);
-    console.log('Preview Chime Click result:', previewChimeResult);
-    if (previewChimeResult !== 1) {
-      console.error('FAIL: Preview button did not trigger chime sound!');
+    const testChimeResult = await pageB.evaluate(() => window.__chimeEvents.length);
+    console.log('Test Sound Click result:', testChimeResult);
+    if (testChimeResult !== 1) {
+      console.error('FAIL: Test Sound button did not trigger chime sound!');
       allPassed = false;
     } else {
-      console.log('PASS: Preview button played gentle notification chime.');
+      console.log('PASS: Test Sound button played gentle notification chime.');
     }
 
     // Test toggling sound ON from UI
     await pageB.evaluate(() => {
-      const soundBtn = Array.from(document.querySelectorAll('button')).find(b => 
-        b.getAttribute('aria-label')?.includes('Notification Sounds')
-      );
+      const soundBtn = document.querySelector('[data-testid="toggle-chat-sound-btn"]') ||
+        Array.from(document.querySelectorAll('button')).find(b => 
+          b.getAttribute('aria-label')?.includes('Notification Sounds')
+        );
       if (soundBtn) soundBtn.click();
     });
     await new Promise(r => setTimeout(r, 400));
@@ -508,3 +512,4 @@ const puppeteer = require('puppeteer-core');
     process.exit(allPassed ? 0 : 1);
   }
 })();
+

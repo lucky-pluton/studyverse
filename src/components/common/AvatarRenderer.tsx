@@ -1,10 +1,11 @@
 import React from 'react';
 import type { AvatarConfig } from '../../types/studyverse';
+import { AVATAR_CATALOG } from '../../constants/avatars';
 
 export type ChibiPose = 'desk' | 'bench' | 'cafe' | 'tree' | 'default';
 
 interface AvatarRendererProps {
-  config: AvatarConfig;
+  config?: AvatarConfig;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'hero' | 'map';
   showProp?: boolean;
   isSeated?: boolean;
@@ -14,7 +15,7 @@ interface AvatarRendererProps {
 }
 
 export const AvatarRenderer: React.FC<AvatarRendererProps> = ({
-  config,
+  config: rawConfig,
   size = 'md',
   showProp = true,
   isSeated = false,
@@ -22,6 +23,20 @@ export const AvatarRenderer: React.FC<AvatarRendererProps> = ({
   className = '',
   animate = true,
 }) => {
+  const fallback = AVATAR_CATALOG[0];
+  const config: AvatarConfig = {
+    ...fallback,
+    ...(rawConfig || {}),
+    clothingColor:
+      rawConfig?.clothingColor ||
+      (rawConfig as unknown as { shirtColor?: string })?.shirtColor ||
+      fallback.clothingColor,
+    accentColor: rawConfig?.accentColor || fallback.accentColor,
+    clothingStyle: rawConfig?.clothingStyle || fallback.clothingStyle,
+    skinTone: rawConfig?.skinTone || fallback.skinTone,
+    hairColor: rawConfig?.hairColor || fallback.hairColor,
+    hairStyle: rawConfig?.hairStyle || fallback.hairStyle,
+  };
   const sizeMap = {
     xs: { width: 34, height: 40 },
     map: { width: 44, height: 50 },

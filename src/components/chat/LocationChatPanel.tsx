@@ -42,6 +42,7 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
   const [inputText, setInputText] = useState('');
   const [isQuiet, setIsQuiet] = useState(chatService.isQuiet() || !!currentUser.isDnd);
   const [isSoundEnabled, setIsSoundEnabled] = useState(chatService.isChatSoundEnabled());
+  const [isAudioActive, setIsAudioActive] = useState(soundService.isAudioActive());
   const [cooldownSec, setCooldownSec] = useState<number>(0);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState<string | null>(null);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
@@ -69,10 +70,15 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
       setIsSoundEnabled(enabled);
     });
 
+    const unsubscribeAudio = soundService.onAudioStateChange((active) => {
+      setIsAudioActive(active);
+    });
+
     return () => {
       unsubscribeMessages();
       unsubscribeQuiet();
       unsubscribeSound();
+      unsubscribeAudio();
     };
   }, [locationId, currentUser.sessionId, currentUser.isDnd]);
 
@@ -162,13 +168,7 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
     setTimeout(() => setFeedbackNotice(null), 3000);
   };
 
-  const handleToggleSound = () => {
-    soundService.ensureAudioActivated().then((active) => {
-      if (!active) {
-        setFeedbackNotice('Click anywhere on the campus to allow notification sounds in your browser.');
-      }
-    });
-
+  const handleToggleSound = async () => {
     const next = chatService.toggleChatSound();
     setIsSoundEnabled(next);
 
@@ -183,28 +183,48 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
     }
 
     if (next) {
-      soundService.playChatChime();
-      setFeedbackNotice('Chat sound notifications enabled (soft chime previewed).');
+      const res = await soundService.playChatChime();
+      if (res.success) {
+        setIsAudioActive(true);
+        setFeedbackNotice('Chat sound notifications enabled (soft chime previewed).');
+      } else {
+        setIsAudioActive(false);
+        setFeedbackNotice('Chat sound enabled. Tap anywhere on screen to allow browser audio.');
+      }
     } else {
       setFeedbackNotice('Chat sound notifications muted (messages arrive silently).');
     }
     setTimeout(() => setFeedbackNotice(null), 3000);
   };
 
-  const handlePreviewSound = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    soundService.ensureAudioActivated().then((active) => {
-      if (!active) {
-        setFeedbackNotice('Click anywhere on campus to enable notification sounds in your browser.');
-        return;
-      }
-    });
-    soundService.playChatChime();
-    setFeedbackNotice(
-      isDndActive
-        ? 'Previewing gentle chime (Note: Live notifications are silenced while DND is ON).'
-        : 'Playing gentle notification chime preview.'
-    );
+  const handleTestSound = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const res = await soundService.playChatChime();
+    if (res.success) {
+      setIsAudioActive(true);
+      setFeedbackNotice(
+        isDndActive
+          ? 'Notification chime tested (Note: Live notifications silenced while DND is ON).'
+          : 'Notification chime played successfully.'
+      );
+    } else {
+      setIsAudioActive(false);
+      setFeedbackNotice(
+        `Audio blocked by browser (${res.state}). Click anywhere to enable sound.`
+      );
+    }
+    setTimeout(() => setFeedbackNotice(null), 3500);
+  };
+
+  const handleActivateAudio = async () => {
+    const active = await soundService.ensureAudioActivated();
+    if (active) {
+      await soundService.playChatChime();
+      setIsAudioActive(true);
+      setFeedbackNotice('Notification sound enabled and active!');
+    } else {
+      setFeedbackNotice('Browser still blocking audio. Click anywhere on screen to enable.');
+    }
     setTimeout(() => setFeedbackNotice(null), 3000);
   };
 
@@ -270,6 +290,7 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
           {/* Sound Notifications Toggle */}
           <button
             onClick={handleToggleSound}
+            data-testid="toggle-chat-sound-btn"
             type="button"
             className={`p-1.5 rounded-xl text-xs flex items-center gap-1 border transition-colors cursor-pointer ${
               isSoundEnabled && !isDndActive
@@ -295,20 +316,23 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
             </span>
           </button>
 
-          {/* Preview Chime Button */}
+          {/* Test Sound Button */}
           <button
-            onClick={handlePreviewSound}
+            onClick={handleTestSound}
+            data-testid="test-chat-sound-btn"
             type="button"
-            className="p-1.5 rounded-xl hover:bg-[#ede5d8] text-[#6d5f50] border border-[#e0d4c4] bg-[#faf6f0] transition-colors cursor-pointer"
-            title="Preview gentle notification chime"
-            aria-label="Preview notification sound"
+            className="p-1.5 rounded-xl hover:bg-[#ede5d8] text-[#6d5f50] border border-[#e0d4c4] bg-[#faf6f0] transition-colors cursor-pointer flex items-center gap-1"
+            title="Test notification sound"
+            aria-label="Test notification sound"
           >
             <Music className="w-3.5 h-3.5 text-[#446d5c]" />
+            <span className="text-[10px] font-semibold hidden sm:inline">Test</span>
           </button>
 
           {/* Do Not Disturb / Quiet Toggle */}
           <button
             onClick={handleToggleQuietStudy}
+            data-testid="toggle-chat-dnd-btn"
             type="button"
             className={`p-1.5 rounded-xl text-xs flex items-center gap-1 border transition-colors cursor-pointer ${
               isDndActive
@@ -339,6 +363,27 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Browser Audio Autoplay Activation Notice */}
+      {!isAudioActive && isSoundEnabled && !isDndActive && (
+        <div
+          data-testid="audio-activation-banner"
+          className="px-3 py-1.5 bg-[#fef9ec] border-b border-[#fde8be] text-[#7a5823] text-[11px] flex items-center justify-between gap-2 shrink-0 animate-in fade-in"
+        >
+          <div className="flex items-center gap-1.5 truncate">
+            <Volume2 className="w-3.5 h-3.5 text-[#9a6a24] shrink-0" />
+            <span className="truncate">Enable sound to hear incoming chat notifications.</span>
+          </div>
+          <button
+            data-testid="enable-sound-btn"
+            onClick={handleActivateAudio}
+            type="button"
+            className="px-2 py-0.5 rounded-md bg-[#2d5a43] hover:bg-[#224734] text-white text-[10px] font-medium shrink-0 cursor-pointer shadow-xs transition-colors"
+          >
+            Enable Sound
+          </button>
+        </div>
+      )}
 
       {/* Notice Banner (Reports, Mutes, or Rate-limits) */}
       {feedbackNotice && (

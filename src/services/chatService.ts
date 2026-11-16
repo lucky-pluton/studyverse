@@ -21,6 +21,18 @@ const QUIET_STUDY_STORAGE_KEY = 'studyverse_quiet_study_mode';
 const DND_STORAGE_KEY = 'studyverse_dnd_enabled';
 const CHAT_SOUND_STORAGE_KEY = 'studyverse_chat_sound_enabled';
 
+const isDev = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  localStorage.getItem('studyverse_debug_audio') === 'true'
+);
+
+function logChatAudioDiagnostic(step: number, action: string, details?: Record<string, unknown>) {
+  if (isDev) {
+    console.log(`[ChatAudio:Step${step}] ${action}`, details || '');
+  }
+}
+
 const MQTT_BROKERS = [
   { host: 'broker.emqx.io', port: 8084, path: '/mqtt' },
   { host: 'broker.hivemq.com', port: 8884, path: '/mqtt' },
@@ -176,9 +188,8 @@ class ChatService {
     return () => this.soundListeners.delete(listener);
   }
 
-  public previewNotificationSound() {
-    soundService.ensureAudioActivated();
-    soundService.playChatChime();
+  public async previewNotificationSound(): Promise<{ success: boolean; state: string; error?: string }> {
+    return soundService.playChatChime();
   }
 
   // =========================================================================
@@ -605,21 +616,45 @@ class ChatService {
   }
 
   /**
-   * Handle incoming message from any transport with strict deduplication
-   * and location isolation.
+   * Handle incoming message from any transport with strict deduplication,
+   * location isolation, and gentle real-time audio chime triggers.
    */
   private handleIncomingMessage(msg: ChatMessage) {
-    if (!msg || !msg.id || !msg.sessionId || !msg.text) return;
-    if (msg.locationId !== this.currentLocationId) return; // Strict location isolation
+    // Step 1: Realtime message event received
+    logChatAudioDiagnostic(1, 'Message event received', {
+      msgId: msg?.id,
+      msgLocation: msg?.locationId,
+      currentLocation: this.currentLocationId,
+    });
+
+    if (!msg || !msg.id || !msg.sessionId || !msg.text) {
+      logChatAudioDiagnostic(2, 'Message validation failed (empty or invalid payload)');
+      return;
+    }
+
+    // Step 2: Location isolation check
+    if (msg.locationId !== this.currentLocationId) {
+      logChatAudioDiagnostic(2, 'Message ignored (location mismatch)', {
+        msgLocation: msg.locationId,
+        currentLocation: this.currentLocationId,
+      });
+      return;
+    }
 
     // Deduplication check: if already processed or self-sent, ignore
-    if (this.receivedMessageIds.has(msg.id)) return;
+    if (this.receivedMessageIds.has(msg.id)) {
+      logChatAudioDiagnostic(2, 'Message already processed (duplicate event)', { msgId: msg.id });
+      return;
+    }
     this.receivedMessageIds.add(msg.id);
 
     // Filter out if muted or reported
     if (this.mutedSessionIds.has(msg.sessionId) || this.reportedMessageIds.has(msg.id)) {
+      logChatAudioDiagnostic(2, 'Message filtered (sender muted or message reported)');
       return;
     }
+
+    logChatAudioDiagnostic(2, 'Message payload validated successfully', { msgId: msg.id });
 
     // Add to message list
     this.messages.push(msg);
@@ -627,29 +662,68 @@ class ChatService {
       this.messages.shift();
     }
 
-    // Increment unread count if chat is closed and DND / Quiet Study is OFF
+    // Step 3 & 4: Sender identification & Classification
     const isFromSelf = msg.sessionId === this.currentUser?.sessionId;
+    logChatAudioDiagnostic(3, 'Sender identified', {
+      senderSessionId: msg.sessionId,
+      currentSessionId: this.currentUser?.sessionId,
+    });
+    logChatAudioDiagnostic(4, isFromSelf ? 'Classified as OUTGOING (from current user)' : 'Classified as INCOMING (from peer)');
+
+    // Increment unread count if chat is closed, from peer, and DND is OFF
     if (!this.isChatOpen && !isFromSelf && !this.isDnd()) {
       this.unreadCount += 1;
       this.notifyUnread();
     }
 
-    // Gentle Real-Time Audio Notification:
-    // Only play sound if:
-    // 1. NOT from self (never play for messages sent by the current user)
-    // 2. DND is NOT active (DND always takes priority over sound settings)
-    // 3. Sound preference is ENABLED
-    // 4. Message is newly received in this room session (excludes historical or stale replay)
-    // 5. Throttled: at least 1200ms has elapsed since the last notification sound
-    if (!isFromSelf && !this.isDnd() && this.isSoundEnabled) {
-      const now = Date.now();
-      const isNewAfterJoin = msg.timestamp >= (this.roomJoinedTimestamp - 2000);
-      const isThrottled = now - this.lastNotificationSoundTimestamp < 1200;
+    // Step 5: DND and sound preferences checked
+    const isDndActive = this.isDnd();
+    logChatAudioDiagnostic(5, 'Checking preferences', {
+      isFromSelf,
+      isDndActive,
+      isSoundEnabled: this.isSoundEnabled,
+    });
 
-      if (isNewAfterJoin && !isThrottled) {
-        this.lastNotificationSoundTimestamp = now;
-        soundService.playChatChime();
+    // Step 6: Audio system availability checked
+    const isAudioActive = soundService.isAudioActive();
+    logChatAudioDiagnostic(6, 'Audio system availability checked', { isAudioActive });
+
+    // Step 7: Evaluate freshness and throttling
+    const localArrival = Date.now();
+    // Freshness: received live after joining the room, message was not created more than 60 seconds ago
+    const isAfterRoomJoin = localArrival >= (this.roomJoinedTimestamp || 0);
+    const isFresh = isAfterRoomJoin && Math.abs(localArrival - msg.timestamp) < 60000;
+    const isThrottled = localArrival - this.lastNotificationSoundTimestamp < 1200;
+
+    if (!isFromSelf && !isDndActive && this.isSoundEnabled) {
+      if (!isFresh) {
+        logChatAudioDiagnostic(7, 'Sound skipped: stale/old message', {
+          msgTimestamp: msg.timestamp,
+          localArrival,
+        });
+      } else if (isThrottled) {
+        logChatAudioDiagnostic(7, 'Sound throttled: rapid message grouping', {
+          elapsedMs: localArrival - this.lastNotificationSoundTimestamp,
+        });
+      } else {
+        this.lastNotificationSoundTimestamp = localArrival;
+        logChatAudioDiagnostic(7, 'Attempting audio playback...');
+        soundService.playChatChime().then((res) => {
+          logChatAudioDiagnostic(8, 'Audio playback result', {
+            success: res.success,
+            state: res.state,
+            error: res.error || null,
+          });
+        }).catch((err) => {
+          logChatAudioDiagnostic(8, 'Audio playback exception', { error: String(err) });
+        });
       }
+    } else {
+      logChatAudioDiagnostic(7, 'Sound skipped based on condition', {
+        isFromSelf,
+        isDndActive,
+        isSoundEnabled: this.isSoundEnabled,
+      });
     }
 
     this.notifyMessages();

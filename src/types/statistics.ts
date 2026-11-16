@@ -21,3 +21,4 @@ export interface StatisticsDisplayMetrics {
   stopwatchRunCount: number;
   longestStopwatchSec: number;
 }
+
