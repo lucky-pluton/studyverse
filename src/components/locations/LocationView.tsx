@@ -106,28 +106,28 @@ export const LocationView: React.FC<LocationViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-300">
+    <div className="sv-location-page w-full max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-5 animate-in fade-in duration-300">
       {/* Top Header / Navigation Breadcrumb Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#e2d5c3]">
+      <div className="sv-location-toolbar flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-[26px]">
         <div className="flex items-center gap-3">
           <button
             onClick={onBackToCampus}
-            className="px-3.5 py-2 rounded-2xl bg-[#fffdfa] hover:bg-[#f1eae0] border border-[#e2d5c3] text-xs font-semibold text-[#54483c] flex items-center gap-2 shadow-2xs transition-all group"
+            className="sv-back-button px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center gap-2 transition-all group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span>Return to Campus Map</span>
           </button>
 
-          <div className="h-4 w-[1px] bg-[#d9cdbe]" />
+          <div className="hidden sm:block h-7 w-px bg-[#d9e8e3]" />
 
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base">{location.icon}</span>
-              <h1 className="font-serif-title text-xl font-bold text-[#2a2622] leading-tight">
+              <h1 className="font-serif-title text-xl sm:text-2xl font-bold text-[#214537] leading-tight">
                 {location.name}
               </h1>
             </div>
-            <p className="text-xs text-[#706456] italic">
+            <p className="text-xs text-[#70877e]">
               {location.tagline}
             </p>
           </div>
@@ -146,7 +146,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
               });
             }}
             type="button"
-            className={`px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`sv-toolbar-pill px-3.5 py-2 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
               isChatOpen
                 ? 'bg-[#2d5a43] text-white border-[#1e402e] shadow-2xs'
                 : 'bg-[#fffdfa] hover:bg-[#f1eae0] border-[#d8ccbc] text-[#3f3428]'
@@ -162,7 +162,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
             <button
               onClick={onToggleDnd}
               type="button"
-              className={`px-3 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`sv-toolbar-pill px-3.5 py-2 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 isDnd
                   ? 'bg-[#253f31] text-amber-200 border-[#1a2d23] shadow-xs ring-1 ring-amber-300/40'
                   : 'bg-[#fffdfa] hover:bg-[#f1eae0] border-[#d8ccbc] text-[#3f3428]'
@@ -179,7 +179,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
             </button>
           )}
 
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f4ece1] border border-[#e2d5c3] text-xs font-medium text-[#4d4033]">
+          <div className="sv-occupancy-pill flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium">
             <Users className="w-3.5 h-3.5 text-[#5e776a]" />
             <span>
               <strong>{occupants.length}</strong> studying here
@@ -187,7 +187,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping ml-1" />
           </div>
 
-          <div className="text-xs text-[#7a6f62]">
+          <div className="text-xs text-[#70877e]">
             {isUserSeatedHere ? (
               <span className="text-[#2d5a43] font-semibold flex items-center gap-1">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -217,7 +217,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
       )}
 
       {/* Main Illustrated Architectural Scene */}
-      <div className="relative">
+      <div className="sv-location-scene relative">
         {locationId === 'library' && (
           <CentralLibrary
             location={location}
@@ -285,7 +285,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
 
       {/* Solitary / First-Arriver Encouragement Note */}
       {otherOccupants.length === 0 && (
-        <div className="p-4 rounded-2xl bg-[#faf5ed] border border-[#e5d8c7] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#635546]">
+        <div className="sv-note-card p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-[#eee3d4] text-[#80674d]">
               <Info className="w-4 h-4" />
@@ -309,7 +309,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
       )}
 
       {/* Available Seats Summary Bar */}
-      <div className="p-4 rounded-2xl bg-[#fffdfa] border border-[#e6dcce] shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs text-[#695d4f]">
+      <div className="sv-seat-summary p-4 sm:p-5 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-4">
           <span className="font-semibold text-[#332e29]">
             Seats in {location.name}:
