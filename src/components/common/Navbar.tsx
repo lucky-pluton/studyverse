@@ -225,7 +225,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* Ambient Soundscape Controller */}
-            <div className="relative flex items-center">
+            <div className="relative hidden sm:flex items-center">
               <button
                 onClick={handleToggleSound}
                 onMouseEnter={() => setShowVolumeSlider(true)}
@@ -290,7 +290,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 window.dispatchEvent(new CustomEvent('studyverse:open-timer-stats'));
               }}
               type="button"
-              className="px-2.5 py-1.5 rounded-xl border bg-[#fbf8f3] hover:bg-[#ede5d8] border-[#ded3c2] text-[#4d4033] transition-colors cursor-pointer flex items-center gap-1.5"
+              className="hidden sm:flex px-2.5 py-1.5 rounded-xl border bg-[#fbf8f3] hover:bg-[#ede5d8] border-[#ded3c2] text-[#4d4033] transition-colors cursor-pointer items-center gap-1.5"
               title="Open Study Statistics & Focus Breakdown"
               aria-label="Open Study Statistics"
             >
@@ -301,7 +301,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Day / Sunset / Night Toggle */}
             <button
               onClick={cycleTimeOfDay}
-              className="p-2 rounded-xl bg-[#f4efe8] hover:bg-[#eae3d9] border border-[#e2d6c7] text-[#6d5f50] transition-colors"
+              className="hidden sm:block p-2 rounded-xl bg-[#f4efe8] hover:bg-[#eae3d9] border border-[#e2d6c7] text-[#6d5f50] transition-colors"
               title={`Campus Atmosphere: ${timeOfDay.toUpperCase()} (Click to toggle)`}
             >
               {timeOfDay === 'day' && <Sun className="w-4 h-4 text-amber-600" />}
