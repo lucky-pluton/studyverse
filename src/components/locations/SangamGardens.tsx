@@ -135,7 +135,7 @@ export const SangamGardens: React.FC<SangamGardensProps> = ({
       </svg>
 
       {/* Location Badge top-left */}
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-2.5 bg-[#fffdfa]/95 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-[#bbf7d0] shadow-sm">
+      <div className="sv-location-badge absolute top-4 left-4 z-20 flex items-center gap-2.5 px-3.5 py-2 rounded-2xl">
         <span className="w-6 h-6 rounded-lg bg-[#2f6044] text-white flex items-center justify-center text-xs">
           🦌
         </span>
