@@ -5,12 +5,14 @@ import { LocationAvatarCluster } from './LocationAvatarCluster';
 import { LocationPreviewCard } from './LocationPreviewCard';
 import { CampusInfoPanel } from './CampusInfoPanel';
 import { CampusAvatarAnchor } from './CampusAvatarAnchor';
+import { IsometricCampusMap } from './IsometricCampusMap';
 import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
   Lock,
   Compass,
+  Layers,
 } from 'lucide-react';
 
 interface CampusMapProps {
@@ -26,6 +28,7 @@ export const CampusMap: React.FC<CampusMapProps> = ({
   onEnterLocation,
   timeOfDay,
 }) => {
+  const [viewMode, setViewMode] = useState<'isometric' | 'classic'>('isometric');
   const [selectedPreviewLocation, setSelectedPreviewLocation] = useState<LocationId | null>(null);
   const [hoveredLocation, setHoveredLocation] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
@@ -35,6 +38,18 @@ export const CampusMap: React.FC<CampusMapProps> = ({
   const [comingSoonModal, setComingSoonModal] = useState<typeof VERIFIED_IITM_UPCOMING_DESTINATIONS[0] | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  if (viewMode === 'isometric') {
+    return (
+      <IsometricCampusMap
+        students={students}
+        currentUser={currentUser}
+        onEnterLocation={onEnterLocation}
+        timeOfDay={timeOfDay}
+        onSwitchToClassicView={() => setViewMode('classic')}
+      />
+    );
+  }
 
   // Group students by location
   const getStudentsAtLocation = (locId: string) =>
@@ -120,6 +135,15 @@ export const CampusMap: React.FC<CampusMapProps> = ({
                 {activeLocationsCount} of {Object.keys(LOCATIONS).length}
               </span>
             </div>
+            <div className="h-6 w-[1px] bg-[#dce7e1]" />
+            <button
+              onClick={() => setViewMode('isometric')}
+              className="px-3 py-1.5 rounded-xl bg-[#2d5a43] hover:bg-[#1f4231] text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+              title="Return to the new Isometric Campus Map Prototype"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span className="whitespace-nowrap">Isometric View</span>
+            </button>
           </div>
         </div>
       </div>
