@@ -1,140 +1,141 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyverse';
-import {
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
-  Search,
-  ChevronRight,
-  X,
-} from 'lucide-react';
+import { Layers, ChevronRight, ChevronDown, Sparkles, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { AvatarRenderer } from '../common/AvatarRenderer';
 
-// Illustrated watercolor isometric campus background matching user reference image
-import campusIllustratedPastel from '../../assets/campus_illustrated_pastel.jpg';
+// Definitive Campus Roundabout Artwork (Exact reference artwork with zero baked-in labels)
+import campusRoundaboutMap from '../../assets/campus_roundabout_map.jpg';
 
-// Consistent location thumbnails
-import thumbLibrary from '../../assets/ref_libraryThumb.jpg';
-import thumbAcademic from '../../assets/ref_lectureThumb.jpg';
-import thumbCafe from '../../assets/ref_cafeThumb.jpg';
-import thumbLecture from '../../assets/ref_oatThumb.jpg';
-import thumbHostel from '../../assets/ref_hostelThumb.jpg';
-import thumbGardens from '../../assets/ref_sangamThumb.jpg';
-
-export type CategoryFilter = 'all' | 'academic' | 'study' | 'social' | 'green';
-
-interface FeaturedLocationConfig {
+export interface FinalCampusLocation {
   id: string;
   locationId: LocationId;
   name: string;
-  categoryKey: 'academic' | 'study' | 'social' | 'green';
-  categoryLabel: string;
-  categoryDotColor: string;
-  thumbnail: string;
-  // Perimeter card coordinates on 1024 x 682 canvas
-  cardX: number;
-  cardY: number;
-  cardWidth: number;
-  // Connector line start point (on the inner edge of the card)
-  lineStart: { x: number; y: number };
-  // Connector line building endpoint on campus grounds
-  pinEndpoint: { x: number; y: number };
+  icon: string;
+  iconBg: string;
+  iconColor: string;
+  style: {
+    left: string;
+    top: string;
+    transform?: string;
+  };
+  tagline: string;
 }
 
 /**
- * EXACT SIX FEATURED LOCATIONS IN DELIBERATE PERIMETER ARRANGEMENT
- * - Top-left: Academic Blocks
- * - Top-centre: Central Library
- * - Top-right: Gardens
- * - Middle-left: Campus Café
- * - Middle-right: Lecture Hall
- * - Bottom-left: Hostel Area
- * 
- * Safe spacing: minimum 80px vertical gap, minimum 200px horizontal gap, 0 card overlap, 0 line crossing!
+ * EXACTLY SEVEN ACTUAL STUDYVERSE LOCATIONS MATCHING THE DEFINITIVE REFERENCE:
+ * 1. Library - Central Library building (upper-center)
+ * 2. LHC     - Lecture Hall Complex building (upper-left)
+ * 3. Banyan  - Ancient Banyan Tree (center-left)
+ * 4. OAT     - Open Air Theatre amphitheatre (upper-right)
+ * 5. GC      - Gajendra Circle / Central Roundabout (center)
+ * 6. Café    - Campus Café with patio umbrellas (lower-left)
+ * 7. Sangam  - Sangam botanical gardens with gazebo (lower-right)
  */
-const FEATURED_LOCATIONS: FeaturedLocationConfig[] = [
-  {
-    id: 'academic',
-    locationId: 'lhc',
-    name: 'Academic Blocks',
-    categoryKey: 'academic',
-    categoryLabel: 'Academic',
-    categoryDotColor: '#ef4444', // Coral red
-    thumbnail: thumbAcademic,
-    cardX: 25,
-    cardY: 65,
-    cardWidth: 180,
-    lineStart: { x: 205, y: 130 },
-    pinEndpoint: { x: 260, y: 195 },
-  },
+export const SEVEN_CAMPUS_LOCATIONS: FinalCampusLocation[] = [
+  // 1. Library (Central Library at upper-center)
   {
     id: 'library',
     locationId: 'library',
-    name: 'Central Library',
-    categoryKey: 'study',
-    categoryLabel: 'Study Spaces',
-    categoryDotColor: '#8b5cf6', // Violet
-    thumbnail: thumbLibrary,
-    cardX: 422,
-    cardY: 40,
-    cardWidth: 180,
-    lineStart: { x: 512, y: 175 },
-    pinEndpoint: { x: 512, y: 205 },
+    name: 'Library',
+    icon: '🏛️',
+    iconBg: '#f3e8ff',
+    iconColor: '#7e22ce',
+    style: {
+      left: '43.5%',
+      top: '21.0%',
+      transform: 'translateX(-50%)',
+    },
+    tagline: 'Quiet study desks, academic archives & reading halls',
   },
+  // 2. LHC (Lecture Hall Complex at upper-left)
   {
-    id: 'gardens',
-    locationId: 'park',
-    name: 'Gardens',
-    categoryKey: 'green',
-    categoryLabel: 'Green Spaces',
-    categoryDotColor: '#10b981', // Emerald green
-    thumbnail: thumbGardens,
-    cardX: 815,
-    cardY: 65,
-    cardWidth: 180,
-    lineStart: { x: 815, y: 130 },
-    pinEndpoint: { x: 775, y: 185 },
+    id: 'lhc',
+    locationId: 'lhc',
+    name: 'LHC',
+    icon: '🎓',
+    iconBg: '#e0e7ff',
+    iconColor: '#4338ca',
+    style: {
+      left: '23.5%',
+      top: '30.0%',
+      transform: 'translateX(-50%)',
+    },
+    tagline: 'Tiered auditorium seating & collaborative lecture reviews',
   },
+  // 3. Banyan (Banyan Tree at center-left)
+  {
+    id: 'banyan',
+    locationId: 'banyan',
+    name: 'Banyan',
+    icon: '🌳',
+    iconBg: '#dcfce7',
+    iconColor: '#15803d',
+    style: {
+      left: '39.0%',
+      top: '48.5%',
+      transform: 'translateX(-50%)',
+    },
+    tagline: 'Ancient banyan grove with shaded benches & gentle breeze',
+  },
+  // 4. OAT (Open Air Theatre at upper-right)
+  {
+    id: 'oat',
+    locationId: 'oat',
+    name: 'OAT',
+    icon: '🎭',
+    iconBg: '#fae8ff',
+    iconColor: '#a21caf',
+    style: {
+      left: '72.0%',
+      top: '29.0%',
+      transform: 'translateX(-50%)',
+    },
+    tagline: 'Open Air Theatre amphitheater with stepped stone tiers',
+  },
+  // 5. GC (Gajendra Circle at central roundabout)
+  {
+    id: 'gc',
+    locationId: 'gc',
+    name: 'GC',
+    icon: '🐘',
+    iconBg: '#fef3c7',
+    iconColor: '#b45309',
+    style: {
+      left: '56.5%',
+      top: '54.5%',
+      transform: 'translateX(-50%)',
+    },
+    tagline: 'Gajendra Circle roundabout & campus focal landmark',
+  },
+  // 6. Café (Campus Café at lower-left)
   {
     id: 'cafe',
     locationId: 'cafe',
-    name: 'Campus Café',
-    categoryKey: 'social',
-    categoryLabel: 'Social Spaces',
-    categoryDotColor: '#f59e0b', // Warm amber
-    thumbnail: thumbCafe,
-    cardX: 25,
-    cardY: 285,
-    cardWidth: 180,
-    lineStart: { x: 205, y: 345 },
-    pinEndpoint: { x: 245, y: 345 },
+    name: 'Café',
+    icon: '☕',
+    iconBg: '#ffedd5',
+    iconColor: '#c2410c',
+    style: {
+      left: '21.0%',
+      top: '71.5%',
+      transform: 'translateX(-50%)',
+    },
+    tagline: 'Fresh filter coffee, sunlit study tables & relaxed focus',
   },
+  // 7. Sangam (Sangam Gardens at lower-right)
   {
-    id: 'lecture',
-    locationId: 'oat',
-    name: 'Lecture Hall',
-    categoryKey: 'academic',
-    categoryLabel: 'Academic',
-    categoryDotColor: '#ef4444', // Coral red
-    thumbnail: thumbLecture,
-    cardX: 815,
-    cardY: 285,
-    cardWidth: 180,
-    lineStart: { x: 815, y: 345 },
-    pinEndpoint: { x: 735, y: 345 },
-  },
-  {
-    id: 'hostel',
-    locationId: 'gc',
-    name: 'Hostel Area',
-    categoryKey: 'social',
-    categoryLabel: 'Hostel',
-    categoryDotColor: '#f59e0b', // Warm amber
-    thumbnail: thumbHostel,
-    cardX: 25,
-    cardY: 495,
-    cardWidth: 180,
-    lineStart: { x: 205, y: 550 },
-    pinEndpoint: { x: 240, y: 550 },
+    id: 'sangam',
+    locationId: 'park',
+    name: 'Sangam',
+    icon: '🌿',
+    iconBg: '#dcfce7',
+    iconColor: '#166534',
+    style: {
+      left: '72.0%',
+      top: '69.0%',
+      transform: 'translateX(-50%)',
+    },
+    tagline: 'Sangam botanical gardens, gazebo pavilion & flowerbeds',
   },
 ];
 
@@ -149,47 +150,47 @@ export const IsometricCampusMapCanvas: React.FC<IsometricCampusMapCanvasProps> =
   students,
   onEnterLocation,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
-  const [hoveredLocationId, setHoveredLocationId] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [searchOpen, setSearchOpen] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Filter locations by active category and search
-  const filteredLocations = useMemo(() => {
-    return FEATURED_LOCATIONS.filter((loc) => {
-      const matchesCategory =
-        selectedCategory === 'all' || loc.categoryKey === selectedCategory;
-      const matchesSearch =
-        searchQuery.trim() === '' ||
-        loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        loc.categoryLabel.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [selectedCategory, searchQuery]);
+  // Live student count per location
+  const getStudentsAtLocation = (locId: LocationId): StudentPresence[] => {
+    return students.filter((s) => s.location === locId);
+  };
 
-  // Group students by location
-  const getStudentsAtLocation = (locId: LocationId): StudentPresence[] =>
-    students.filter((s) => s.location === locId);
+  const getStudentCount = (locId: LocationId): number => {
+    return getStudentsAtLocation(locId).length;
+  };
 
-  // Zoom handlers
-  const handleZoomIn = () => setZoomLevel((z) => Math.min(2.0, Number((z + 0.15).toFixed(2))));
-  const handleZoomOut = () => setZoomLevel((z) => Math.max(0.85, Number((z - 0.15).toFixed(2))));
-  const handleResetView = () => {
+  // Zoom controls
+  const handleZoomIn = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setZoomLevel((z) => Math.min(2.0, Number((z + 0.2).toFixed(2))));
+  };
+
+  const handleZoomOut = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setZoomLevel((z) => Math.max(1.0, Number((z - 0.2).toFixed(2))));
+    if (zoomLevel <= 1.2) {
+      setPanOffset({ x: 0, y: 0 });
+    }
+  };
+
+  const handleResetZoom = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setZoomLevel(1);
     setPanOffset({ x: 0, y: 0 });
   };
 
-  // Mouse drag pan handlers
+  // Mouse pan handlers when zoomed
   const handleMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.interactive-card') || (e.target as HTMLElement).closest('.interactive-control')) {
-      return;
-    }
+    if (zoomLevel <= 1) return;
+    if ((e.target as HTMLElement).closest('.interactive-clickable')) return;
     setIsDragging(true);
     setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
   };
@@ -205,354 +206,206 @@ export const IsometricCampusMapCanvas: React.FC<IsometricCampusMapCanvasProps> =
   const handleMouseUp = () => setIsDragging(false);
 
   return (
-    <div
-      ref={containerRef}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      className={`relative w-full h-[76vh] min-h-[560px] max-h-[820px] rounded-3xl overflow-hidden border-2 border-[#c5d8cc] shadow-xl bg-[#f4f7f4] select-none ${
-        isDragging ? 'cursor-grabbing' : 'cursor-grab'
-      }`}
-    >
+    <div className="space-y-3">
       {/* =========================================================================
-          TOP-LEFT COMPACT BRANDING (Restrained & Minimal)
-         ========================================================================= */}
-      <div className="absolute top-4 left-4 z-40 interactive-control">
-        <div className="flex items-center gap-2.5 bg-[#fffdfa]/95 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-[#e2ece5] shadow-xs">
-          <span className="text-sm">🏛️</span>
-          <div className="flex items-baseline gap-1.5">
-            <h2 className="font-serif-title text-xs sm:text-sm font-bold text-[#1b3326] tracking-tight">
-              Studyverse
-            </h2>
-            <span className="text-[10px] text-[#63806f] font-medium hidden sm:inline">
-              • Campus Explorer
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* =========================================================================
-          TOP-CENTER COMPACT CATEGORY LEGEND PILL
-         ========================================================================= */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 interactive-control hidden md:flex items-center gap-2 bg-[#fffdfa]/95 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-[#e2ece5] shadow-xs text-xs font-semibold text-[#2d4938]">
-        <button
-          onClick={() => setSelectedCategory('all')}
-          className={`px-2.5 py-0.5 rounded-lg transition-all cursor-pointer ${
-            selectedCategory === 'all'
-              ? 'bg-[#2d5a43] text-white shadow-2xs'
-              : 'hover:text-[#1b3326] text-[#556e5f]'
-          }`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setSelectedCategory('academic')}
-          className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg transition-all cursor-pointer ${
-            selectedCategory === 'academic'
-              ? 'bg-[#ef4444]/15 text-[#b91c1c] font-bold'
-              : 'hover:text-[#1b3326] text-[#556e5f]'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-[#ef4444]" />
-          <span>Academic</span>
-        </button>
-        <button
-          onClick={() => setSelectedCategory('study')}
-          className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg transition-all cursor-pointer ${
-            selectedCategory === 'study'
-              ? 'bg-[#8b5cf6]/15 text-[#6d28d9] font-bold'
-              : 'hover:text-[#1b3326] text-[#556e5f]'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-[#8b5cf6]" />
-          <span>Study Spaces</span>
-        </button>
-        <button
-          onClick={() => setSelectedCategory('social')}
-          className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg transition-all cursor-pointer ${
-            selectedCategory === 'social'
-              ? 'bg-[#f59e0b]/15 text-[#b45309] font-bold'
-              : 'hover:text-[#1b3326] text-[#556e5f]'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
-          <span>Social Spaces</span>
-        </button>
-        <button
-          onClick={() => setSelectedCategory('green')}
-          className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg transition-all cursor-pointer ${
-            selectedCategory === 'green'
-              ? 'bg-[#10b981]/15 text-[#047857] font-bold'
-              : 'hover:text-[#1b3326] text-[#556e5f]'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-[#10b981]" />
-          <span>Green Spaces</span>
-        </button>
-      </div>
-
-      {/* =========================================================================
-          TOP-RIGHT CONTROLS: SEARCH & RECENTER
-         ========================================================================= */}
-      <div className="absolute top-4 right-4 z-40 flex items-center gap-1.5 interactive-control">
-        {searchOpen ? (
-          <div className="flex items-center bg-[#fffdfa]/95 backdrop-blur-md px-3 py-1 rounded-2xl border border-[#e2ece5] shadow-xs">
-            <Search className="w-3.5 h-3.5 text-[#527763] mr-1.5" />
-            <input
-              type="text"
-              placeholder="Search spots..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-xs text-[#1e382b] focus:outline-hidden w-28 sm:w-36"
-              autoFocus
-            />
-            <button
-              onClick={() => {
-                setSearchOpen(false);
-                setSearchQuery('');
-              }}
-              className="p-1 text-gray-400 hover:text-gray-700"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="w-8 h-8 rounded-xl bg-[#fffdfa]/95 backdrop-blur-md border border-[#e2ece5] shadow-xs flex items-center justify-center text-[#2d4938] hover:bg-[#eaf3ee] transition-colors cursor-pointer"
-            title="Search campus spots"
-          >
-            <Search className="w-3.5 h-3.5" />
-          </button>
-        )}
-
-        <button
-          onClick={handleResetView}
-          className="w-8 h-8 rounded-xl bg-[#fffdfa]/95 backdrop-blur-md border border-[#e2ece5] shadow-xs flex items-center justify-center text-[#2d4938] hover:bg-[#eaf3ee] transition-colors cursor-pointer"
-          title="Reset View"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* =========================================================================
-          BOTTOM-RIGHT ZOOM CONTROLS
-         ========================================================================= */}
-      <div className="absolute bottom-4 right-4 z-40 flex flex-col bg-[#fffdfa]/95 backdrop-blur-md rounded-2xl border border-[#e2ece5] shadow-md overflow-hidden interactive-control">
-        <button
-          onClick={handleZoomIn}
-          className="p-2 text-[#2d4938] hover:bg-[#eaf3ee] transition-colors cursor-pointer"
-          title="Zoom In"
-        >
-          <ZoomIn className="w-3.5 h-3.5" />
-        </button>
-        <div className="h-[1px] bg-[#dbe8e0]" />
-        <button
-          onClick={handleZoomOut}
-          className="p-2 text-[#2d4938] hover:bg-[#eaf3ee] transition-colors cursor-pointer"
-          title="Zoom Out"
-        >
-          <ZoomOut className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* =========================================================================
-          MAIN ILLUSTRATED ISOMETRIC CAMPUS CANVAS (1024 x 682 Base Coordinate Space)
+          MAIN MAP CANVAS CONTAINER (1376 / 768 Aspect Ratio)
          ========================================================================= */}
       <div
-        className="w-full h-full transition-transform duration-75 relative flex items-center justify-center"
-        style={{
-          transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`,
-          transformOrigin: '50% 50%',
-        }}
+        ref={containerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        className={`relative w-full max-w-6xl mx-auto aspect-[1376/768] max-h-[76vh] rounded-3xl overflow-hidden border-2 border-[#c5d8cc] shadow-2xl bg-[#e5efe7] select-none ${
+          zoomLevel > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
+        }`}
       >
-        <div className="relative w-[1024px] h-[682px] shrink-0">
-          {/* Continuous Illustrated Watercolor Campus Backdrop */}
+        {/* Transformable Canvas for Pan & Zoom */}
+        <div
+          className="w-full h-full relative origin-center transition-transform duration-200 ease-out"
+          style={{
+            transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`,
+          }}
+        >
+          {/* =====================================================================
+              1. PURE CAMPUS ARTWORK (Exact Reference Artwork with Zero Baked-in UI)
+             ===================================================================== */}
           <img
-            src={campusIllustratedPastel}
-            alt="Studyverse Illustrated Isometric Campus Map"
-            className="w-full h-full object-cover rounded-2xl shadow-inner pointer-events-none select-none"
-            draggable={false}
+            src={campusRoundaboutMap}
+            alt="Studyverse Campus Map"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           />
 
-          {/* SVG Connector Leader Lines & Building Pins (1024 x 682 ViewBox) */}
-          <svg
-            viewBox="0 0 1024 682"
-            className="absolute inset-0 w-full h-full pointer-events-none z-10 hidden md:block"
+          {/* =====================================================================
+              2. MINIMALIST TOP-LEFT HEADER PILL (Exact Reference Style)
+             ===================================================================== */}
+          <div
+            className="interactive-clickable absolute top-2.5 sm:top-4 left-2.5 sm:left-4 z-40 bg-white/92 backdrop-blur-md rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 border border-white/95 shadow-md transition-transform hover:scale-[1.02]"
+            title="Click any campus location to enter"
           >
-            <defs>
-              <filter id="cleanLineShadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.25" />
-              </filter>
-            </defs>
-
-            {filteredLocations.map((loc) => {
-              const studentsHere = getStudentsAtLocation(loc.locationId);
-              const isHovered = hoveredLocationId === loc.id;
-              const hasStudents = studentsHere.length > 0;
-
-              return (
-                <g key={`leader-${loc.id}`}>
-                  {/* Subtle white halo underneath connector line */}
-                  <line
-                    x1={loc.lineStart.x}
-                    y1={loc.lineStart.y}
-                    x2={loc.pinEndpoint.x}
-                    y2={loc.pinEndpoint.y}
-                    stroke="#ffffff"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    opacity="0.9"
-                  />
-
-                  {/* Clean neutral connector line */}
-                  <line
-                    x1={loc.lineStart.x}
-                    y1={loc.lineStart.y}
-                    x2={loc.pinEndpoint.x}
-                    y2={loc.pinEndpoint.y}
-                    stroke={isHovered ? '#2d5a43' : '#475569'}
-                    strokeWidth={isHovered ? '2.2' : '1.5'}
-                    strokeLinecap="round"
-                    filter="url(#cleanLineShadow)"
-                  />
-
-                  {/* Optional live occupancy pulsing ring */}
-                  {hasStudents && (
-                    <circle
-                      cx={loc.pinEndpoint.x}
-                      cy={loc.pinEndpoint.y}
-                      r="11"
-                      fill="none"
-                      stroke="#22c55e"
-                      strokeWidth="2"
-                      className="animate-ping"
-                      opacity="0.6"
-                    />
-                  )}
-
-                  {/* Building Endpoint Circular Marker */}
-                  <circle
-                    cx={loc.pinEndpoint.x}
-                    cy={loc.pinEndpoint.y}
-                    r={isHovered ? 6 : 4.5}
-                    fill="#ffffff"
-                    stroke={isHovered ? '#2d5a43' : '#475569'}
-                    strokeWidth="1.5"
-                    filter="url(#cleanLineShadow)"
-                  />
-                  <circle
-                    cx={loc.pinEndpoint.x}
-                    cy={loc.pinEndpoint.y}
-                    r={isHovered ? 3.5 : 2.5}
-                    fill={loc.categoryDotColor}
-                  />
-                </g>
-              );
-            })}
-          </svg>
-
-          {/* =========================================================================
-              DESKTOP PERIMETER CARDS (Clean, Separated, Exactly One Consistent Structure)
-             ========================================================================= */}
-          <div className="hidden md:block">
-            {filteredLocations.map((loc) => {
-              const studentsHere = getStudentsAtLocation(loc.locationId);
-              const isHovered = hoveredLocationId === loc.id;
-
-              return (
-                <div
-                  key={`card-${loc.id}`}
-                  onClick={() => onEnterLocation(loc.locationId)}
-                  onMouseEnter={() => setHoveredLocationId(loc.id)}
-                  onMouseLeave={() => setHoveredLocationId(null)}
-                  className={`absolute interactive-card rounded-2xl bg-[#fffdfa]/95 backdrop-blur-md p-2 border transition-all duration-200 cursor-pointer shadow-md select-none group ${
-                    isHovered
-                      ? 'scale-105 shadow-xl border-[#2d5a43] ring-2 ring-[#2d5a43]/20 z-30'
-                      : 'hover:scale-102 hover:shadow-lg border-[#e2ece5] z-20'
-                  }`}
-                  style={{
-                    left: `${loc.cardX}px`,
-                    top: `${loc.cardY}px`,
-                    width: `${loc.cardWidth}px`,
-                  }}
-                  title={`Enter ${loc.name} (${studentsHere.length} studying)`}
-                >
-                  {/* 1. Exactly One Location Thumbnail Image */}
-                  <div className="aspect-[16/10] w-full rounded-xl overflow-hidden bg-slate-100 mb-1.5 border border-black/5">
-                    <img
-                      src={loc.thumbnail}
-                      alt={loc.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      draggable={false}
-                    />
-                  </div>
-
-                  {/* 2. One Title, 3. One Category Dot, 4. One Navigation Arrow */}
-                  <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: loc.categoryDotColor }}
-                      />
-                      <span className="font-serif-title text-xs font-bold text-[#1b3326] truncate group-hover:text-[#2d5a43] transition-colors">
-                        {loc.name}
-                      </span>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#2d5a43] group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
-                  </div>
-
-                  {/* Live Student Occupancy Badge if Active */}
-                  {studentsHere.length > 0 && (
-                    <div className="mt-1 px-1 flex items-center justify-between text-[9px] text-[#527763]">
-                      <span className="flex items-center gap-1 font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                        {studentsHere.length} studying
-                      </span>
-                      <span className="text-[8px] text-[#718b7c] font-medium">Join &rarr;</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-md bg-[#e6f7f3] flex items-center justify-center text-[#0d9488] shrink-0">
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#0d9488]" />
+            </div>
+            <span className="text-[10px] sm:text-xs font-bold text-[#1b3326] tracking-tight">
+              Live Campus Occupancy
+            </span>
+            <span className="text-slate-300 font-light hidden md:inline">|</span>
+            <span className="text-[10px] sm:text-[11px] font-medium text-[#557563] hidden md:inline">
+              Click any spot to preview &amp; join
+            </span>
           </div>
+
+          {/* =====================================================================
+              3. MINIMALIST TOP-RIGHT ZOOM CONTROLS PILL (Exact Reference Style)
+             ===================================================================== */}
+          <div className="interactive-clickable absolute top-2.5 sm:top-4 right-2.5 sm:right-4 z-40 bg-white/92 backdrop-blur-md rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 flex items-center gap-0.5 sm:gap-1 border border-white/95 shadow-md">
+            <button
+              onClick={handleZoomIn}
+              className="w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold text-[#2c4235] hover:bg-black/5 transition-colors cursor-pointer"
+              title="Zoom In"
+            >
+              <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4 text-[#2c4235]" />
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold text-[#2c4235] hover:bg-black/5 transition-colors cursor-pointer"
+              title="Zoom Out"
+            >
+              <ZoomOut className="w-3 h-3 sm:w-4 sm:h-4 text-[#2c4235]" />
+            </button>
+            <button
+              onClick={handleResetZoom}
+              className="w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold text-[#2c4235] hover:bg-black/5 transition-colors cursor-pointer"
+              title="Reset View"
+            >
+              <RotateCcw className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 text-[#2c4235]" />
+            </button>
+          </div>
+
+          {/* =====================================================================
+              4. EXACTLY SEVEN STUDYVERSE FLOATING LOCATION LABELS
+             ===================================================================== */}
+          {SEVEN_CAMPUS_LOCATIONS.map((loc) => {
+            const occupants = getStudentsAtLocation(loc.locationId);
+            const count = occupants.length;
+            const hasOccupants = count > 0;
+            const firstOccupant = occupants[0];
+
+            return (
+              <button
+                key={`loc-pill-${loc.id}`}
+                onClick={() => onEnterLocation(loc.locationId)}
+                className={`interactive-clickable absolute z-30 bg-white/96 backdrop-blur-md rounded-full px-2 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1 sm:gap-1.5 border border-white/95 shadow-md transition-all duration-200 cursor-pointer active:scale-95 ${
+                  hasOccupants
+                    ? 'ring-2 ring-emerald-500/80 shadow-emerald-500/15'
+                    : 'hover:ring-2 hover:ring-emerald-400 hover:shadow-lg hover:-translate-y-0.5'
+                }`}
+                style={loc.style}
+                title={`Enter ${loc.name} (${count} studying)`}
+              >
+                {/* Location Icon Badge */}
+                <div
+                  className="w-4 h-4 sm:w-5 sm:h-5 md:w-5.5 md:h-5.5 rounded-full flex items-center justify-center text-[10px] sm:text-xs shrink-0"
+                  style={{ background: loc.iconBg, color: loc.iconColor }}
+                >
+                  {loc.icon}
+                </div>
+
+                {/* Location Name */}
+                <span className="font-serif text-[9px] sm:text-[11px] md:text-xs font-bold text-[#1b3326] tracking-wider uppercase whitespace-nowrap">
+                  {loc.name}
+                </span>
+
+                {/* Dot Separator (Desktop / Tablet) */}
+                <span className="text-slate-300 text-[8px] sm:text-[9px] leading-none shrink-0 font-bold hidden sm:inline">
+                  ••
+                </span>
+
+                {/* Live Occupancy Count (Desktop / Tablet) */}
+                <span
+                  className={`text-[8.5px] sm:text-[10px] whitespace-nowrap font-semibold hidden sm:inline ${
+                    hasOccupants ? 'text-[#0f766e] font-bold' : 'text-[#64748b]'
+                  }`}
+                >
+                  {count} studying
+                </span>
+
+                {/* Mobile-only compact student count badge if > 0 */}
+                {hasOccupants && (
+                  <span className="sm:hidden text-[8px] font-bold text-emerald-800 bg-emerald-100 px-1 rounded-full leading-none">
+                    {count}
+                  </span>
+                )}
+
+                {/* Avatar Preview for Active Students */}
+                {hasOccupants && firstOccupant && (
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full overflow-hidden bg-slate-100 border border-emerald-400 shrink-0 shadow-xs flex items-center justify-center">
+                    <AvatarRenderer config={firstOccupant.avatarConfig} size="xs" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
+
+        {/* Zoom Reset Pill when Zoomed */}
+        {zoomLevel > 1 && (
+          <div className="absolute bottom-4 right-4 z-50 animate-in fade-in">
+            <button
+              onClick={handleResetZoom}
+              className="px-3 py-1.5 rounded-full bg-[#1b3326]/90 text-white text-xs font-semibold shadow-lg hover:bg-[#1b3326] transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Reset Zoom ({Math.round(zoomLevel * 100)}%)</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* =========================================================================
-          MOBILE / TABLET RESPONSIVE LOCATION DRAWER (Prevents crowding & screen overflow)
+          RESPONSIVE COLLAPSIBLE LOCATION QUICK-NAV (FOR MOBILE / QUICK ACCESS)
          ========================================================================= */}
-      <div className="absolute bottom-3 left-3 right-14 flex md:hidden gap-2 overflow-x-auto pb-1 no-scrollbar z-30 interactive-control">
-        {filteredLocations.map((loc) => {
-          const studentsHere = getStudentsAtLocation(loc.locationId);
+      <div className="max-w-6xl mx-auto rounded-2xl bg-[#fffdfa] border border-[#d5e2d9] shadow-xs overflow-hidden">
+        <button
+          onClick={() => setDrawerOpen(!drawerOpen)}
+          className="w-full px-4 py-2.5 flex items-center justify-between text-xs font-bold text-[#1b3326] hover:bg-[#f4faf6] transition-colors cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-emerald-600" />
+            <span>Campus Study Spaces (All 7 Locations)</span>
+            <span className="px-2 py-0.5 bg-[#eaf3ee] text-emerald-800 rounded-full text-[10px]">
+              7 Active
+            </span>
+          </div>
+          <div className="flex items-center gap-1 text-[11px] text-[#556e5f]">
+            <span>{drawerOpen ? 'Hide Quick List' : 'Show Quick List'}</span>
+            {drawerOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </div>
+        </button>
 
-          return (
-            <button
-              key={`mobile-card-${loc.id}`}
-              onClick={() => onEnterLocation(loc.locationId)}
-              className="flex items-center gap-2 bg-[#fffdfa]/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#e2ece5] shadow-xs shrink-0 text-left active:scale-95 transition-transform"
-            >
-              <img
-                src={loc.thumbnail}
-                alt={loc.name}
-                className="w-7 h-7 rounded-lg object-cover"
-              />
-              <div>
-                <span className="font-serif-title text-xs font-bold text-[#1b3326] block leading-tight">
-                  {loc.name}
-                </span>
-                <span className="text-[9px] text-[#63806f] flex items-center gap-1">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ backgroundColor: loc.categoryDotColor }}
-                  />
-                  {studentsHere.length > 0 ? `${studentsHere.length} studying` : loc.categoryLabel}
-                </span>
-              </div>
-            </button>
-          );
-        })}
+        {drawerOpen && (
+          <div className="p-3 border-t border-[#e8efe9] grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 animate-in fade-in duration-150">
+            {SEVEN_CAMPUS_LOCATIONS.map((loc) => {
+              const count = getStudentCount(loc.locationId);
+              return (
+                <button
+                  key={`quick-${loc.id}`}
+                  onClick={() => onEnterLocation(loc.locationId)}
+                  className="p-2 text-left rounded-xl bg-[#f8faf8] hover:bg-[#eef5f0] border border-[#e0eae3] hover:border-emerald-500/50 transition-all flex flex-col justify-between cursor-pointer"
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-sm shrink-0">{loc.icon}</span>
+                    <span className="font-serif text-[11px] font-bold text-[#1b3326] truncate">
+                      {loc.name}
+                    </span>
+                  </div>
+                  <div className="text-[9px] text-[#556e5f] font-semibold">
+                    {count > 0 ? `${count} studying` : '0 studying'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
