@@ -129,3 +129,68 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #bba993;
 }
+
+
+/* Studyverse shared pastel destination UI */
+.sv-location-page {
+  color: #23483d;
+}
+.sv-location-toolbar {
+  background: rgba(255,255,255,.86);
+  border: 1px solid rgba(190,216,207,.9);
+  box-shadow: 0 8px 28px rgba(62,105,91,.08), inset 0 1px 0 rgba(255,255,255,.9);
+  backdrop-filter: blur(14px);
+}
+.sv-back-button {
+  color: #315e50;
+  background: #f1f8f5;
+  border: 1px solid #d7e9e1;
+  box-shadow: 0 2px 7px rgba(49,94,80,.06);
+}
+.sv-back-button:hover {
+  background: #e6f3ed;
+  border-color: #bcd9cc;
+  box-shadow: 0 5px 14px rgba(49,94,80,.1);
+}
+.sv-toolbar-pill {
+  color: #365f52;
+  background: rgba(248,252,250,.96);
+  border-color: #d5e7df;
+  box-shadow: 0 2px 8px rgba(49,94,80,.06);
+}
+.sv-toolbar-pill:hover {
+  background: #edf7f2;
+  border-color: #bcd9cc;
+}
+.sv-occupancy-pill {
+  color: #285443;
+  background: #eaf6ef;
+  border: 1px solid #c8e3d4;
+}
+.sv-location-scene {
+  overflow: hidden;
+  border-radius: 30px;
+  box-shadow: 0 16px 38px rgba(45,86,72,.13);
+  isolation: isolate;
+}
+.sv-note-card, .sv-seat-summary {
+  color: #48685c;
+  background: rgba(255,255,255,.88);
+  border: 1px solid #d7e8df;
+  box-shadow: 0 5px 18px rgba(45,86,72,.06);
+}
+.sv-note-card button {
+  border-radius: 999px;
+  background: #34745b;
+  box-shadow: 0 4px 12px rgba(52,116,91,.16);
+}
+.sv-note-card button:hover { background: #285f49; }
+.sv-seat-summary strong, .sv-seat-summary .font-semibold { color: #244d3e; }
+.sv-location-page button:focus-visible {
+  outline: 3px solid rgba(90,171,137,.45);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .sv-location-toolbar { border-radius: 22px; padding: 14px; }
+  .sv-location-scene { border-radius: 22px; }
+}
