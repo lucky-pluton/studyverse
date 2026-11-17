@@ -194,3 +194,18 @@
   .sv-location-toolbar { border-radius: 22px; padding: 14px; }
   .sv-location-scene { border-radius: 22px; }
 }
+
+.sv-location-badge {
+  background: rgba(255,255,255,.91) !important;
+  color: #285344 !important;
+  border: 1px solid #d6e8df !important;
+  box-shadow: 0 5px 18px rgba(39,83,66,.12) !important;
+  backdrop-filter: blur(14px);
+}
+.sv-location-badge h2 { color: #214b3b !important; }
+.sv-location-badge span { border-color: #d8e9e0; }
+.sv-location-scene > div {
+  border-color: #cfe3d9 !important;
+  border-radius: 28px !important;
+  box-shadow: none !important;
+}
