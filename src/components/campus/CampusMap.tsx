@@ -5,7 +5,7 @@ import { LocationAvatarCluster } from './LocationAvatarCluster';
 import { LocationPreviewCard } from './LocationPreviewCard';
 import { CampusInfoPanel } from './CampusInfoPanel';
 import { CampusAvatarAnchor } from './CampusAvatarAnchor';
-import { IsometricCampusMap } from './IsometricCampusMap';
+import { IsometricCampusMapCanvas } from './IsometricCampusMapCanvas';
 import {
   ZoomIn,
   ZoomOut,
@@ -38,18 +38,6 @@ export const CampusMap: React.FC<CampusMapProps> = ({
   const [comingSoonModal, setComingSoonModal] = useState<typeof VERIFIED_IITM_UPCOMING_DESTINATIONS[0] | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-
-  if (viewMode === 'isometric') {
-    return (
-      <IsometricCampusMap
-        students={students}
-        currentUser={currentUser}
-        onEnterLocation={onEnterLocation}
-        timeOfDay={timeOfDay}
-        onSwitchToClassicView={() => setViewMode('classic')}
-      />
-    );
-  }
 
   // Group students by location
   const getStudentsAtLocation = (locId: string) =>
@@ -137,28 +125,38 @@ export const CampusMap: React.FC<CampusMapProps> = ({
             </div>
             <div className="h-6 w-[1px] bg-[#dce7e1]" />
             <button
-              onClick={() => setViewMode('isometric')}
+              onClick={() => setViewMode(viewMode === 'isometric' ? 'classic' : 'isometric')}
               className="px-3 py-1.5 rounded-xl bg-[#2d5a43] hover:bg-[#1f4231] text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-              title="Return to the new Isometric Campus Map Prototype"
+              title="Toggle between Isometric Explorer and Classic Map"
             >
               <Layers className="w-3.5 h-3.5" />
-              <span className="whitespace-nowrap">Isometric View</span>
+              <span className="whitespace-nowrap">
+                {viewMode === 'isometric' ? 'Classic 2D View' : 'Isometric Explorer'}
+              </span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Main Interactive Illustrated Campus Canvas */}
-      <div
-        ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        className={`relative w-full h-[78vh] min-h-[580px] max-h-[860px] rounded-3xl overflow-hidden border-2 border-[#c5d8cc] shadow-2xl bg-[#e5efe7] select-none ${
-          isDragging ? 'cursor-grabbing' : 'cursor-grab'
-        }`}
-      >
+      {viewMode === 'isometric' ? (
+        <IsometricCampusMapCanvas
+          students={students}
+          currentUser={currentUser}
+          onEnterLocation={onEnterLocation}
+          timeOfDay={timeOfDay}
+        />
+      ) : (
+        <div
+          ref={containerRef}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          className={`relative w-full h-[78vh] min-h-[580px] max-h-[860px] rounded-3xl overflow-hidden border-2 border-[#c5d8cc] shadow-2xl bg-[#e5efe7] select-none ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
+        >
         {/* Floating Zoom & Pan Controls in Top-Right */}
         <div className="absolute top-4 right-4 z-40 flex items-center gap-1.5 bg-[#fffdfa]/95 backdrop-blur-md p-1.5 rounded-2xl border border-[#cbe0d3] shadow-md">
           <button
@@ -684,6 +682,7 @@ export const CampusMap: React.FC<CampusMapProps> = ({
           />
         </div>
       </div>
+      )}
 
       {/* LIVE CAMPUS INFORMATION PANEL & WHERE EVERYONE IS STUDYING */}
       <CampusInfoPanel
