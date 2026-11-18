@@ -150,12 +150,13 @@ class SoundEngine {
   public playFocusChime() {
     try {
       this.initContext();
-      if (!this.ctx || !this.masterGain || this.isMuted) return;
+      const targetGain = this.notificationGain || this.masterGain;
+      if (!this.ctx || !targetGain) return;
 
-      // Gentle peaceful 3-tone crystal bell chime: C5 -> E5 -> G5 -> C6
+      // Gentle peaceful four-note crystal bell chime: C5 (523.25) -> E5 (659.25) -> G5 (783.99) -> C6 (1046.50)
       const notes = [523.25, 659.25, 783.99, 1046.50];
       notes.forEach((freq, idx) => {
-        if (!this.ctx || !this.masterGain) return;
+        if (!this.ctx || !targetGain) return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
 
@@ -163,12 +164,12 @@ class SoundEngine {
         const start = this.ctx.currentTime + idx * 0.16;
         osc.frequency.setValueAtTime(freq, start);
 
-        gain.gain.setValueAtTime(0.001, start);
-        gain.gain.linearRampToValueAtTime(0.09, start + 0.05);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(0.10, start + 0.04);
         gain.gain.exponentialRampToValueAtTime(0.0001, start + 2.2);
 
         osc.connect(gain);
-        gain.connect(this.masterGain);
+        gain.connect(targetGain);
 
         osc.start(start);
         osc.stop(start + 2.4);

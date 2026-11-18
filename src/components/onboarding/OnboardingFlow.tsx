@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import type { GenderOption, AvatarConfig, StudentPresence } from '../../types/studyverse';
 import { AVATAR_CATALOG } from '../../constants/avatars';
 import { AvatarPicker } from './AvatarPicker';
-import { ArrowRight, ArrowLeft, Sparkles, Heart, Compass } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import iitmMainGate from '../../assets/iitm_main_gate.jpg';
 
 interface OnboardingFlowProps {
   onComplete: (presence: StudentPresence) => void;
@@ -71,17 +72,120 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
     onComplete(newPresence);
   };
 
+  // =========================================================================
+  // STEP 4: FULL-SCREEN "ENTER THE CAMPUS" IMMERSIVE LANDING EXPERIENCE
+  // Directly over the full-viewport IIT Madras main gate background.
+  // =========================================================================
+  if (step === 4) {
+    return (
+      <div className="relative w-full h-[100dvh] min-h-screen overflow-hidden flex flex-col justify-between select-none">
+        {/* Full-Screen IIT Madras Main Gate Background */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <img
+            src={iitmMainGate}
+            alt="IIT Madras Main Gate"
+            className="w-full h-full object-cover object-center"
+          />
+          {/* Subtle Dark Gradient Overlay for Readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/65 backdrop-brightness-[0.88]" />
+        </div>
+
+        {/* Top Header: Elegant StudyVerse Branding */}
+        <header className="relative z-10 px-6 sm:px-12 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 shadow-xl">
+            <span className="w-8 h-8 rounded-xl bg-[#2d5a43] text-white flex items-center justify-center text-sm shadow-xs font-serif-title font-bold">
+              🏛️
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-serif-title text-sm sm:text-base font-bold tracking-wider text-white">
+                  STUDYVERSE
+                </span>
+                <span className="text-[10px] bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  IIT Madras
+                </span>
+              </div>
+              <span className="text-[9.5px] uppercase font-bold tracking-widest text-emerald-100/70 block">
+                Virtual Campus Simulation
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setStep(3)}
+            className="px-4 py-2 rounded-xl bg-black/40 hover:bg-black/60 text-white/90 text-xs font-medium backdrop-blur-md border border-white/20 transition-all flex items-center gap-2 cursor-pointer shadow-lg hover:scale-105 active:scale-95"
+            title="Return to companion selector"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Change Companion</span>
+          </button>
+        </header>
+
+        {/* Center Hero: Prominent "ENTER THE CAMPUS" Heading & Entry Action directly over background */}
+        <main className="relative z-10 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto space-y-6 sm:space-y-8 my-auto">
+          {/* Welcome Tag */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-emerald-400/40 text-xs sm:text-sm font-medium text-emerald-200 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+            <span>Welcome, {name.trim() || 'Fellow Learner'} • The gates of IIT Madras are open</span>
+          </div>
+
+          {/* Minimal Supporting Text */}
+          <p className="text-white/90 text-sm sm:text-base md:text-lg max-w-xl font-serif-body leading-relaxed drop-shadow-md italic animate-in fade-in slide-in-from-bottom-3 duration-500">
+            "Your study space is waiting. Step past the iconic main gate, find your favourite corner, and study peacefully alongside fellow learners."
+          </p>
+
+          {/* Prominent Enter Campus Button */}
+          <div className="pt-2 sm:pt-4 animate-in fade-in zoom-in-90 duration-500">
+            <button
+              type="button"
+              onClick={handleEnterCampus}
+              className="group relative px-10 sm:px-16 py-4 sm:py-5 rounded-2xl bg-gradient-to-r from-[#244c38] via-[#2d5a43] to-[#244c38] hover:from-[#1b3b2c] hover:to-[#163325] text-white font-serif-title text-lg sm:text-2xl font-bold tracking-widest shadow-[0_12px_32px_rgba(45,90,67,0.5)] border-2 border-emerald-400/80 hover:border-emerald-300 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3.5 cursor-pointer ring-4 ring-emerald-400/25"
+            >
+              <span>ENTER THE CAMPUS</span>
+              <Sparkles className="w-6 h-6 text-amber-300 group-hover:rotate-12 transition-transform" />
+            </button>
+          </div>
+
+          {/* Translucent Features Strip */}
+          <div className="pt-4 flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-emerald-100/90 font-medium">
+            <span className="bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-md">
+              ✦ Silent Ambient Companionship
+            </span>
+            <span className="bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-md">
+              ✦ 7 IIT Madras Study Environments
+            </span>
+            <span className="bg-black/40 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-md">
+              ✦ Real-Time Live Presence
+            </span>
+          </div>
+        </main>
+
+        {/* Bottom Footer Note */}
+        <footer className="relative z-10 px-6 py-4 text-center text-[11px] text-white/60 drop-shadow-sm">
+          Studyverse — IIT Madras Virtual Campus Simulation • For quiet companions studying together everywhere
+        </footer>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // STEPS 1, 2, 3: USER SETUP WITH IMMERSIVE MAIN GATE BACKGROUND
+  // =========================================================================
   return (
-    <div className="min-h-screen bg-[#faf6f0] flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
-      {/* Background Ambient Illustrative Elements */}
-      <div className="absolute inset-0 pointer-events-none opacity-40">
-        <div className="absolute top-12 left-10 w-72 h-72 rounded-full bg-[#f0e3d2] blur-3xl" />
-        <div className="absolute bottom-12 right-12 w-96 h-96 rounded-full bg-[#e3ede6] blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[#faebd7]/30 blur-3xl" />
+    <div className="min-h-screen relative flex flex-col items-center justify-center p-4 sm:p-6 overflow-hidden">
+      {/* Full-Screen IIT Madras Main Gate Background with Frosted Overlay */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <img
+          src={iitmMainGate}
+          alt="IIT Madras Main Gate"
+          className="w-full h-full object-cover object-center filter blur-xs scale-105"
+        />
+        <div className="absolute inset-0 bg-black/55 backdrop-blur-xs" />
       </div>
 
       {/* Main Glass/Warm Card */}
-      <div className="relative w-full max-w-2xl bg-[#fffdfa] rounded-3xl border border-[#ede2d4] shadow-xl p-6 sm:p-10 backdrop-blur-sm z-10 transition-all duration-300">
+      <div className="relative w-full max-w-2xl bg-[#fffdfa]/95 rounded-3xl border border-[#ede2d4] shadow-2xl p-6 sm:p-10 backdrop-blur-md z-10 transition-all duration-300">
         {/* Progress Dots */}
         <div className="flex items-center justify-between pb-6 mb-6 border-b border-[#f0e7db]">
           <div className="flex items-center gap-2">
@@ -260,62 +364,6 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
               >
                 <span>Continue to Welcome</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 4: Welcome transition */}
-        {step === 4 && (
-          <div className="text-center space-y-6 py-4 animate-in fade-in zoom-in-95 duration-400">
-            <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-[#e3ece5] to-[#f6ede4] border-2 border-[#d9ccbd] p-2 flex items-center justify-center shadow-md animate-float">
-              <span className="text-4xl">🏛️</span>
-            </div>
-
-            <div className="space-y-3 max-w-md mx-auto">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e8ded2] text-xs font-semibold text-[#54483c]">
-                <Heart className="w-3.5 h-3.5 text-[#bd5d44]" />
-                <span>You're ready, {name}</span>
-              </div>
-              <h2 className="font-serif-title text-2xl sm:text-3xl font-bold text-[#292521] leading-tight">
-                Enter Your Campus
-              </h2>
-              <p className="text-sm sm:text-base text-[#615648] leading-relaxed italic">
-                "Your study space is waiting. Find your favourite corner, settle in, and study alongside others."
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#faf5ed] border border-[#e8dbcc] max-w-sm mx-auto text-left text-xs space-y-2 text-[#635749]">
-              <div className="flex items-center gap-2 text-[#3c594b] font-semibold">
-                <Compass className="w-4 h-4" />
-                <span>What to expect inside:</span>
-              </div>
-              <ul className="space-y-1 pl-6 list-disc text-[11px] text-[#716454]">
-                <li>Silent, ambient campus companionship — no meetings or pressure.</li>
-                <li>Explore the library, lecture halls, banyan grove, café, and gardens.</li>
-                <li>Your seat timer will start automatically when you sit down.</li>
-                <li>Real-time synchronization with fellow students.</li>
-              </ul>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={handleEnterCampus}
-                className="w-full sm:w-auto px-10 py-4 bg-[#324f42] hover:bg-[#253d33] text-white font-serif-title text-base font-bold rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all inline-flex items-center justify-center gap-3 cursor-pointer"
-              >
-                <span>ENTER CAMPUS</span>
-                <Sparkles className="w-5 h-5 text-amber-300" />
-              </button>
-            </div>
-
-            <div>
-              <button
-                type="button"
-                onClick={() => setStep(3)}
-                className="text-xs text-[#8c7f71] hover:underline cursor-pointer"
-              >
-                Change character or name
               </button>
             </div>
           </div>

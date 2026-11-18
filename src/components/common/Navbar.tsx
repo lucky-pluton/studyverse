@@ -10,9 +10,14 @@ import {
   MapPin,
   Wifi,
   TrendingUp,
+  X,
+  Clock,
+  Compass,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyverse';
-import { ALL_CAMPUS_NAV_ITEMS } from '../../constants/locations';
+import { ALL_CAMPUS_NAV_ITEMS, type CampusNavigationItem } from '../../constants/locations';
 import { soundService } from '../../services/soundService';
 import { AvatarRenderer } from './AvatarRenderer';
 import { SessionTimeDisplay } from './TimerBadge';
@@ -54,6 +59,22 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [volume, setVolume] = useState(soundService.getVolume());
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
+  const [selectedUpcomingItem, setSelectedUpcomingItem] = useState<CampusNavigationItem | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(typeof document !== 'undefined' ? !!document.fullscreenElement : false);
+
+  React.useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
 
   const handleToggleSound = () => {
     const muted = soundService.toggleMute();
@@ -212,6 +233,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               {timeOfDay === 'night' && <Moon className="w-4 h-4 text-indigo-500" />}
             </button>
 
+            {/* Native Fullscreen Mode Toggle */}
+            <button
+              onClick={handleToggleFullscreen}
+              className="hidden sm:block p-2 rounded-xl bg-[#f4efe8] hover:bg-[#eae3d9] border border-[#e2d6c7] text-[#55695d] transition-colors cursor-pointer"
+              title={isFullscreen ? 'Exit Full Screen Mode (Esc)' : 'Enter Full Screen Mode'}
+              aria-label="Toggle Full Screen"
+            >
+              {isFullscreen ? (
+                <Minimize className="w-4 h-4 text-[#2d5a43]" />
+              ) : (
+                <Maximize className="w-4 h-4 text-[#2d5a43]" />
+              )}
+            </button>
+
             {/* Current Student Profile Pill */}
             <div className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-3 border-l border-[#dbe7e0]">
               <div
@@ -240,78 +275,79 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* ROW 2: STUDY ENVIRONMENT NAVIGATION STRIP (Active inside study rooms for quick-hopping) */}
-        {!isAtCampus && (
-          <div className="border-t border-[#e2ece5] bg-[#faf7f2]/90 backdrop-blur-md px-3 sm:px-6 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs animate-in fade-in duration-200">
-            {/* Campus Map Button */}
-            <button
-              onClick={() => onNavigate('campus')}
-              className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
-                isAtCampus
-                  ? 'bg-[#2d5a43] text-white shadow-xs'
-                  : 'bg-white/80 hover:bg-white text-[#4e6658] hover:text-[#1b3326] border border-[#dce7e1]'
-              }`}
-              title="Return to the full Campus Map overview"
-            >
-              <MapPin className="w-3.5 h-3.5" />
-              <span>Campus Map</span>
-            </button>
+        {/* ROW 2: COMPACT CAMPUS NAVIGATION STRIP (Positioned gracefully above the campus) */}
+        <div className="border-t border-[#e2ece5]/80 bg-[#faf7f2]/85 backdrop-blur-md px-3 sm:px-6 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs shadow-2xs">
+          {/* Campus Map Button */}
+          <button
+            onClick={() => onNavigate('campus')}
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+              isAtCampus
+                ? 'bg-[#2d5a43] text-white shadow-xs'
+                : 'bg-white/80 hover:bg-white text-[#4e6658] hover:text-[#1b3326] border border-[#dce7e1]'
+            }`}
+            title="Full Campus Map overview"
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span>Campus Map</span>
+          </button>
 
-            <div className="h-4 w-[1px] bg-[#dbe7e0] shrink-0 mx-0.5" />
+          <div className="h-4 w-[1px] bg-[#dbe7e0] shrink-0 mx-0.5" />
 
-            {/* All 11 Campus Locations */}
-            {ALL_CAMPUS_NAV_ITEMS.map((item) => {
-              if (item.isAvailable && item.locationId) {
-                const count = item.statKey ? (stats as any)[item.statKey] || 0 : 0;
-                const isActive = currentLocation === item.locationId;
+          {/* All Campus Locations */}
+          {ALL_CAMPUS_NAV_ITEMS.map((item) => {
+            if (item.isAvailable && item.locationId) {
+              const count = item.statKey ? (stats as any)[item.statKey] || 0 : 0;
+              const isActive = currentLocation === item.locationId;
 
-                return (
-                  <button
-                    key={`nav-${item.id}`}
-                    data-nav-id={item.locationId}
-                    onClick={() => onNavigate(item.locationId!)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+              return (
+                <button
+                  key={`nav-${item.id}`}
+                  data-nav-id={item.locationId}
+                  onClick={() => onNavigate(item.locationId!)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                    isActive
+                      ? 'text-white shadow-xs font-semibold'
+                      : 'bg-white/85 hover:bg-white text-[#3f5247] hover:text-[#1b3326] border border-[#dce7e1]'
+                  }`}
+                  style={isActive ? { backgroundColor: item.themeColor } : undefined}
+                  title={`Enter ${item.name} (${count} studying)`}
+                >
+                  <span className="text-xs">{item.icon}</span>
+                  <span className="font-serif-title">{item.shortName}</span>
+                  <span
+                    className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold ${
                       isActive
-                        ? 'text-white shadow-xs font-semibold'
-                        : 'bg-white/80 hover:bg-white text-[#3f5247] hover:text-[#1b3326] border border-[#dce7e1]'
+                        ? 'bg-white/25 text-white'
+                        : count > 0
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-[#edf3ee] text-[#718579]'
                     }`}
-                    style={isActive ? { backgroundColor: item.themeColor } : undefined}
-                    title={`Enter ${item.name} (${count} studying)`}
                   >
-                    <span className="text-xs">{item.icon}</span>
-                    <span className="font-serif-title">{item.shortName}</span>
-                    <span
-                      className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold ${
-                        isActive
-                          ? 'bg-white/25 text-white'
-                          : count > 0
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-[#edf3ee] text-[#718579]'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              } else {
-                // Unavailable / Upcoming Campus Locations
-                return (
-                  <div
-                    key={`nav-upcoming-${item.id}`}
-                    className="px-2.5 py-1 rounded-full text-xs flex items-center gap-1.5 shrink-0 bg-[#f5ede4]/70 border border-[#e5dcce] text-[#8c7d6e] cursor-default opacity-85 select-none transition-colors hover:bg-[#f5ede4]"
-                    title={`${item.name} — ${item.statusBadge}: ${item.statusDetail}`}
-                  >
-                    <span className="text-xs grayscale-[30%]">{item.icon}</span>
-                    <span className="font-serif-title font-medium text-[#6e5f50]">{item.shortName}</span>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full font-semibold uppercase tracking-wider bg-[#eae0d2] text-[#6b5c4d]">
-                      {item.statusBadge}
-                    </span>
-                  </div>
-                );
-              }
-            })}
-          </div>
-        )}
+                    {count}
+                  </span>
+                </button>
+              );
+            } else {
+              // Upcoming / Preparing Campus Locations (Interactive with status info)
+              return (
+                <button
+                  key={`nav-upcoming-${item.id}`}
+                  onClick={() => setSelectedUpcomingItem(item)}
+                  className="px-2.5 py-1 rounded-full text-xs flex items-center gap-1.5 shrink-0 bg-[#f5ede4]/85 hover:bg-[#faefe3] border border-[#e5dcce] text-[#716152] cursor-pointer opacity-90 select-none transition-all hover:scale-105 active:scale-95 group shadow-2xs"
+                  title={`Click to view status of ${item.name}`}
+                >
+                  <span className="text-xs group-hover:scale-110 transition-transform">{item.icon}</span>
+                  <span className="font-serif-title font-medium text-[#5a4c3f] group-hover:text-[#1b3326] transition-colors">
+                    {item.shortName}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.2 rounded-full font-semibold uppercase tracking-wider bg-[#eae0d2] group-hover:bg-[#dfd3c2] text-[#554739] transition-colors">
+                    {item.statusBadge}
+                  </span>
+                </button>
+              );
+            }
+          })}
+        </div>
       </header>
 
       {/* Multiplayer info modal */}
@@ -319,6 +355,95 @@ export const Navbar: React.FC<NavbarProps> = ({
         isOpen={showConnectionModal}
         onClose={() => setShowConnectionModal(false)}
       />
+
+      {/* Upcoming Campus Destination Status Modal */}
+      {selectedUpcomingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-[#fffdfa] border-2 border-[#d5e2d9] rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl p-2.5 rounded-2xl bg-[#f0f6f2] border border-[#d2e3d7] flex items-center justify-center shadow-inner">
+                  {selectedUpcomingItem.icon}
+                </span>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#355b46] bg-[#e3efe7] px-2 py-0.5 rounded-full">
+                      {selectedUpcomingItem.category}
+                    </span>
+                    <span className="text-[10px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {selectedUpcomingItem.statusBadge}
+                    </span>
+                  </div>
+                  <h3 className="font-serif-title text-base sm:text-lg font-bold text-[#1b3326]">
+                    {selectedUpcomingItem.name}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedUpcomingItem(null)}
+                className="p-1 rounded-full text-[#5e7769] hover:text-[#193224] hover:bg-black/5 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#f6faf7] border border-[#d6e5dc] text-xs text-[#2b4d3a] leading-relaxed">
+              <p className="font-medium text-[#193424] mb-1">Status Details:</p>
+              <p>{selectedUpcomingItem.statusDetail}</p>
+            </div>
+
+            <p className="text-xs text-[#526a5c] leading-relaxed">
+              Studyverse currently features 7 fully active, interactive study environments across IIT Madras. While this destination prepares for term, you can join your peers right now at:
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={() => {
+                  onNavigate('library');
+                  setSelectedUpcomingItem(null);
+                }}
+                className="p-2.5 rounded-xl bg-[#eef5f1] hover:bg-[#dcefe4] border border-[#cbe1d5] text-left transition-colors cursor-pointer group"
+              >
+                <div className="text-xs font-bold text-[#1b3a29] flex items-center gap-1.5">
+                  <span>🏛️</span>
+                  <span>Central Library</span>
+                </div>
+                <div className="text-[10px] text-[#4d705c]">
+                  {stats.libraryCount} studying now →
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  onNavigate('cafe');
+                  setSelectedUpcomingItem(null);
+                }}
+                className="p-2.5 rounded-xl bg-[#fbf6f0] hover:bg-[#f6ede1] border border-[#ead8c4] text-left transition-colors cursor-pointer group"
+              >
+                <div className="text-xs font-bold text-[#442c19] flex items-center gap-1.5">
+                  <span>☕</span>
+                  <span>Campus Café</span>
+                </div>
+                <div className="text-[10px] text-[#7a583d]">
+                  {stats.cafeCount} studying now →
+                </div>
+              </button>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <button
+                onClick={() => setSelectedUpcomingItem(null)}
+                className="px-4 py-2 rounded-xl bg-[#2d5a43] hover:bg-[#204432] text-white text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>Return to Campus</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

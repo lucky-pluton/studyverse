@@ -24,6 +24,7 @@ export function App() {
       const isNewStudent =
         urlParams.get('new_student') === 'true' || urlParams.get('companion') === 'true';
       const isDndStored = localStorage.getItem('studyverse_dnd_enabled') === 'true';
+      localStorage.removeItem('studyverse_view_mode');
 
       if (isNewStudent) {
         sessionStorage.removeItem('studyverse_session');
@@ -266,7 +267,9 @@ export function App() {
   const isAtCampusMap = currentLocation === 'campus' || currentLocation === 'city';
 
   return (
-    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${atmosphereBackground}`}>
+    <div
+      className={`w-full h-[100dvh] overflow-hidden flex flex-col transition-colors duration-500 ${atmosphereBackground}`}
+    >
       {/* Top Navbar */}
       <Navbar
         currentLocation={currentLocation}
@@ -294,7 +297,7 @@ export function App() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 w-full h-full relative overflow-hidden flex flex-col">
         {isAtCampusMap ? (
           <CampusMap
             students={allStudents}
@@ -317,17 +320,6 @@ export function App() {
           />
         )}
       </main>
-
-      {/* Footer with IIT Madras Disclaimer */}
-      <footer className="py-6 border-t border-[#dce7e1]/80 text-center text-xs text-[#637d6e] space-y-1 bg-[#faf7f2]/50">
-        <p className="font-serif-title font-semibold tracking-wide text-[#234232]">
-          Studyverse — IIT Madras Virtual Campus Simulation
-        </p>
-        <p className="text-[11px] text-[#6d887a] max-w-lg mx-auto px-4">
-          An independent student-oriented virtual study world inspired by the lush campus of IIT Madras.
-          Not an official institute website. For quiet companions studying together everywhere.
-        </p>
-      </footer>
 
       {/* Global Unified Study Timer Utility (Pomodoro, Stopwatch, Study Duration) */}
       <FocusTimer currentUser={currentUser} />

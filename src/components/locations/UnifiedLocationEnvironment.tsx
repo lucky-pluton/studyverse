@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { LocationDefinition, StudentPresence, TimeOfDay } from '../../types/studyverse';
 import { SeatSpot } from './SeatSpot';
-import { ArrowLeft, MessageSquare, Moon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Maximize, Minimize } from 'lucide-react';
 
 import envLibrary from '../../assets/environments/env_library.jpg';
 import envLhc from '../../assets/environments/env_lhc.jpg';
@@ -21,14 +21,14 @@ const ENV_IMAGES: Record<string, string> = {
   gc: envGc,
 };
 
-const ASPECT_CLASSES: Record<string, string> = {
-  library: 'aspect-[244/275] max-w-xl sm:max-w-2xl',
-  lhc: 'aspect-[244/275] max-w-xl sm:max-w-2xl',
-  banyan: 'aspect-[244/275] max-w-xl sm:max-w-2xl',
-  oat: 'aspect-[244/275] max-w-xl sm:max-w-2xl',
-  cafe: 'aspect-[323/265] max-w-2xl sm:max-w-3xl',
-  park: 'aspect-[325/265] max-w-2xl sm:max-w-3xl',
-  gc: 'aspect-[325/265] max-w-2xl sm:max-w-3xl',
+const LOCATION_RATIOS: Record<string, number> = {
+  library: 16 / 9,
+  lhc: 16 / 9,
+  banyan: 16 / 9,
+  oat: 16 / 9,
+  cafe: 16 / 9,
+  park: 16 / 9,
+  gc: 16 / 9,
 };
 
 interface UnifiedLocationEnvironmentProps {
@@ -50,16 +50,15 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
   currentUser,
   onSelectSeat,
   timeOfDay,
-  onBackToCampus,
-  onToggleChat,
-  isChatOpen = false,
-  onToggleDnd,
-  isDnd = false,
 }) => {
   const [roomZoom, setRoomZoom] = useState<number>(1);
   const [roomPan, setRoomPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [stageDimensions, setStageDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(
+    typeof document !== 'undefined' ? !!document.fullscreenElement : false
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +66,60 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
   const isNight = timeOfDay === 'night';
   const isSunset = timeOfDay === 'sunset';
   const bgImage = ENV_IMAGES[location.id] || envLibrary;
-  const aspectClass = ASPECT_CLASSES[location.id] || 'aspect-[4/3] max-w-4xl';
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  // Responsive COVER stage sizing: fills 100% width and 100% height with ZERO side borders / ZERO empty space
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const targetRatio = LOCATION_RATIOS[location.id] || (16 / 9);
+
+    const updateDimensions = () => {
+      if (!containerRef.current) return;
+      const cw = containerRef.current.clientWidth;
+      const ch = containerRef.current.clientHeight;
+      if (cw === 0 || ch === 0) return;
+
+      const containerRatio = cw / ch;
+      let w: number;
+      let h: number;
+
+      if (containerRatio > targetRatio) {
+        // Viewport is wider than artwork: match width 100%, expand height so there are NO empty sides
+        w = cw;
+        h = cw / targetRatio;
+      } else {
+        // Viewport is taller than artwork: match height 100%, expand width so there are NO empty top/bottom
+        h = ch;
+        w = ch * targetRatio;
+      }
+
+      setStageDimensions({ width: Math.round(w), height: Math.round(h) });
+    };
+
+    updateDimensions();
+    const ro = new ResizeObserver(updateDimensions);
+    ro.observe(containerRef.current);
+    window.addEventListener('resize', updateDimensions);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateDimensions);
+    };
+  }, [location.id]);
 
   // Room zoom handlers
   const handleZoomIn = (e?: React.MouseEvent) => {
@@ -132,26 +184,28 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      className={`relative w-full mx-auto ${aspectClass} rounded-3xl overflow-hidden border-2 border-[#d5e2d9] shadow-2xl bg-white select-none ${
+      className={`relative w-full h-full flex-1 overflow-hidden select-none bg-slate-950 ${
         roomZoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
       }`}
     >
-      {/* Transformable Inner Room Viewport for Pan & Zoom */}
+      {/* 1. PRIMARY FULL-SCREEN INTERACTIVE STAGE (100% Edge-to-Edge Cover) */}
       <div
-        className="w-full h-full relative origin-center transition-transform duration-200 ease-out"
+        className="absolute left-1/2 top-1/2 select-none overflow-hidden transition-transform duration-150 ease-out origin-center"
         style={{
-          transform: `translate(${roomPan.x}px, ${roomPan.y}px) scale(${roomZoom})`,
+          width: stageDimensions.width > 0 ? `${stageDimensions.width}px` : '100%',
+          height: stageDimensions.height > 0 ? `${stageDimensions.height}px` : '100%',
+          transform: `translate(calc(-50% + ${roomPan.x}px), calc(-50% + ${roomPan.y}px)) scale(${roomZoom})`,
         }}
       >
-        {/* 1. Environment Illustration Artwork */}
+        {/* Environment Illustration Artwork (covers 100% of stage without stretching) */}
         <img
           src={bgImage}
           alt={location.name}
-          className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none"
+          className="w-full h-full object-cover object-center pointer-events-none select-none block"
           style={{ imageRendering: '-webkit-optimize-contrast' }}
         />
 
-        {/* 2. Atmospheric Time-of-Day Overlays */}
+        {/* Atmospheric Time-of-Day Overlays */}
         {isSunset && (
           <div className="absolute inset-0 pointer-events-none bg-amber-500/10 mix-blend-color-burn" />
         )}
@@ -159,7 +213,7 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
           <div className="absolute inset-0 pointer-events-none bg-slate-950/30 mix-blend-multiply" />
         )}
 
-        {/* 3. Interactive Seats Overlay */}
+        {/* Calibrated Interactive Seats Overlay */}
         {location.seats.map((seat) => {
           const occupant = occupants.find((o) => o.seatId === seat.id);
           const isSelf = !!(currentUser && currentUser.seatId === seat.id);
@@ -176,33 +230,18 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
         })}
       </div>
 
-      {/* 4. Floating Location Header Pill (Top-Left) */}
-      <div className="absolute top-2.5 sm:top-3.5 left-2.5 sm:left-3.5 z-40 flex items-center gap-1.5 sm:gap-2.5 bg-white/95 backdrop-blur-md px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-white/90 shadow-md max-w-[62%] sm:max-w-none">
-        {onBackToCampus && (
-          <button
-            onClick={onBackToCampus}
-            className="p-1 -ml-1 rounded-full hover:bg-emerald-50 text-slate-700 transition-colors flex items-center gap-1 group cursor-pointer shrink-0"
-            title="Return to Campus Explorer"
-            aria-label="Return to Campus Explorer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-800 group-hover:-translate-x-0.5 transition-transform" />
-          </button>
-        )}
-        <span className="text-sm sm:text-base select-none shrink-0">{location.icon}</span>
-        <span className="font-serif-title font-bold text-slate-800 text-[11px] sm:text-sm tracking-tight truncate">
-          {location.name}
-        </span>
-        <span className="text-slate-300 font-light hidden sm:inline">•</span>
-        <span className="text-[10px] sm:text-xs font-semibold text-emerald-700 hidden sm:flex items-center gap-1.5 shrink-0">
-          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
-          {occupants.length} studying
-        </span>
-      </div>
+      {/* 2. FLOATING CONTROL PILL (Top-Right, Clean & Unobtrusive) */}
+      <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 bg-[#fffdfa]/92 hover:bg-[#fffdfa] backdrop-blur-md px-3 py-1.5 rounded-full border border-[#dce7e1] shadow-md transition-all text-xs">
+        {/* Available seats count */}
+        <div className="flex items-center gap-1.5 px-1 py-0.5 text-[#244633] font-medium text-[11px]">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>{openSeatsCount} seats open</span>
+        </div>
 
-      {/* 5. Floating Action & Zoom Controls (Top-Right) */}
-      <div className="absolute top-2.5 sm:top-3.5 right-2.5 sm:right-3.5 z-40 flex items-center gap-1 sm:gap-1.5 bg-white/95 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-white/90 shadow-md text-xs">
+        <div className="h-3.5 w-[1px] bg-slate-200 mx-0.5" />
+
         {/* Room Zoom Controls */}
-        <div className="flex items-center gap-0.5 pr-1.5 border-r border-slate-200">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={handleZoomIn}
             className="p-1 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -231,41 +270,21 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
           )}
         </div>
 
-        {/* Room Chat Toggle */}
-        {onToggleChat && (
-          <button
-            onClick={onToggleChat}
-            className={`px-2 py-1 rounded-full font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-              isChatOpen
-                ? 'bg-emerald-700 text-white'
-                : 'hover:bg-slate-100 text-slate-700'
-            }`}
-            title="Toggle Room Chat"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Chat</span>
-          </button>
-        )}
+        <div className="h-3.5 w-[1px] bg-slate-200 mx-0.5" />
 
-        {/* DND Toggle */}
-        {onToggleDnd && (
-          <button
-            onClick={onToggleDnd}
-            className={`px-2 py-1 rounded-full font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-              isDnd
-                ? 'bg-amber-100 text-amber-800'
-                : 'hover:bg-slate-100 text-slate-700'
-            }`}
-            title="Toggle DND"
-          >
-            <Moon className={`w-3.5 h-3.5 ${isDnd ? 'fill-amber-500 text-amber-500' : ''}`} />
-            <span className="hidden sm:inline">{isDnd ? 'DND On' : 'DND'}</span>
-          </button>
-        )}
-
-        <div className="text-[11px] font-medium text-slate-500 pl-1 border-l border-slate-200 hidden sm:block">
-          {openSeatsCount} seats available
-        </div>
+        {/* Fullscreen Toggle Button */}
+        <button
+          onClick={toggleFullscreen}
+          className="p-1 rounded-full text-slate-600 hover:text-emerald-800 hover:bg-emerald-50 transition-colors cursor-pointer"
+          title={isFullscreen ? 'Exit Full Screen (Esc)' : 'Enter Full Screen'}
+          aria-label="Toggle Fullscreen"
+        >
+          {isFullscreen ? (
+            <Minimize className="w-3.5 h-3.5" />
+          ) : (
+            <Maximize className="w-3.5 h-3.5" />
+          )}
+        </button>
       </div>
     </div>
   );

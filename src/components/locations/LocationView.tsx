@@ -7,11 +7,7 @@ import { soundService } from '../../services/soundService';
 import { chatService } from '../../services/chatService';
 import { LocationChatPanel } from '../chat/LocationChatPanel';
 import { ChatTriggerButton } from '../chat/ChatTriggerButton';
-import {
-  Info,
-  AlertCircle,
-  ExternalLink,
-} from 'lucide-react';
+import { AlertCircle, ExternalLink } from 'lucide-react';
 
 interface LocationViewProps {
   locationId: LocationId;
@@ -95,10 +91,10 @@ export const LocationView: React.FC<LocationViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 py-4 space-y-4 animate-in fade-in duration-300">
-      {/* Seat Conflict Toast Alert */}
+    <div className="relative w-full h-full flex-1 overflow-hidden flex flex-col select-none">
+      {/* Seat Conflict Floating Toast Alert */}
       {conflictAlert && (
-        <div className="p-3 bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl text-xs flex items-center justify-between shadow-md animate-in slide-in-from-top-2">
+        <div className="fixed top-28 left-1/2 -translate-x-1/2 z-50 p-3 bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl text-xs flex items-center justify-between shadow-xl animate-in slide-in-from-top-2 max-w-md w-[90%]">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
             <span>{conflictAlert}</span>
@@ -112,8 +108,8 @@ export const LocationView: React.FC<LocationViewProps> = ({
         </div>
       )}
 
-      {/* Main Illustrated Architectural Scene (Unified Cohesive Virtual Campus Environment) */}
-      <div className="relative">
+      {/* Main Illustrated Architectural Scene (Full-Screen Edge-to-Edge) */}
+      <div className="w-full h-full flex-1 relative overflow-hidden flex flex-col">
         <UnifiedLocationEnvironment
           location={location}
           occupants={occupants}
@@ -136,51 +132,21 @@ export const LocationView: React.FC<LocationViewProps> = ({
         />
       </div>
 
-      {/* Solitary / First-Arriver Encouragement Note */}
+      {/* Subtle First-Arriver Pill (Non-intrusive floating element) */}
       {otherOccupants.length === 0 && (
-        <div className="p-4 rounded-2xl bg-[#faf5ed] border border-[#e5d8c7] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#635546]">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-[#eee3d4] text-[#80674d]">
-              <Info className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="font-semibold text-[#3b3229]">
-                You're the first learner here right now.
-              </span>{' '}
-              Find your favorite spot. Fellow students exploring the campus will see your presence!
-            </div>
-          </div>
-
+        <div className="fixed bottom-4 left-4 z-30 hidden sm:flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#dce7e1] shadow-md text-xs text-[#524436]">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[11px] font-medium">First learner here</span>
           <button
             onClick={handleOpenCompanionTab}
-            className="px-3 py-1.5 bg-[#2d5a43] hover:bg-[#234735] text-white rounded-xl text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors shadow-2xs"
+            className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 ml-1 hover:underline cursor-pointer"
+            title="Open Companion Window to test multiplayer sync"
           >
-            <span>Open Companion Window (Test Sync)</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Test Sync</span>
+            <ExternalLink className="w-3 h-3" />
           </button>
         </div>
       )}
-
-      {/* Available Seats Summary Bar */}
-      <div className="p-4 rounded-2xl bg-[#fffdfa] border border-[#e6dcce] shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs text-[#695d4f]">
-        <div className="flex items-center gap-4">
-          <span className="font-semibold text-[#332e29]">
-            Seats in {location.name}:
-          </span>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#84a98c]" />
-            <span>Available ({location.seats.length - occupants.length})</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#2d5a43]" />
-            <span>Occupied ({occupants.length})</span>
-          </div>
-        </div>
-
-        <div className="text-[11px] text-[#8a7c6e]">
-          Click any pulsing <span className="font-semibold">+</span> marker to occupy a seat and begin your session.
-        </div>
-      </div>
 
       {/* Seated Bottom Dock */}
       {isUserSeatedHere && (

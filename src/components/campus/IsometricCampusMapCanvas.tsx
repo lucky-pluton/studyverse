@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyverse';
-import { ZoomIn, ZoomOut, RotateCcw, Compass, ArrowRight, Users, Navigation } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, ArrowRight, Users, Navigation } from 'lucide-react';
 import { AvatarRenderer } from '../common/AvatarRenderer';
 import { soundService } from '../../services/soundService';
 
@@ -366,9 +366,9 @@ export const IsometricCampusMapCanvas: React.FC<IsometricCampusMapCanvasProps> =
   const hoveredLoc = SEVEN_CAMPUS_LOCATIONS.find((l) => l.id === hoveredLocationId);
 
   return (
-    <div className="space-y-4">
+    <div className="w-full h-full relative overflow-hidden">
       {/* =========================================================================
-          MAIN MAP CANVAS CONTAINER (Interactive Campus Explorer Viewport)
+          MAIN MAP CANVAS CONTAINER (Full-Screen Interactive Campus Explorer Viewport)
          ========================================================================= */}
       <div
         ref={containerRef}
@@ -377,7 +377,7 @@ export const IsometricCampusMapCanvas: React.FC<IsometricCampusMapCanvasProps> =
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        className={`relative w-full max-w-6xl mx-auto aspect-[1376/768] max-h-[78vh] rounded-3xl overflow-hidden border-2 border-[#b8cebf] shadow-2xl bg-[#e3ede5] select-none ${
+        className={`relative w-full h-full min-h-[calc(100dvh-6.5rem)] overflow-hidden select-none bg-[#e3ede5] ${
           zoomLevel > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
         }`}
       >
@@ -581,16 +581,23 @@ export const IsometricCampusMapCanvas: React.FC<IsometricCampusMapCanvasProps> =
         {/* =====================================================================
             6. TOP-LEFT LIVE CAMPUS STATUS PILL
            ===================================================================== */}
-        <div className="interactive-clickable absolute top-2.5 sm:top-4 left-2.5 sm:left-4 z-40 bg-white/92 backdrop-blur-md rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 border border-white/95 shadow-md">
-          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-md bg-[#e6f7f3] flex items-center justify-center text-[#0d9488] shrink-0">
-            <Compass className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#0d9488]" />
+        <div className="interactive-clickable absolute top-3 sm:top-4 left-3 sm:left-4 z-30 bg-white/95 backdrop-blur-md rounded-2xl px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-2.5 border border-[#cbe1d5] shadow-md pointer-events-auto">
+          <div className="flex items-center gap-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="font-serif-title text-xs sm:text-sm font-bold text-[#1b3326]">
+              {students.length} Online
+            </span>
           </div>
-          <span className="text-[10px] sm:text-xs font-bold text-[#1b3326] tracking-tight">
-            Virtual Campus Explorer
-          </span>
           <span className="text-slate-300 font-light hidden md:inline">|</span>
-          <span className="text-[10px] sm:text-[11px] font-medium text-[#557563] hidden md:inline">
-            Click any building to walk &amp; study
+          <span className="text-[11px] font-medium text-[#4f6e5c] hidden md:inline">
+            {SEVEN_CAMPUS_LOCATIONS.filter((l) => getStudentsAtLocation(l.locationId).length > 0).length} of 7 Study Spots Active
+          </span>
+          <span className="text-slate-300 font-light hidden lg:inline">|</span>
+          <span className="text-[11px] font-medium text-[#5c7a69] hidden lg:inline">
+            Click any building to enter &amp; study
           </span>
         </div>
 

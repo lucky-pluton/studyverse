@@ -11,16 +11,20 @@
     "test:dnd": "node tests/test_dnd_suite.cjs",
     "test:chat": "node tests/verify_chat_multiplayer.cjs",
     "test:sound": "node tests/verify_production_chat_sound.cjs",
-    "test:layout": "node tests/test_stopwatch_and_layout.cjs"
+    "test:layout": "node tests/test_stopwatch_and_layout.cjs",
+    "test:focus-timer": "node tests/test_focus_timer_master.cjs",
+    "test:explorer": "node tests/test_campus_explorer_experience.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
     "@types/paho-mqtt": "^1.0.10",
+    "@types/three": "^0.187.0",
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.72.0",
     "paho-mqtt": "^1.1.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "three": "^0.187.0",
     "trystero": "^0.27.0"
   },
   "devDependencies": {

@@ -9,21 +9,26 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  X,
 } from 'lucide-react';
 
 interface CampusInfoPanelProps {
   students: StudentPresence[];
   onEnterLocation: (loc: LocationId) => void;
   className?: string;
+  onClose?: () => void;
+  defaultExpanded?: boolean;
 }
 
 export const CampusInfoPanel: React.FC<CampusInfoPanelProps> = ({
   students,
   onEnterLocation,
   className = '',
+  onClose,
+  defaultExpanded = true,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'discovery'>('overview');
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(defaultExpanded);
 
   // Calculate live campus metrics
   const totalStudents = students.length;
@@ -98,13 +103,24 @@ export const CampusInfoPanel: React.FC<CampusInfoPanelProps> = ({
             </button>
           </div>
 
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 rounded-lg text-[#62776a] hover:bg-[#eaf3ee] transition-colors"
-            title={isExpanded ? 'Collapse panel' : 'Expand panel'}
-          >
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
+          {onClose ? (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-xl text-[#62776a] hover:bg-[#eaf3ee] hover:text-[#1f3529] transition-colors cursor-pointer ml-1"
+              title="Close Quick List Panel"
+              aria-label="Close Quick List Panel"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-1 rounded-lg text-[#62776a] hover:bg-[#eaf3ee] transition-colors"
+              title={isExpanded ? 'Collapse panel' : 'Expand panel'}
+            >
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          )}
         </div>
       </div>
 
