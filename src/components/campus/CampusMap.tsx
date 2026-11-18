@@ -34,50 +34,42 @@ export const CampusMap: React.FC<CampusMapProps> = ({
   return (
     <div className="w-full max-w-7xl mx-auto px-4 py-5 space-y-6 animate-in fade-in duration-300">
       {/* =========================================================================
-          1. TOP CAMPUS WELCOME BANNER & LIVE CENSUS BAR
+          1. TOP CAMPUS EXPLORER HEADER & LIVE TELEMETRY
          ========================================================================= */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#eaf3ee] via-[#f7f3ec] to-[#e8eee9] p-4 sm:p-5 border-2 border-[#d5e2d9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 overflow-hidden">
-        <div className="absolute right-4 -bottom-8 w-44 h-44 opacity-5 pointer-events-none text-9xl font-serif">
-          🏛️
-        </div>
-
-        <div className="space-y-1 z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-[#dbe8e0] text-xs font-semibold text-[#294d3a]">
+      <div className="relative rounded-3xl bg-gradient-to-r from-[#eaf3ee] via-[#f7f3ec] to-[#e8eee9] p-3 sm:p-4 border-2 border-[#d5e2d9] shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 overflow-hidden">
+        <div className="space-y-0.5 z-10">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#dbe8e0] text-[11px] font-semibold text-[#294d3a]">
             <Compass className="w-3.5 h-3.5 text-[#24523b]" />
-            <span>IIT Madras Virtual Campus</span>
+            <span>Virtual Campus Explorer</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
           </div>
 
-          <h1 className="font-serif-title text-xl sm:text-2xl font-bold text-[#1f3529] tracking-tight">
-            Live Campus Occupancy Map, {currentUser.name}.
+          <h1 className="font-serif-title text-base sm:text-xl font-bold text-[#1f3529] tracking-tight">
+            Explore Studyverse Campus, {currentUser.name}.
           </h1>
-          <p className="text-xs text-[#506357] max-w-2xl leading-relaxed">
-            {students.length <= 1
-              ? "You're among the first learners to arrive today. Explore the Central Library, settle into Academic Blocks, or find a quiet desk in Campus Café."
-              : `You are studying alongside ${students.length - 1} other student${
-                  students.length === 2 ? '' : 's'
-                } across ${activeLocationsCount || 1} campus locations. Real-time avatar indicators show where peers are currently focusing.`}
+          <p className="text-[11px] sm:text-xs text-[#506357] max-w-xl leading-relaxed">
+            Pan, zoom, and explore the grounds. Click any illustrated building or garden spot to walk over and begin studying.
           </p>
         </div>
 
         {/* Live Campus Telemetry Badge */}
         <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 z-10 w-full sm:w-auto">
-          <div className="w-full sm:w-auto px-3.5 py-2 rounded-2xl bg-[#fffdfa] border border-[#ceddd4] shadow-xs flex items-center justify-between sm:justify-end gap-3.5">
+          <div className="w-full sm:w-auto px-3.5 py-1.5 rounded-2xl bg-[#fffdfa] border border-[#ceddd4] shadow-2xs flex items-center justify-between sm:justify-end gap-3.5">
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
             <div className="text-left sm:text-right">
-              <span className="block text-[9px] uppercase font-bold text-[#62776a] tracking-wider">
+              <span className="block text-[8.5px] uppercase font-bold text-[#62776a] tracking-wider">
                 Online On Campus
               </span>
-              <span className="font-serif-title text-base font-bold text-[#1b3326]">
+              <span className="font-serif-title text-sm sm:text-base font-bold text-[#1b3326]">
                 {students.length} Student{students.length === 1 ? '' : 's'}
               </span>
             </div>
-            <div className="h-6 w-[1px] bg-[#dce7e1]" />
+            <div className="h-5 w-[1px] bg-[#dce7e1]" />
             <div className="text-left sm:text-right">
-              <span className="block text-[9px] uppercase font-bold text-[#62776a] tracking-wider">
+              <span className="block text-[8.5px] uppercase font-bold text-[#62776a] tracking-wider">
                 Occupied Spots
               </span>
-              <span className="font-serif-title text-base font-bold text-[#2d5a43]">
+              <span className="font-serif-title text-sm sm:text-base font-bold text-[#2d5a43]">
                 {activeLocationsCount} of {Object.keys(LOCATIONS).length}
               </span>
             </div>

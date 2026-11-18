@@ -40,9 +40,12 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
     onSelectSeat(seat.id);
   };
 
+  const avatarSize = seat.size || 'md';
+  const scale = seat.scale || (avatarSize === 'sm' ? 0.82 : avatarSize === 'lg' ? 1.0 : 0.9);
+
   return (
     <div
-      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center transition-transform"
+      className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center transition-transform z-10 hover:z-20"
       style={{
         left: `${seat.x}%`,
         top: `${seat.y}%`,
@@ -60,11 +63,14 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
             isDnd={occupant.isDnd}
           />
 
-          {/* Occupant Chibi Avatar with study activity & location pose */}
-          <div className="relative flex flex-col items-center">
+          {/* Occupant Chibi Avatar with perspective-aware size & pose */}
+          <div
+            className="relative flex flex-col items-center"
+            style={{ transform: `scale(${scale})`, transformOrigin: 'bottom center' }}
+          >
             <AvatarRenderer
               config={occupant.avatarConfig}
-              size="lg"
+              size={avatarSize}
               isSeated={true}
               pose={getPoseForSeat(seat.type)}
               showProp={true}
@@ -73,8 +79,8 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
 
             {/* Subtle highlight ring under avatar */}
             <div
-              className={`w-12 h-3 -mt-2 rounded-full blur-2xs ${
-                isSelf ? 'bg-[#52796f]/30' : 'bg-[#d8c3b0]/40'
+              className={`w-10 h-2.5 -mt-1.5 rounded-full blur-2xs ${
+                isSelf ? 'bg-[#52796f]/40 ring-1 ring-emerald-500/50' : 'bg-[#d8c3b0]/40'
               }`}
             />
           </div>
@@ -90,21 +96,23 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
       {!isOccupied && (
         <button
           type="button"
+          data-seat-id={seat.id}
           onClick={handleClick}
-          className="group relative flex flex-col items-center justify-center focus:outline-hidden transition-all duration-300"
+          className="group relative flex flex-col items-center justify-center focus:outline-hidden transition-all duration-300 cursor-pointer"
+          style={{ transform: `scale(${scale})` }}
         >
           {/* Pulsing Target Dot */}
           <div className="relative flex items-center justify-center">
-            <span className="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-[#52796f]/20 group-hover:bg-[#52796f]/40 transition-colors" />
-            <div className="relative w-8 h-8 rounded-full bg-[#f6efe6]/90 group-hover:bg-[#52796f] border-2 border-[#84a98c] group-hover:border-[#3d5a52] flex items-center justify-center shadow-md transition-all group-hover:scale-110">
-              <span className="text-[11px] font-bold text-[#355348] group-hover:text-white transition-colors">
+            <span className="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-[#52796f]/25 group-hover:bg-[#52796f]/40 transition-colors" />
+            <div className="relative w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#f6efe6]/95 group-hover:bg-[#52796f] border-2 border-[#84a98c] group-hover:border-[#3d5a52] flex items-center justify-center shadow-md transition-all group-hover:scale-110">
+              <span className="text-[10px] sm:text-[11px] font-bold text-[#355348] group-hover:text-white transition-colors">
                 +
               </span>
             </div>
           </div>
 
-          {/* Seat Tooltip / Label */}
-          <div className="mt-1 px-2 py-0.5 rounded-full bg-[#fffdf9]/95 border border-[#e0d6c8] shadow-xs text-[10px] font-semibold text-[#54483c] whitespace-nowrap group-hover:bg-[#3d5a52] group-hover:text-white group-hover:border-[#2d443e] transition-all">
+          {/* Seat Tooltip / Label (Appears on Hover/Focus to keep artwork clean & prevent mobile clutter) */}
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-6 px-2 py-0.5 rounded-full bg-[#fffdf9]/95 border border-[#e0d6c8] shadow-md text-[10px] font-semibold text-[#54483c] whitespace-nowrap pointer-events-none group-hover:bg-[#3d5a52] group-hover:text-white group-hover:border-[#2d443e] z-20">
             {seat.name}
           </div>
 

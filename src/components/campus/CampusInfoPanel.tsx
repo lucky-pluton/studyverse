@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { LocationId, StudentPresence } from '../../types/studyverse';
-import { LOCATIONS } from '../../constants/locations';
+import { LOCATIONS, ALL_CAMPUS_NAV_ITEMS } from '../../constants/locations';
 import { AvatarRenderer } from '../common/AvatarRenderer';
 import { formatDuration } from '../common/TimerBadge';
 import {
@@ -23,7 +23,7 @@ export const CampusInfoPanel: React.FC<CampusInfoPanelProps> = ({
   className = '',
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'discovery'>('overview');
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   // Calculate live campus metrics
   const totalStudents = students.length;
@@ -221,6 +221,36 @@ export const CampusInfoPanel: React.FC<CampusInfoPanelProps> = ({
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Upcoming Campus Facilities */}
+              <div className="pt-2">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#7a6b5d] block mb-1.5">
+                  Upcoming Campus Facilities (Under Setup)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {ALL_CAMPUS_NAV_ITEMS.filter((i) => !i.isAvailable).map((item) => (
+                    <div
+                      key={`info-upcoming-${item.id}`}
+                      className="p-2.5 rounded-2xl bg-[#fbf8f3] border border-[#e8ded0] flex items-center justify-between gap-2 select-none"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg grayscale-[25%]">{item.icon}</span>
+                        <div className="min-w-0">
+                          <span className="font-serif-title text-xs font-bold text-[#3d3328] block truncate">
+                            {item.name}
+                          </span>
+                          <span className="text-[10px] text-[#786a5a] truncate block">
+                            {item.statusDetail}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[8.5px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-[#ede3d5] text-[#6d5b4a] shrink-0">
+                        {item.statusBadge}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

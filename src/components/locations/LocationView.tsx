@@ -1,27 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyverse';
 import { LOCATIONS } from '../../constants/locations';
-import { CentralLibrary } from './CentralLibrary';
-import { LectureHallComplex } from './LectureHallComplex';
-import { BanyanTreeGrove } from './BanyanTreeGrove';
-import { OpenAirTheatre } from './OpenAirTheatre';
-import { CampusCafe } from './CampusCafe';
-import { SangamGardens } from './SangamGardens';
-import { GajendraCircle } from './GajendraCircle';
+import { UnifiedLocationEnvironment } from './UnifiedLocationEnvironment';
 import { StudyDock } from '../study/StudyDock';
 import { soundService } from '../../services/soundService';
 import { chatService } from '../../services/chatService';
 import { LocationChatPanel } from '../chat/LocationChatPanel';
 import { ChatTriggerButton } from '../chat/ChatTriggerButton';
 import {
-  ArrowLeft,
-  Users,
-  Sparkles,
   Info,
   AlertCircle,
   ExternalLink,
-  MessageSquare,
-  Moon,
 } from 'lucide-react';
 
 interface LocationViewProps {
@@ -106,100 +95,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
   };
 
   return (
-    <div className="sv-location-page w-full max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-7 space-y-5 animate-in fade-in duration-300">
-      {/* Top Header / Navigation Breadcrumb Bar */}
-      <div className="sv-location-toolbar flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-[26px]">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBackToCampus}
-            className="sv-back-button px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center gap-2 transition-all group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span>Return to Campus Map</span>
-          </button>
-
-          <div className="hidden sm:block h-7 w-px bg-[#d9e8e3]" />
-
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base">{location.icon}</span>
-              <h1 className="font-serif-title text-xl sm:text-2xl font-bold text-[#214537] leading-tight">
-                {location.name}
-              </h1>
-            </div>
-            <p className="text-xs text-[#70877e]">
-              {location.tagline}
-            </p>
-          </div>
-        </div>
-
-        {/* Occupant Counter, Chat Toggle, DND Toggle & Seat Status */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          <button
-            onClick={() => {
-              setIsChatOpen((prev) => {
-                const next = !prev;
-                if (next && typeof window !== 'undefined' && window.innerWidth < 1100) {
-                  window.dispatchEvent(new CustomEvent('studyverse:panel-opened', { detail: { panel: 'chat' } }));
-                }
-                return next;
-              });
-            }}
-            type="button"
-            className={`sv-toolbar-pill px-3.5 py-2 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              isChatOpen
-                ? 'bg-[#2d5a43] text-white border-[#1e402e] shadow-2xs'
-                : 'bg-[#fffdfa] hover:bg-[#f1eae0] border-[#d8ccbc] text-[#3f3428]'
-            }`}
-            title="Toggle Room Chat"
-          >
-            <MessageSquare className="w-3.5 h-3.5 text-emerald-700" />
-            <span>Chat</span>
-          </button>
-
-          {/* DND Quick Toggle */}
-          {onToggleDnd && (
-            <button
-              onClick={onToggleDnd}
-              type="button"
-              className={`sv-toolbar-pill px-3.5 py-2 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                isDnd
-                  ? 'bg-[#253f31] text-amber-200 border-[#1a2d23] shadow-xs ring-1 ring-amber-300/40'
-                  : 'bg-[#fffdfa] hover:bg-[#f1eae0] border-[#d8ccbc] text-[#3f3428]'
-              }`}
-              title={
-                isDnd
-                  ? 'Do Not Disturb is ON (Enjoy studying alongside others without interruptions). Click to turn OFF.'
-                  : 'Enable Do Not Disturb (Enjoy studying alongside others without interruptions).'
-              }
-              aria-label="Toggle Do Not Disturb Mode"
-            >
-              <Moon className={`w-3.5 h-3.5 ${isDnd ? 'fill-amber-300 text-amber-300' : 'text-slate-500'}`} />
-              <span>{isDnd ? 'DND On' : 'DND'}</span>
-            </button>
-          )}
-
-          <div className="sv-occupancy-pill flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium">
-            <Users className="w-3.5 h-3.5 text-[#5e776a]" />
-            <span>
-              <strong>{occupants.length}</strong> studying here
-            </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping ml-1" />
-          </div>
-
-          <div className="text-xs text-[#70877e]">
-            {isUserSeatedHere ? (
-              <span className="text-[#2d5a43] font-semibold flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                Seated at {currentSeatDef?.name || 'seat'}
-              </span>
-            ) : (
-              <span className="text-[#8c7e6f]">Choose an available seat below</span>
-            )}
-          </div>
-        </div>
-      </div>
-
+    <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 py-4 space-y-4 animate-in fade-in duration-300">
       {/* Seat Conflict Toast Alert */}
       {conflictAlert && (
         <div className="p-3 bg-amber-50 border border-amber-300 text-amber-900 rounded-2xl text-xs flex items-center justify-between shadow-md animate-in slide-in-from-top-2">
@@ -216,76 +112,33 @@ export const LocationView: React.FC<LocationViewProps> = ({
         </div>
       )}
 
-      {/* Main Illustrated Architectural Scene */}
-      <div className="sv-location-scene relative">
-        {locationId === 'library' && (
-          <CentralLibrary
-            location={location}
-            occupants={occupants}
-            currentUser={currentUser}
-            onSelectSeat={handleSeatClick}
-            timeOfDay={timeOfDay}
-          />
-        )}
-        {locationId === 'lhc' && (
-          <LectureHallComplex
-            location={location}
-            occupants={occupants}
-            currentUser={currentUser}
-            onSelectSeat={handleSeatClick}
-            timeOfDay={timeOfDay}
-          />
-        )}
-        {locationId === 'banyan' && (
-          <BanyanTreeGrove
-            location={location}
-            occupants={occupants}
-            currentUser={currentUser}
-            onSelectSeat={handleSeatClick}
-            timeOfDay={timeOfDay}
-          />
-        )}
-        {locationId === 'oat' && (
-          <OpenAirTheatre
-            location={location}
-            occupants={occupants}
-            currentUser={currentUser}
-            onSelectSeat={handleSeatClick}
-            timeOfDay={timeOfDay}
-          />
-        )}
-        {locationId === 'cafe' && (
-          <CampusCafe
-            location={location}
-            occupants={occupants}
-            currentUser={currentUser}
-            onSelectSeat={handleSeatClick}
-            timeOfDay={timeOfDay}
-          />
-        )}
-        {locationId === 'park' && (
-          <SangamGardens
-            location={location}
-            occupants={occupants}
-            currentUser={currentUser}
-            onSelectSeat={handleSeatClick}
-            timeOfDay={timeOfDay}
-          />
-        )}
-        {locationId === 'gc' && (
-          <GajendraCircle
-            location={location}
-            occupants={occupants}
-            currentUser={currentUser}
-            onSelectSeat={handleSeatClick}
-            timeOfDay={timeOfDay}
-          />
-        )}
+      {/* Main Illustrated Architectural Scene (Unified Cohesive Virtual Campus Environment) */}
+      <div className="relative">
+        <UnifiedLocationEnvironment
+          location={location}
+          occupants={occupants}
+          currentUser={currentUser}
+          onSelectSeat={handleSeatClick}
+          timeOfDay={timeOfDay}
+          onBackToCampus={onBackToCampus}
+          onToggleChat={() => {
+            setIsChatOpen((prev) => {
+              const next = !prev;
+              if (next && typeof window !== 'undefined' && window.innerWidth < 1100) {
+                window.dispatchEvent(new CustomEvent('studyverse:panel-opened', { detail: { panel: 'chat' } }));
+              }
+              return next;
+            });
+          }}
+          isChatOpen={isChatOpen}
+          onToggleDnd={onToggleDnd}
+          isDnd={isDnd}
+        />
       </div>
 
       {/* Solitary / First-Arriver Encouragement Note */}
       {otherOccupants.length === 0 && (
-        <div className="sv-note-card p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="p-4 rounded-2xl bg-[#faf5ed] border border-[#e5d8c7] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#635546]">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-[#eee3d4] text-[#80674d]">
               <Info className="w-4 h-4" />
@@ -309,7 +162,7 @@ export const LocationView: React.FC<LocationViewProps> = ({
       )}
 
       {/* Available Seats Summary Bar */}
-      <div className="sv-seat-summary p-4 sm:p-5 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="p-4 rounded-2xl bg-[#fffdfa] border border-[#e6dcce] shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs text-[#695d4f]">
         <div className="flex items-center gap-4">
           <span className="font-semibold text-[#332e29]">
             Seats in {location.name}:

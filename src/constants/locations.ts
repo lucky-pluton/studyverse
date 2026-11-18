@@ -1,4 +1,4 @@
-import type { LocationDefinition } from '../types/studyverse';
+import type { LocationDefinition, LocationId } from '../types/studyverse';
 
 export const LOCATIONS: Record<string, LocationDefinition> = {
   library: {
@@ -15,19 +15,16 @@ export const LOCATIONS: Record<string, LocationDefinition> = {
     ambientTrack: 'library',
     musicNotes: ['Page turn rustle', 'Gentle AC hum', 'Quiet academic focus'],
     seats: [
-      { id: 'lib-cubicle-01', name: 'Silent Study Desk 01 (Lamp)', type: 'desk', x: 18, y: 44, description: 'Single oak desk with personal reading lamp and power socket.' },
-      { id: 'lib-cubicle-02', name: 'Silent Study Desk 02 (Lamp)', type: 'desk', x: 38, y: 44, description: 'Quiet individual study cubicle flanked by science journals.' },
-      { id: 'lib-cubicle-03', name: 'Silent Study Desk 03 (Lamp)', type: 'desk', x: 62, y: 44, description: 'Desk near the computer science and mathematics stacks.' },
-      { id: 'lib-cubicle-04', name: 'Silent Study Desk 04 (Lamp)', type: 'desk', x: 82, y: 44, description: 'Desk near the engineering reference section.' },
-
-      { id: 'lib-window-01', name: 'Greenery Window Bay (North)', type: 'window', x: 12, y: 72, description: 'Sunlit desk overlooking the shady rain trees and deer trail.' },
-      { id: 'lib-window-02', name: 'Greenery Window Bay (South)', type: 'window', x: 88, y: 72, description: 'Large corner desk framed by tall glass with botanical views.' },
-
-      { id: 'lib-table-01', name: 'Central Research Table — Seat A', type: 'table', x: 34, y: 76, sharedGroupId: 'central-oak', description: 'Long teak study table for collaborative silent revision.' },
-      { id: 'lib-table-02', name: 'Central Research Table — Seat B', type: 'table', x: 50, y: 76, sharedGroupId: 'central-oak', description: 'Long teak study table for collaborative silent revision.' },
-      { id: 'lib-table-03', name: 'Central Research Table — Seat C', type: 'table', x: 66, y: 76, sharedGroupId: 'central-oak', description: 'Long teak study table for collaborative silent revision.' },
-
-      { id: 'lib-armchair', name: 'Periodical Nook Armchair', type: 'chair', x: 50, y: 22, description: 'Plush reading armchair tucked between IEEE archives.' },
+      { id: 'lib-cubicle-01', name: 'Front Oak Desk — Left Blue Chair', type: 'chair', x: 14.5, y: 82.5, size: 'md', scale: 1.0, description: 'Polished teak study desk with emerald lamp.' },
+      { id: 'lib-cubicle-02', name: 'Front Oak Desk — Right Blue Chair', type: 'chair', x: 28.5, y: 82.5, size: 'md', scale: 1.0, description: 'Polished teak study desk with emerald lamp.' },
+      { id: 'lib-cubicle-03', name: 'Front Oak Desk East — Left Blue Chair', type: 'chair', x: 75.5, y: 82.5, size: 'md', scale: 1.0, description: 'Spacious desk by the reference stacks.' },
+      { id: 'lib-cubicle-04', name: 'Front Oak Desk East — Right Blue Chair', type: 'chair', x: 89.0, y: 82.5, size: 'md', scale: 1.0, description: 'Spacious desk by the reference stacks.' },
+      { id: 'lib-table-01', name: 'Oak Desk West — Rear Chair A', type: 'chair', x: 28.5, y: 73.0, size: 'md', scale: 0.88, description: 'Comfortable blue chair facing the study desk.' },
+      { id: 'lib-table-02', name: 'Oak Desk West — Rear Chair B', type: 'chair', x: 39.0, y: 73.0, size: 'md', scale: 0.88, description: 'Comfortable blue chair facing the study desk.' },
+      { id: 'lib-table-03', name: 'Oak Desk East — Rear Chair A', type: 'chair', x: 65.0, y: 73.0, size: 'md', scale: 0.88, description: 'Quiet research desk chair.' },
+      { id: 'lib-armchair', name: 'Oak Desk East — Rear Chair B', type: 'chair', x: 75.0, y: 73.0, size: 'md', scale: 0.88, description: 'Quiet research desk chair.' },
+      { id: 'lib-window-01', name: 'Mid Reading Desk — West Chair', type: 'chair', x: 36.5, y: 67.5, size: 'sm', scale: 0.8, description: 'Sunlit desk with garden window view.' },
+      { id: 'lib-window-02', name: 'Mid Reading Desk — East Chair', type: 'chair', x: 68.5, y: 67.5, size: 'sm', scale: 0.8, description: 'Sunlit desk with garden window view.' },
     ],
   },
 
@@ -45,19 +42,16 @@ export const LOCATIONS: Record<string, LocationDefinition> = {
     ambientTrack: 'lhc',
     musicNotes: ['Chalkboard echoes', 'Soft clock ticks', 'Pen strokes on paper'],
     seats: [
-      { id: 'lhc-hall1-01', name: 'Lecture Hall 1 — Front Row A', type: 'desk', x: 26, y: 46, description: 'Front row tiered desk with direct view of the blackboard.' },
-      { id: 'lhc-hall1-02', name: 'Lecture Hall 1 — Front Row B', type: 'desk', x: 44, y: 46, description: 'Front row tiered desk with direct view of the blackboard.' },
-      { id: 'lhc-hall1-03', name: 'Lecture Hall 1 — Front Row C', type: 'desk', x: 62, y: 46, description: 'Front row tiered desk with direct view of the blackboard.' },
-      
-      { id: 'lhc-hall1-04', name: 'Lecture Hall 1 — Mid Tier Left', type: 'tier', x: 20, y: 72, description: 'Elevated tiered lecture bench with wide notebook space.' },
-      { id: 'lhc-hall1-05', name: 'Lecture Hall 1 — Mid Tier Center', type: 'tier', x: 44, y: 72, description: 'Elevated tiered lecture bench in the quiet center zone.' },
-      { id: 'lhc-hall1-06', name: 'Lecture Hall 1 — Mid Tier Right', type: 'tier', x: 68, y: 72, description: 'Elevated tiered lecture bench near the side aisle.' },
-
-      { id: 'lhc-crc-01', name: 'Classroom CRC-101 — Corner Desk', type: 'desk', x: 84, y: 38, description: 'Secluded corner desk in the adjacent classroom wing.' },
-      { id: 'lhc-crc-02', name: 'Classroom CRC-101 — Window Desk', type: 'window', x: 86, y: 68, description: 'Classroom desk bathed in soft daylight filtering through trees.' },
-
-      { id: 'lhc-podium', name: 'Teaching Assistant Desk', type: 'desk', x: 12, y: 26, description: 'Organized study desk beside the projector and reference texts.' },
-      { id: 'lhc-balcony', name: 'Mezzanine Overlook Bench', type: 'bench', x: 78, y: 20, description: 'Quiet wooden bench along the breezy LHC first-floor corridor.' },
+      { id: 'lhc-hall1-05', name: 'Front Tier Desk — West A', type: 'chair', x: 6.5, y: 83.5, size: 'md', scale: 1.0, description: 'Prime front row lecture hall seat.' },
+      { id: 'lhc-hall1-06', name: 'Front Tier Desk — West B', type: 'chair', x: 20.0, y: 83.5, size: 'md', scale: 1.0, description: 'Prime front row lecture hall seat.' },
+      { id: 'lhc-crc-01', name: 'Front Tier Desk — East A', type: 'chair', x: 80.0, y: 83.5, size: 'md', scale: 1.0, description: 'Front row tiered desk with clear board view.' },
+      { id: 'lhc-crc-02', name: 'Front Tier Desk — East B', type: 'chair', x: 93.5, y: 83.5, size: 'md', scale: 1.0, description: 'Front row tiered desk with clear board view.' },
+      { id: 'lhc-hall1-01', name: 'Tier 2 Desk — West Wing', type: 'chair', x: 13.5, y: 73.5, size: 'md', scale: 0.9, description: 'Second tier wooden desk with upholstered chair.' },
+      { id: 'lhc-hall1-02', name: 'Tier 2 Desk — West Center', type: 'chair', x: 26.5, y: 73.5, size: 'md', scale: 0.9, description: 'Second tier wooden desk with upholstered chair.' },
+      { id: 'lhc-hall1-03', name: 'Tier 2 Desk — East Center', type: 'chair', x: 73.5, y: 73.5, size: 'md', scale: 0.9, description: 'Second tier wooden desk with upholstered chair.' },
+      { id: 'lhc-hall1-04', name: 'Tier 2 Desk — East Wing', type: 'chair', x: 86.5, y: 73.5, size: 'md', scale: 0.9, description: 'Second tier wooden desk with upholstered chair.' },
+      { id: 'lhc-balcony', name: 'Tier 3 Desk — West Overlook', type: 'chair', x: 18.5, y: 63.5, size: 'sm', scale: 0.78, description: 'Upper tier study desk with expansive theatre perspective.' },
+      { id: 'lhc-podium', name: 'Tier 3 Desk — East Overlook', type: 'chair', x: 81.5, y: 63.5, size: 'sm', scale: 0.78, description: 'Upper tier study desk with expansive theatre perspective.' },
     ],
   },
 
@@ -75,20 +69,16 @@ export const LOCATIONS: Record<string, LocationDefinition> = {
     ambientTrack: 'banyan',
     musicNotes: ['Rustling banyan leaves', 'Sweet cuckoo calls', 'Gentle campus breeze'],
     seats: [
-      { id: 'banyan-stone-01', name: 'Sacred Root Circular Bench (East)', type: 'bench', x: 30, y: 52, sharedGroupId: 'banyan-plinth', description: 'Curved stone bench built around the ancient central trunk.' },
-      { id: 'banyan-stone-02', name: 'Sacred Root Circular Bench (West)', type: 'bench', x: 68, y: 52, sharedGroupId: 'banyan-plinth', description: 'Curved stone bench sheltered beneath thick leafy boughs.' },
-
-      { id: 'banyan-picnic-01', name: 'Garden Timber Table — Seat A', type: 'table', x: 18, y: 76, sharedGroupId: 'banyan-timber', description: 'Rustic wooden outdoor table under deep shade.' },
-      { id: 'banyan-picnic-02', name: 'Garden Timber Table — Seat B', type: 'table', x: 34, y: 76, sharedGroupId: 'banyan-timber', description: 'Rustic wooden outdoor table under deep shade.' },
-
-      { id: 'banyan-lawn-01', name: 'Shady Lawn Bench 01', type: 'bench', x: 74, y: 74, description: 'Cast-iron garden bench surrounded by fallen leaves and ferns.' },
-      { id: 'banyan-lawn-02', name: 'Shady Lawn Bench 02', type: 'bench', x: 88, y: 74, description: 'Quiet bench on the edge of the grassy glade.' },
-
-      { id: 'banyan-canopy-01', name: 'Aerial Root Reading Spot', type: 'chair', x: 50, y: 78, description: 'Wooden Adirondack chair nestled between natural root curtains.' },
-      { id: 'banyan-quiet', name: 'Quiet Pathway Bench', type: 'bench', x: 14, y: 38, description: 'Bench beside the gravel path where spotted deer often stroll.' },
-
-      { id: 'banyan-sunbeam', name: 'Dappled Sunlight Bench', type: 'bench', x: 82, y: 34, description: 'Bench catching warm gentle golden hour sunbeams through leaves.' },
-      { id: 'banyan-hammock', name: 'Canopy Rocking Seat', type: 'chair', x: 50, y: 24, description: 'Suspended wooden swing bench swaying softly in the breeze.' },
+      { id: 'banyan-lawn-01', name: 'Front Pergola Table — West Blue Chair', type: 'chair', x: 6.5, y: 83.5, size: 'md', scale: 1.0, description: 'Comfortable blue chair under the wooden pergola roof.' },
+      { id: 'banyan-lawn-02', name: 'Front Pergola Table — West Stool', type: 'chair', x: 29.5, y: 81.0, size: 'md', scale: 0.95, description: 'Round timber stool at the front study table.' },
+      { id: 'banyan-picnic-01', name: 'Front Pergola Table — East Stool', type: 'chair', x: 70.0, y: 81.0, size: 'md', scale: 0.95, description: 'Round timber stool at the front study table.' },
+      { id: 'banyan-picnic-02', name: 'Front Pergola Table — East Blue Chair', type: 'chair', x: 92.5, y: 83.5, size: 'md', scale: 1.0, description: 'Comfortable blue chair under the wooden pergola roof.' },
+      { id: 'banyan-stone-01', name: 'Mid Pergola Table — West Stool A', type: 'chair', x: 21.5, y: 69.5, size: 'md', scale: 0.88, description: 'Mid-patio timber stool nestled in cool canopy shade.' },
+      { id: 'banyan-stone-02', name: 'Mid Pergola Table — West Stool B', type: 'chair', x: 40.5, y: 69.5, size: 'md', scale: 0.88, description: 'Mid-patio timber stool nestled in cool canopy shade.' },
+      { id: 'banyan-quiet', name: 'Mid Pergola Table — East Stool A', type: 'chair', x: 59.5, y: 69.5, size: 'md', scale: 0.88, description: 'Shaded timber stool overlooking the banyan roots.' },
+      { id: 'banyan-sunbeam', name: 'Mid Pergola Table — East Stool B', type: 'chair', x: 78.5, y: 69.5, size: 'md', scale: 0.88, description: 'Shaded timber stool overlooking the banyan roots.' },
+      { id: 'banyan-canopy-01', name: 'Ancient Banyan Trunk Plinth — Left', type: 'bench', x: 45.0, y: 59.5, size: 'sm', scale: 0.8, description: 'Wooden park bench nestled directly in front of the ancient banyan tree.' },
+      { id: 'banyan-hammock', name: 'Ancient Banyan Trunk Plinth — Right', type: 'bench', x: 55.0, y: 59.5, size: 'sm', scale: 0.8, description: 'Wooden park bench nestled directly in front of the ancient banyan tree.' },
     ],
   },
 
@@ -106,19 +96,16 @@ export const LOCATIONS: Record<string, LocationDefinition> = {
     ambientTrack: 'oat',
     musicNotes: ['Open-air acoustics', 'Distant tree whispers', 'Evening breeze'],
     seats: [
-      { id: 'oat-tier-lower-01', name: 'Amphitheatre Lower Tier — A', type: 'tier', x: 32, y: 64, sharedGroupId: 'oat-low', description: 'Smooth granite terrace step close to the green apron.' },
-      { id: 'oat-tier-lower-02', name: 'Amphitheatre Lower Tier — B', type: 'tier', x: 50, y: 68, sharedGroupId: 'oat-low', description: 'Center stage terrace step with open panoramic sky.' },
-      { id: 'oat-tier-lower-03', name: 'Amphitheatre Lower Tier — C', type: 'tier', x: 68, y: 64, sharedGroupId: 'oat-low', description: 'Smooth granite terrace step close to the east trees.' },
-
-      { id: 'oat-tier-mid-01', name: 'Amphitheatre Mid Tier — Seat 1', type: 'tier', x: 22, y: 46, description: 'Wide stone tier halfway up the bowl under tree branches.' },
-      { id: 'oat-tier-mid-02', name: 'Amphitheatre Mid Tier — Center', type: 'tier', x: 50, y: 48, description: 'Center terrace with great sightlines and natural airflow.' },
-      { id: 'oat-tier-mid-03', name: 'Amphitheatre Mid Tier — Seat 3', type: 'tier', x: 78, y: 46, description: 'Wide stone tier on the gentle hillside.' },
-
-      { id: 'oat-tier-top-01', name: 'Upper Crest Terrace — West', type: 'tier', x: 18, y: 26, description: 'Top row bench with sweeping views over the whole arena.' },
-      { id: 'oat-tier-top-02', name: 'Upper Crest Terrace — East', type: 'tier', x: 82, y: 26, description: 'Top row bench surrounded by fragrant flowering bushes.' },
-
-      { id: 'oat-stage-01', name: 'Stage Edge Wooden Bench 01', type: 'bench', x: 36, y: 84, description: 'Timber bench on the wooden apron platform.' },
-      { id: 'oat-stage-02', name: 'Stage Edge Wooden Bench 02', type: 'bench', x: 64, y: 84, description: 'Timber bench on the wooden apron platform.' },
+      { id: 'oat-tier-lower-01', name: 'Stone Terrace Tier 1 — West Wing', type: 'tier', x: 23.0, y: 65.0, size: 'md', scale: 0.95, description: 'Curved granite terrace step in the lower amphitheatre arc.' },
+      { id: 'oat-tier-lower-02', name: 'Stone Terrace Tier 1 — Center-West', type: 'tier', x: 37.0, y: 61.5, size: 'md', scale: 0.92, description: 'Smooth granite seating terrace step.' },
+      { id: 'oat-tier-lower-03', name: 'Stone Terrace Tier 1 — Center', type: 'tier', x: 50.0, y: 60.5, size: 'md', scale: 0.92, description: 'Center terrace step with panoramic amphitheatre view.' },
+      { id: 'oat-stage-01', name: 'Stone Terrace Tier 1 — Center-East', type: 'tier', x: 63.0, y: 61.5, size: 'md', scale: 0.92, description: 'Smooth granite seating terrace step.' },
+      { id: 'oat-stage-02', name: 'Stone Terrace Tier 1 — East Wing', type: 'tier', x: 77.0, y: 65.0, size: 'md', scale: 0.95, description: 'Curved granite terrace step in the lower amphitheatre arc.' },
+      { id: 'oat-tier-mid-01', name: 'Stone Terrace Tier 2 — West Arc', type: 'tier', x: 17.0, y: 60.5, size: 'md', scale: 0.88, description: 'Mid-elevation stone terrace step surrounded by gentle shade.' },
+      { id: 'oat-tier-mid-02', name: 'Stone Terrace Tier 2 — Center-West', type: 'tier', x: 33.0, y: 56.5, size: 'md', scale: 0.88, description: 'Mid-elevation stone terrace step.' },
+      { id: 'oat-tier-mid-03', name: 'Stone Terrace Tier 2 — Center-East', type: 'tier', x: 67.0, y: 56.5, size: 'md', scale: 0.88, description: 'Mid-elevation stone terrace step.' },
+      { id: 'oat-tier-top-01', name: 'Stone Terrace Tier 2 — East Arc', type: 'tier', x: 83.0, y: 60.5, size: 'md', scale: 0.88, description: 'Mid-elevation stone terrace step surrounded by gentle shade.' },
+      { id: 'oat-tier-top-02', name: 'Upper Crest Terrace — West Overlook', type: 'tier', x: 13.0, y: 53.5, size: 'sm', scale: 0.78, description: 'Top crest tier step under the tall rain trees.' },
     ],
   },
 
@@ -136,20 +123,16 @@ export const LOCATIONS: Record<string, LocationDefinition> = {
     ambientTrack: 'cafe',
     musicNotes: ['Filter coffee steam', 'Warm acoustic strums', 'Gentle collegiate murmurs'],
     seats: [
-      { id: 'cafe-patio-01', name: 'Outdoor Shaded Table 01', type: 'table', x: 16, y: 48, description: 'Outdoor round marble table beneath the striped canopy.' },
-      { id: 'cafe-patio-02', name: 'Outdoor Shaded Table 02', type: 'table', x: 30, y: 48, description: 'Patio seat next to flowering red hibiscus planters.' },
-
-      { id: 'cafe-booth-01', name: 'Cozy Terracotta Booth — A', type: 'booth', x: 16, y: 78, sharedGroupId: 'himalaya-booth', description: 'Plush corner booth with wooden table and power socket.' },
-      { id: 'cafe-booth-02', name: 'Cozy Terracotta Booth — B', type: 'booth', x: 32, y: 78, sharedGroupId: 'himalaya-booth', description: 'Plush corner booth with wooden table and power socket.' },
-
-      { id: 'cafe-bistro-01', name: 'Central Discussion Table', type: 'table', x: 52, y: 64, description: 'High-top polished timber table with fresh eucalyptus.' },
-      { id: 'cafe-counter-01', name: 'Espresso Bar High Stool', type: 'desk', x: 72, y: 46, description: 'Wooden stool overlooking the barista and daily specials board.' },
-
-      { id: 'cafe-veranda-01', name: 'Veranda Breeze Table 01', type: 'table', x: 86, y: 72, description: 'Open veranda table bathed in gentle cross breezes.' },
-      { id: 'cafe-veranda-02', name: 'Veranda Breeze Table 02', type: 'table', x: 72, y: 82, description: 'Veranda table overlooking the central campus lawn.' },
-
-      { id: 'cafe-armchair', name: 'Fireside Wicker Lounge Chair', type: 'chair', x: 50, y: 26, description: 'Plush cane wicker armchair surrounded by indoor monstera.' },
-      { id: 'cafe-nook', name: 'Corner Book Nook Table', type: 'desk', x: 86, y: 28, description: 'Quiet corner table beside the community book exchange shelf.' },
+      { id: 'cafe-patio-01', name: 'Front Table 01 — Left Blue Chair', type: 'chair', x: 9.5, y: 73.5, size: 'md', scale: 1.0, description: 'Round wooden cafe table with blue upholstered chair.' },
+      { id: 'cafe-patio-02', name: 'Front Table 01 — Right Blue Chair', type: 'chair', x: 26.5, y: 73.5, size: 'md', scale: 1.0, description: 'Round wooden cafe table with blue upholstered chair.' },
+      { id: 'cafe-booth-01', name: 'Front Table 02 — Left Blue Chair', type: 'chair', x: 68.5, y: 73.5, size: 'md', scale: 1.0, description: 'Round wooden cafe table with blue upholstered chair.' },
+      { id: 'cafe-booth-02', name: 'Front Table 02 — Right Blue Chair', type: 'chair', x: 86.5, y: 73.5, size: 'md', scale: 1.0, description: 'Round wooden cafe table with blue upholstered chair.' },
+      { id: 'cafe-bistro-01', name: 'Mid Table 01 — Left Blue Chair', type: 'chair', x: 15.5, y: 64.0, size: 'md', scale: 0.88, description: 'Sunny indoor cafe table chair with green lamp.' },
+      { id: 'cafe-counter-01', name: 'Mid Table 01 — Right Blue Chair', type: 'chair', x: 32.5, y: 64.5, size: 'md', scale: 0.88, description: 'Sunny indoor cafe table chair with green lamp.' },
+      { id: 'cafe-veranda-01', name: 'Mid Table 02 — Left Blue Chair', type: 'chair', x: 62.0, y: 64.0, size: 'md', scale: 0.88, description: 'Sunny indoor cafe table chair with green lamp.' },
+      { id: 'cafe-veranda-02', name: 'Mid Table 02 — Right Blue Chair', type: 'chair', x: 81.5, y: 64.0, size: 'md', scale: 0.88, description: 'Sunny indoor cafe table chair with green lamp.' },
+      { id: 'cafe-armchair', name: 'Sunlit Window Bench — West', type: 'bench', x: 5.5, y: 59.0, size: 'sm', scale: 0.82, description: 'Wooden bench by the large glass window overlooking the trees.' },
+      { id: 'cafe-nook', name: 'Garden Window Bench — East', type: 'bench', x: 92.5, y: 59.0, size: 'sm', scale: 0.82, description: 'Wooden bench by the large glass window overlooking the trees.' },
     ],
   },
 
@@ -167,20 +150,14 @@ export const LOCATIONS: Record<string, LocationDefinition> = {
     ambientTrack: 'park',
     musicNotes: ['Lotus pond ripples', 'Chital deer gentle steps', 'Gentle bird songs'],
     seats: [
-      { id: 'park-fountain-01', name: 'Lotus Fountain Bench (North)', type: 'bench', x: 40, y: 56, sharedGroupId: 'park-fountain', description: 'Curved stone bench within earshot of the bubbling lotus pond.' },
-      { id: 'park-fountain-02', name: 'Lotus Fountain Bench (South)', type: 'bench', x: 60, y: 56, sharedGroupId: 'park-fountain', description: 'Stone bench warmed by afternoon sunlight opposite the fountain.' },
-
-      { id: 'park-gulmohar', name: 'Gulmohar Blossom Wooden Bench', type: 'bench', x: 20, y: 42, description: 'Resting beneath a flame-of-the-forest gulmohar with scarlet petals.' },
-      { id: 'park-rain-tree', name: 'Rain Tree Lawn Bench', type: 'bench', x: 80, y: 40, description: 'Secluded shade beneath a majestic spreading rain tree.' },
-
-      { id: 'park-picnic-01', name: 'Meadow Study Table — Seat A', type: 'table', x: 26, y: 78, sharedGroupId: 'meadow-picnic', description: 'Rustic wooden picnic table surrounded by wild jasmine and ferns.' },
-      { id: 'park-picnic-02', name: 'Meadow Study Table — Seat B', type: 'table', x: 42, y: 78, sharedGroupId: 'meadow-picnic', description: 'Rustic wooden picnic table surrounded by wild jasmine and ferns.' },
-
-      { id: 'park-path-01', name: 'Deer Meadow Bench 01', type: 'bench', x: 72, y: 76, description: 'Classic iron park bench beside the spotted deer meadow.' },
-      { id: 'park-path-02', name: 'Deer Meadow Bench 02', type: 'bench', x: 86, y: 76, description: 'Quiet bench along the floral gravel promenade.' },
-
-      { id: 'park-trellis', name: 'Bougainvillea Pergola Swing', type: 'chair', x: 50, y: 24, description: 'Gently swaying wooden swing bench sheltered by vibrant magenta blooms.' },
-      { id: 'park-pondside', name: 'Lily Pond Granite Seat', type: 'bench', x: 12, y: 64, description: 'Smooth granite boulder seat overlooking floating water lilies.' },
+      { id: 'park-path-01', name: 'West Garden Bench — Lawn', type: 'bench', x: 15.0, y: 62.5, size: 'md', scale: 0.9, description: 'Garden bench shaded by ornamental rain trees.' },
+      { id: 'park-fountain-02', name: 'Gazebo Front Bench — West', type: 'bench', x: 29.0, y: 63.5, size: 'md', scale: 0.9, description: 'Blue bench facing the Sangam gazebo pavilion.' },
+      { id: 'park-trellis', name: 'Gazebo Inner Bench — West', type: 'bench', x: 32.0, y: 59.5, size: 'sm', scale: 0.82, description: 'Sheltered bench inside the octagonal gazebo.' },
+      { id: 'park-fountain-01', name: 'Gazebo Center Bench — Left', type: 'bench', x: 47.0, y: 57.5, size: 'sm', scale: 0.82, description: 'Rear wooden bench inside the Sangam gazebo.' },
+      { id: 'park-gulmohar', name: 'Gazebo Center Bench — Right', type: 'bench', x: 53.0, y: 57.5, size: 'sm', scale: 0.82, description: 'Rear wooden bench inside the Sangam gazebo.' },
+      { id: 'park-pondside', name: 'Gazebo Inner Bench — East', type: 'bench', x: 71.0, y: 59.5, size: 'sm', scale: 0.82, description: 'Sheltered bench inside the octagonal gazebo.' },
+      { id: 'park-picnic-01', name: 'Gazebo Front Bench — East', type: 'bench', x: 74.0, y: 63.5, size: 'md', scale: 0.9, description: 'Wooden bench facing the Sangam gazebo pavilion.' },
+      { id: 'park-rain-tree', name: 'East Garden Bench — Lawn', type: 'bench', x: 87.0, y: 62.5, size: 'md', scale: 0.9, description: 'Garden bench shaded by ornamental rain trees.' },
     ],
   },
 
@@ -198,17 +175,12 @@ export const LOCATIONS: Record<string, LocationDefinition> = {
     ambientTrack: 'park',
     musicNotes: ['Roundabout gentle breeze', 'Distant bicycle chimes', 'Morning bird songs'],
     seats: [
-      { id: 'gc-fountain-01', name: 'GC Ring Bench (North Gazebo)', type: 'bench', x: 32, y: 44, sharedGroupId: 'gc-circle', description: 'Classic stone bench along the green inner circle of GC.' },
-      { id: 'gc-fountain-02', name: 'GC Ring Bench (South Gazebo)', type: 'bench', x: 68, y: 44, sharedGroupId: 'gc-circle', description: 'Shaded stone bench facing the iconic roundabout garden.' },
-
-      { id: 'gc-tree-01', name: 'Heritage Neem Tree Bench', type: 'bench', x: 22, y: 72, description: 'Cool wooden bench shaded by dense fragrant neem branches.' },
-      { id: 'gc-tree-02', name: 'Avenue Rain Tree Bench', type: 'bench', x: 78, y: 72, description: 'Bench under a spreading rain tree at the head of Delhi Avenue.' },
-
-      { id: 'gc-pergola-01', name: 'Floral Gazebo Table — Seat 1', type: 'table', x: 42, y: 76, sharedGroupId: 'gc-gazebo', description: 'Stone circular table under the iron trellis.' },
-      { id: 'gc-pergola-02', name: 'Floral Gazebo Table — Seat 2', type: 'table', x: 58, y: 76, sharedGroupId: 'gc-gazebo', description: 'Stone circular table under the iron trellis.' },
-
-      { id: 'gc-alumni', name: 'Alumni Avenue Corner Seat', type: 'chair', x: 14, y: 30, description: 'Quiet garden chair by the historic campus entrance path.' },
-      { id: 'gc-bonn', name: 'Bonn Avenue Shaded Nook', type: 'chair', x: 86, y: 30, description: 'Private reading seat along the canopy-lined avenue.' },
+      { id: 'gc-fountain-01', name: 'Promenade Curved Bench — West', type: 'bench', x: 16.5, y: 73.0, size: 'md', scale: 1.0, description: 'Foreground curved wooden bench along the circular promenade.' },
+      { id: 'gc-fountain-02', name: 'Promenade Curved Bench — East', type: 'bench', x: 92.5, y: 74.0, size: 'md', scale: 1.0, description: 'Foreground curved wooden bench along the circular promenade.' },
+      { id: 'gc-pergola-01', name: 'West Lawn Bench — Outer Ring', type: 'bench', x: 9.5, y: 60.5, size: 'md', scale: 0.88, description: 'Wooden park bench on the perimeter lawn facing Gajendra Circle.' },
+      { id: 'gc-pergola-02', name: 'West Lawn Bench — Mid Ring', type: 'bench', x: 26.5, y: 57.0, size: 'sm', scale: 0.82, description: 'Wooden park bench nestled under campus shade trees.' },
+      { id: 'gc-tree-01', name: 'East Lawn Bench — Mid Ring', type: 'bench', x: 83.0, y: 57.0, size: 'sm', scale: 0.82, description: 'Wooden park bench nestled under campus shade trees.' },
+      { id: 'gc-tree-02', name: 'East Lawn Bench — Outer Ring', type: 'bench', x: 97.5, y: 60.5, size: 'md', scale: 0.88, description: 'Wooden park bench on the perimeter lawn facing Gajendra Circle.' },
     ],
   },
 };
@@ -257,4 +229,171 @@ export const VERIFIED_IITM_UPCOMING_DESTINATIONS = [
 ];
 
 export const COMING_SOON_DESTINATIONS = VERIFIED_IITM_UPCOMING_DESTINATIONS;
+
+export interface CampusNavigationItem {
+  id: string;
+  name: string;
+  shortName: string;
+  icon: string;
+  category: string;
+  themeColor: string;
+  badgeBg: string;
+  isAvailable: boolean;
+  statusBadge?: string;
+  statusDetail?: string;
+  locationId?: LocationId;
+  statKey?: 'libraryCount' | 'lhcCount' | 'banyanCount' | 'oatCount' | 'cafeCount' | 'parkCount' | 'gcCount';
+}
+
+/**
+ * All 11 Campus Locations in Navigation:
+ * - 7 Active study & gathering spaces with live occupancy
+ * - 4 Additional campus locations with real statuses
+ */
+export const ALL_CAMPUS_NAV_ITEMS: CampusNavigationItem[] = [
+  // 1. Central Library
+  {
+    id: 'library',
+    name: 'Central Library',
+    shortName: 'Library',
+    icon: '🏛️',
+    category: 'Academic',
+    themeColor: '#2d5a43',
+    badgeBg: '#e5eee8',
+    isAvailable: true,
+    locationId: 'library',
+    statKey: 'libraryCount',
+  },
+  // 2. Lecture Hall Complex (LHC)
+  {
+    id: 'lhc',
+    name: 'Lecture Hall Complex',
+    shortName: 'LHC',
+    icon: '🎓',
+    category: 'Academic',
+    themeColor: '#784824',
+    badgeBg: '#f7ede4',
+    isAvailable: true,
+    locationId: 'lhc',
+    statKey: 'lhcCount',
+  },
+  // 3. Banyan Tree
+  {
+    id: 'banyan',
+    name: 'Banyan Tree Study Grove',
+    shortName: 'Banyan',
+    icon: '🌳',
+    category: 'Outdoor',
+    themeColor: '#365338',
+    badgeBg: '#e6ede6',
+    isAvailable: true,
+    locationId: 'banyan',
+    statKey: 'banyanCount',
+  },
+  // 4. Open Air Theatre (OAT)
+  {
+    id: 'oat',
+    name: 'Open Air Theatre',
+    shortName: 'OAT',
+    icon: '🎭',
+    category: 'Iconic Landmark',
+    themeColor: '#475569',
+    badgeBg: '#f1f5f9',
+    isAvailable: true,
+    locationId: 'oat',
+    statKey: 'oatCount',
+  },
+  // 5. Campus Café
+  {
+    id: 'cafe',
+    name: 'Campus Café',
+    shortName: 'Café',
+    icon: '☕',
+    category: 'Cafeteria',
+    themeColor: '#845328',
+    badgeBg: '#faede4',
+    isAvailable: true,
+    locationId: 'cafe',
+    statKey: 'cafeCount',
+  },
+  // 6. Sangam Gardens
+  {
+    id: 'park',
+    name: 'Sangam Gardens',
+    shortName: 'Sangam',
+    icon: '🌿',
+    category: 'Outdoor',
+    themeColor: '#2f6044',
+    badgeBg: '#e7f2ec',
+    isAvailable: true,
+    locationId: 'park',
+    statKey: 'parkCount',
+  },
+  // 7. Gajendra Circle
+  {
+    id: 'gc',
+    name: 'Gajendra Circle',
+    shortName: 'GC',
+    icon: '🐘',
+    category: 'Iconic Landmark',
+    themeColor: '#1e40af',
+    badgeBg: '#eff6ff',
+    isAvailable: true,
+    locationId: 'gc',
+    statKey: 'gcCount',
+  },
+  // 8. Students' Activity Centre (SAC)
+  {
+    id: 'sac',
+    name: "Students' Activity Centre (SAC)",
+    shortName: 'SAC',
+    icon: '🎪',
+    category: 'Student Hub',
+    themeColor: '#4f46e5',
+    badgeBg: '#eef2ff',
+    isAvailable: false,
+    statusBadge: 'Coming soon',
+    statusDetail: 'Opening next semester for creative societies, project rooms, and club activities.',
+  },
+  // 9. Chemplast Cricket Ground Pavilion
+  {
+    id: 'chemplast',
+    name: 'Chemplast Cricket Pavilion',
+    shortName: 'Chemplast',
+    icon: '🏏',
+    category: 'Sports & Grounds',
+    themeColor: '#15803d',
+    badgeBg: '#f0fdf4',
+    isAvailable: false,
+    statusBadge: 'Under green care',
+    statusDetail: 'Outfield maintenance and grandstand pavilion upgrades in progress.',
+  },
+  // 10. Department of Aerospace Engineering
+  {
+    id: 'aerospace',
+    name: 'Department of Aerospace Engineering',
+    shortName: 'Aerospace',
+    icon: '✈️',
+    category: 'Academic Core',
+    themeColor: '#0284c7',
+    badgeBg: '#f0f9ff',
+    isAvailable: false,
+    statusBadge: 'Under setup',
+    statusDetail: 'Wind tunnel courtyard and propulsion laboratory workspaces preparing for term.',
+  },
+  // 11. Mandakini & Krishna Hostel Common Lounges
+  {
+    id: 'mandakini',
+    name: 'Hostel Common Lounges',
+    shortName: 'Hostels',
+    icon: '🏠',
+    category: 'Residential',
+    themeColor: '#b45309',
+    badgeBg: '#fef3c7',
+    isAvailable: false,
+    statusBadge: 'Refurbishing',
+    statusDetail: 'Mandakini & Krishna residential quad study lounges undergoing quiet refresh.',
+  },
+];
+
 

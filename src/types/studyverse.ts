@@ -52,6 +52,8 @@ export interface SeatDefinition {
   labelPosition?: 'top' | 'bottom';
   sharedGroupId?: string; // e.g. group table seat A, B, C, D
   description?: string;
+  scale?: number; // perspective scaling factor (e.g. 0.75 for background, 1.0 for foreground)
+  size?: 'xs' | 'sm' | 'md' | 'lg'; // avatar renderer size based on perspective depth
 }
 
 export interface LocationDefinition {
