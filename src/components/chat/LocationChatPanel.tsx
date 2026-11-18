@@ -8,10 +8,10 @@ import {
   UserX,
   Sparkles,
   AlertCircle,
-  Minimize2,
   Volume2,
   VolumeX,
   Music,
+  X,
 } from 'lucide-react';
 import type { LocationId, StudentPresence, ChatMessage, AvatarConfig } from '../../types/studyverse';
 import { chatService } from '../../services/chatService';
@@ -49,6 +49,7 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const locationDef = LOCATIONS[locationId] || LOCATIONS.library;
   const isDndActive = isQuiet || !!currentUser.isDnd;
@@ -115,6 +116,36 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
     }, 1000);
     return () => clearTimeout(timer);
   }, [cooldownSec]);
+
+  // Handle closing chat with Escape key and clicking outside
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        const triggerBtn = document.querySelector('[data-testid="chat-trigger-btn"]');
+        if (triggerBtn && triggerBtn.contains(e.target as Node)) return;
+        handleClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    const clickTimer = setTimeout(() => {
+      window.addEventListener('mousedown', handleClickOutside);
+    }, 120);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      clearTimeout(clickTimer);
+      window.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -261,108 +292,112 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
   };
 
   return (
-    <div
-      className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-sm h-[560px] max-h-[85vh] bg-[#fffdfa] rounded-3xl border-2 border-[#ded4c5] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-3 duration-200 text-[#302a24]"
-      role="dialog"
-      aria-label={`${locationDef.name} Chat`}
-    >
-      {/* Top Header */}
-      <div className="px-4 py-3 bg-gradient-to-r from-[#edf4ef] via-[#f7f2eb] to-[#edf3ee] border-b border-[#e2d7c8] flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{locationDef.icon}</span>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h2 className="font-serif-title font-bold text-xs sm:text-sm text-[#223d2e] truncate max-w-[170px]">
-                {locationDef.name}
-              </h2>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-[#dcebe1] text-[#244b36] font-semibold">
-                Chat
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-[#63796d]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>{occupantsCount} studying here</span>
+    <>
+      {/* Click-outside backdrop for mobile / compact screens */}
+      <div
+        className="fixed inset-0 bg-black/25 backdrop-blur-2xs z-40 sm:hidden animate-in fade-in cursor-pointer"
+        onClick={handleClose}
+        aria-hidden="true"
+      />
+
+      <div
+        ref={panelRef}
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-sm h-[560px] max-h-[85vh] bg-[#fffdfa] rounded-3xl border-2 border-[#ded4c5] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-3 duration-200 text-[#302a24]"
+        role="dialog"
+        aria-label={`${locationDef.name} Chat`}
+      >
+        {/* Top Header */}
+        <div className="px-4 py-3 bg-gradient-to-r from-[#edf4ef] via-[#f7f2eb] to-[#edf3ee] border-b border-[#e2d7c8] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-lg shrink-0">{locationDef.icon}</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h2 className="font-serif-title font-bold text-xs sm:text-sm text-[#223d2e] truncate max-w-[120px] sm:max-w-[145px]">
+                  {locationDef.name}
+                </h2>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-[#dcebe1] text-[#244b36] font-semibold shrink-0">
+                  Chat
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-[#63796d]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{occupantsCount} studying here</span>
+              </div>
             </div>
           </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Sound Notifications Toggle */}
+            <button
+              onClick={handleToggleSound}
+              data-testid="toggle-chat-sound-btn"
+              type="button"
+              className={`p-1.5 rounded-xl text-xs flex items-center gap-1 border transition-colors cursor-pointer ${
+                isSoundEnabled && !isDndActive
+                  ? 'bg-[#faf6f0] hover:bg-[#ede5d8] text-[#4d4032] border-[#e0d4c4]'
+                  : 'bg-[#fdf2f2] hover:bg-[#fbe6e6] text-[#8e4a49] border-[#edd0d0]'
+              }`}
+              title={
+                isDndActive
+                  ? 'Do Not Disturb is ON (All sound notifications silenced)'
+                  : isSoundEnabled
+                  ? 'Chat sound notifications ON. Click to mute.'
+                  : 'Chat sound notifications OFF. Click to unmute.'
+              }
+              aria-label={isSoundEnabled ? 'Mute Chat Notification Sounds' : 'Unmute Chat Notification Sounds'}
+            >
+              {isSoundEnabled && !isDndActive ? (
+                <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
+              ) : (
+                <VolumeX className="w-3.5 h-3.5 text-rose-600" />
+              )}
+            </button>
+
+            {/* Test Sound Button */}
+            <button
+              onClick={handleTestSound}
+              data-testid="test-chat-sound-btn"
+              type="button"
+              className="p-1.5 rounded-xl hover:bg-[#ede5d8] text-[#6d5f50] border border-[#e0d4c4] bg-[#faf6f0] transition-colors cursor-pointer flex items-center gap-1"
+              title="Test notification sound"
+              aria-label="Test notification sound"
+            >
+              <Music className="w-3.5 h-3.5 text-[#446d5c]" />
+            </button>
+
+            {/* Do Not Disturb / Quiet Toggle */}
+            <button
+              onClick={handleToggleQuietStudy}
+              data-testid="toggle-chat-dnd-btn"
+              type="button"
+              className={`p-1.5 rounded-xl text-xs flex items-center gap-1 border transition-colors cursor-pointer ${
+                isDndActive
+                  ? 'bg-[#253f31] text-amber-200 border-[#1a2d23] shadow-2xs ring-1 ring-amber-300/40'
+                  : 'bg-[#faf6f0] hover:bg-[#ede5d8] text-[#55483a] border-[#e0d4c4]'
+              }`}
+              title={
+                isDndActive
+                  ? 'Do Not Disturb is ON (Notifications silenced). Click to turn OFF.'
+                  : 'Enable Do Not Disturb (Silence notifications).'
+              }
+            >
+              {isDndActive ? <Moon className="w-3.5 h-3.5 fill-amber-300 text-amber-300" /> : <Bell className="w-3.5 h-3.5" />}
+            </button>
+
+            {/* Clear, Prominent Close Button */}
+            <button
+              onClick={handleClose}
+              data-testid="close-chat-btn"
+              type="button"
+              className="px-2 py-1.5 rounded-xl bg-[#faeae7] hover:bg-[#f6d2cc] text-[#8b4343] hover:text-[#702929] border border-[#f0c5be] transition-all cursor-pointer flex items-center gap-1 shadow-2xs active:scale-95 ml-0.5"
+              title="Close Chat (Esc)"
+              aria-label="Close Chat"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-bold">Close</span>
+            </button>
+          </div>
         </div>
-
-        <div className="flex items-center gap-1">
-          {/* Sound Notifications Toggle */}
-          <button
-            onClick={handleToggleSound}
-            data-testid="toggle-chat-sound-btn"
-            type="button"
-            className={`p-1.5 rounded-xl text-xs flex items-center gap-1 border transition-colors cursor-pointer ${
-              isSoundEnabled && !isDndActive
-                ? 'bg-[#faf6f0] hover:bg-[#ede5d8] text-[#4d4032] border-[#e0d4c4]'
-                : 'bg-[#fdf2f2] hover:bg-[#fbe6e6] text-[#8e4a49] border-[#edd0d0]'
-            }`}
-            title={
-              isDndActive
-                ? 'Do Not Disturb is ON (All sound notifications silenced)'
-                : isSoundEnabled
-                ? 'Chat sound notifications ON. Click to mute.'
-                : 'Chat sound notifications OFF. Click to unmute.'
-            }
-            aria-label={isSoundEnabled ? 'Mute Chat Notification Sounds' : 'Unmute Chat Notification Sounds'}
-          >
-            {isSoundEnabled && !isDndActive ? (
-              <Volume2 className="w-3.5 h-3.5 text-emerald-700" />
-            ) : (
-              <VolumeX className="w-3.5 h-3.5 text-rose-600" />
-            )}
-            <span className="text-[10px] font-semibold hidden md:inline">
-              {isDndActive ? 'Muted' : isSoundEnabled ? 'Sound' : 'Muted'}
-            </span>
-          </button>
-
-          {/* Test Sound Button */}
-          <button
-            onClick={handleTestSound}
-            data-testid="test-chat-sound-btn"
-            type="button"
-            className="p-1.5 rounded-xl hover:bg-[#ede5d8] text-[#6d5f50] border border-[#e0d4c4] bg-[#faf6f0] transition-colors cursor-pointer flex items-center gap-1"
-            title="Test notification sound"
-            aria-label="Test notification sound"
-          >
-            <Music className="w-3.5 h-3.5 text-[#446d5c]" />
-            <span className="text-[10px] font-semibold hidden sm:inline">Test</span>
-          </button>
-
-          {/* Do Not Disturb / Quiet Toggle */}
-          <button
-            onClick={handleToggleQuietStudy}
-            data-testid="toggle-chat-dnd-btn"
-            type="button"
-            className={`p-1.5 rounded-xl text-xs flex items-center gap-1 border transition-colors cursor-pointer ${
-              isDndActive
-                ? 'bg-[#253f31] text-amber-200 border-[#1a2d23] shadow-2xs ring-1 ring-amber-300/40'
-                : 'bg-[#faf6f0] hover:bg-[#ede5d8] text-[#55483a] border-[#e0d4c4]'
-            }`}
-            title={
-              isDndActive
-                ? 'Do Not Disturb is ON (Notifications silenced). Click to turn OFF.'
-                : 'Enable Do Not Disturb (Silence notifications).'
-            }
-          >
-            {isDndActive ? <Moon className="w-3.5 h-3.5 fill-amber-300 text-amber-300" /> : <Bell className="w-3.5 h-3.5" />}
-            <span className="text-[10px] font-semibold hidden sm:inline">
-              {isDndActive ? 'DND On' : 'Alerts'}
-            </span>
-          </button>
-
-          {/* Minimise / Close Button */}
-          <button
-            onClick={handleClose}
-            type="button"
-            className="p-1.5 rounded-xl hover:bg-[#ebdcd0] text-[#6f6153] transition-colors cursor-pointer"
-            title="Minimise Chat"
-            aria-label="Minimise Chat"
-          >
-            <Minimize2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
 
       {/* Browser Audio Autoplay Activation Notice */}
       {!isAudioActive && isSoundEnabled && !isDndActive && (
@@ -595,5 +630,6 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
         </button>
       </form>
     </div>
+    </>
   );
 };

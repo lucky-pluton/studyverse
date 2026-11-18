@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { LocationDefinition, StudentPresence, TimeOfDay } from '../../types/studyverse';
 import { SeatSpot } from './SeatSpot';
-import { ZoomIn, ZoomOut, RotateCcw, Maximize, Minimize } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Maximize, Minimize, MessageSquare, X } from 'lucide-react';
 
 import envLibrary from '../../assets/environments/env_library.jpg';
 import envLhc from '../../assets/environments/env_lhc.jpg';
@@ -50,6 +50,8 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
   currentUser,
   onSelectSeat,
   timeOfDay,
+  onToggleChat,
+  isChatOpen,
 }) => {
   const [roomZoom, setRoomZoom] = useState<number>(1);
   const [roomPan, setRoomPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -286,6 +288,29 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
             <Maximize className="w-3.5 h-3.5" />
           )}
         </button>
+
+        {/* Room Chat Toggle Button */}
+        {onToggleChat && (
+          <>
+            <div className="h-3.5 w-[1px] bg-slate-200 mx-0.5" />
+            <button
+              onClick={onToggleChat}
+              className={`p-1 rounded-full transition-colors cursor-pointer flex items-center justify-center ${
+                isChatOpen
+                  ? 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                  : 'text-slate-600 hover:text-emerald-800 hover:bg-emerald-50'
+              }`}
+              title={isChatOpen ? 'Close Room Chat' : 'Open Room Chat'}
+              aria-label={isChatOpen ? 'Close Room Chat' : 'Open Room Chat'}
+            >
+              {isChatOpen ? (
+                <X className="w-3.5 h-3.5 text-rose-700" />
+              ) : (
+                <MessageSquare className="w-3.5 h-3.5 text-[#2d5a43]" />
+              )}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
