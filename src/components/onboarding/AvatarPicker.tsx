@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { AvatarConfig, GenderOption } from '../../types/studyverse';
 import { AVATAR_CATALOG } from '../../constants/avatars';
 import { AvatarRenderer } from '../common/AvatarRenderer';
-import { Check, BookOpen, PenTool, Laptop, Coffee } from 'lucide-react';
+import { AvatarCustomizerModal } from './AvatarCustomizerModal';
+import { Check, BookOpen, PenTool, Laptop, Coffee, Sparkles } from 'lucide-react';
 
 interface AvatarPickerProps {
   selectedAvatar: AvatarConfig;
@@ -17,6 +18,7 @@ export const AvatarPicker: React.FC<AvatarPickerProps> = ({
   userGenderPreference,
   userName,
 }) => {
+  const [isCustomizerOpen, setIsCustomizerOpen] = useState(false);
   // Initial filter category based on user preference, with 'all' available
   const [filter, setFilter] = useState<'all' | 'female' | 'male' | 'neutral'>(
     userGenderPreference === 'female'
@@ -58,8 +60,18 @@ export const AvatarPicker: React.FC<AvatarPickerProps> = ({
         </div>
 
         <div className="text-center sm:text-left space-y-2 flex-1">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-[#e8ded2] text-xs font-semibold text-[#54483c]">
-            <span>Selected Companion: {selectedAvatar.name}</span>
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-[#e8ded2] text-xs font-semibold text-[#54483c]">
+              <span>Selected Character: {selectedAvatar.name}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsCustomizerOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2d5a43] hover:bg-[#224433] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>Customize Character</span>
+            </button>
           </div>
           <h4 className="font-serif-title text-xl font-bold text-[#2e2a25]">
             {userName || 'Quiet Learner'}
@@ -216,6 +228,17 @@ export const AvatarPicker: React.FC<AvatarPickerProps> = ({
           );
         })}
       </div>
+      {/* Interactive Avatar Customizer Modal */}
+      <AvatarCustomizerModal
+        isOpen={isCustomizerOpen}
+        initialAvatar={selectedAvatar}
+        userName={userName}
+        onSave={(customized) => {
+          onSelectAvatar(customized);
+          setActiveActivity(customized.activity);
+        }}
+        onClose={() => setIsCustomizerOpen(false)}
+      />
     </div>
   );
 };

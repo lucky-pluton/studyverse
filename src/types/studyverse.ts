@@ -13,18 +13,39 @@ export type LocationId =
 
 export type TimeOfDay = 'day' | 'sunset' | 'night';
 
+export type StudyStatus = 'deep-focus' | 'studying' | 'break' | 'away';
+
 export interface AvatarConfig {
   id: string;
   name: string;
   gender: GenderOption;
-  hairStyle: 'messy-bun' | 'short-fade' | 'wavy-curls' | 'straight-bob' | 'textured-afro' | 'ponytail' | 'side-part' | 'beanie-hair';
+  hairStyle:
+    | 'messy-bun'
+    | 'short-fade'
+    | 'wavy-curls'
+    | 'straight-bob'
+    | 'textured-afro'
+    | 'ponytail'
+    | 'side-part'
+    | 'beanie-hair'
+    | 'locs-braids'
+    | 'curly-shag';
   hairColor: string;
   skinTone: string;
-  clothingStyle: 'sweater' | 'hoodie-denim' | 'cardigan' | 'varsity' | 'flannel' | 'turtleneck';
+  clothingStyle:
+    | 'sweater'
+    | 'hoodie-denim'
+    | 'cardigan'
+    | 'varsity'
+    | 'flannel'
+    | 'turtleneck'
+    | 'casual-tee';
   clothingColor: string;
   accentColor: string;
-  accessory?: 'glasses' | 'headphones' | 'earbuds' | 'scarf' | 'none';
-  activity: 'reading' | 'writing' | 'typing' | 'coffee';
+  accessory?: 'glasses' | 'headphones' | 'earbuds' | 'backpack' | 'scarf' | 'none';
+  hasBackpack?: boolean;
+  activity: 'reading' | 'writing' | 'typing' | 'coffee' | 'thinking';
+  status?: StudyStatus;
   summary: string;
 }
 
@@ -39,6 +60,7 @@ export interface StudentPresence {
   seatEnteredAt: number | null; // UTC timestamp ms
   sessionEnteredAt: number;     // UTC timestamp ms
   studyTopic?: string;
+  status?: StudyStatus;
   isDnd?: boolean;              // Do Not Disturb (Quiet Study) mode
   lastHeartbeat: number;
 }

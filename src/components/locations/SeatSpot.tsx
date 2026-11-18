@@ -1,6 +1,6 @@
 import React from 'react';
-import type { SeatDefinition, StudentPresence } from '../../types/studyverse';
-import { AvatarRenderer } from '../common/AvatarRenderer';
+import type { LocationId, SeatDefinition, StudentPresence } from '../../types/studyverse';
+import { AvatarRenderer, type ChibiPose } from '../common/AvatarRenderer';
 import { FloatingSeatTimer } from '../common/TimerBadge';
 
 interface SeatSpotProps {
@@ -8,6 +8,7 @@ interface SeatSpotProps {
   occupant?: StudentPresence;
   isSelf: boolean;
   onSelectSeat: (seatId: string) => void;
+  locationId?: LocationId;
 }
 
 export const SeatSpot: React.FC<SeatSpotProps> = ({
@@ -15,10 +16,19 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
   occupant,
   isSelf,
   onSelectSeat,
+  locationId,
 }) => {
   const isOccupied = !!occupant;
 
-  const getPoseForSeat = (seatType: string): 'desk' | 'bench' | 'cafe' | 'tree' => {
+  const getPoseForSeat = (seatType: string, locId?: LocationId): ChibiPose => {
+    if (locId === 'library') return 'library';
+    if (locId === 'lhc') return 'lhc';
+    if (locId === 'banyan') return 'banyan';
+    if (locId === 'oat') return 'oat';
+    if (locId === 'cafe') return 'cafe';
+    if (locId === 'park') return 'park';
+    if (locId === 'gc') return 'gc';
+
     switch (seatType) {
       case 'desk':
       case 'window':
@@ -60,6 +70,7 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
             studentName={occupant.name}
             isSelf={isSelf}
             studyTopic={occupant.studyTopic}
+            status={occupant.status || occupant.avatarConfig?.status}
             isDnd={occupant.isDnd}
           />
 
@@ -72,7 +83,8 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
               config={occupant.avatarConfig}
               size={avatarSize}
               isSeated={true}
-              pose={getPoseForSeat(seat.type)}
+              pose={getPoseForSeat(seat.type, locationId)}
+              locationId={locationId}
               showProp={true}
               animate={true}
             />

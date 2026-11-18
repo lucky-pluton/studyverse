@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { LocationId, StudentPresence, TimeOfDay } from './types/studyverse';
+import type { AvatarConfig, LocationId, StudentPresence, TimeOfDay } from './types/studyverse';
 import { presenceService } from './services/presenceService';
 import { soundService } from './services/soundService';
 import { chatService } from './services/chatService';
@@ -8,6 +8,7 @@ import { Navbar } from './components/common/Navbar';
 import { CampusMap } from './components/campus/CampusMap';
 import { LocationView } from './components/locations/LocationView';
 import { FocusTimer } from './components/study/FocusTimer';
+import { AvatarCustomizerModal } from './components/onboarding/AvatarCustomizerModal';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<StudentPresence | null>(null);
@@ -15,6 +16,7 @@ export function App() {
   const [currentLocation, setCurrentLocation] = useState<LocationId>('campus');
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('day');
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
+  const [isAvatarCustomizerOpen, setIsAvatarCustomizerOpen] = useState(false);
 
   // Restore session from sessionStorage or demo param
   useEffect(() => {
@@ -144,6 +146,37 @@ export function App() {
       soundService.startAmbience('campus');
     }
   }, [currentUser, currentLocation]);
+
+  // Global event listener to open avatar customizer
+  useEffect(() => {
+    const handleOpenCustomizer = () => {
+      setIsAvatarCustomizerOpen(true);
+    };
+    window.addEventListener('studyverse:open-avatar-customizer', handleOpenCustomizer);
+    return () => {
+      window.removeEventListener('studyverse:open-avatar-customizer', handleOpenCustomizer);
+    };
+  }, []);
+
+  const handleSaveCustomizedAvatar = (customizedAvatar: AvatarConfig) => {
+    if (!currentUser) return;
+    const updated: StudentPresence = {
+      ...currentUser,
+      avatarId: customizedAvatar.id,
+      avatarConfig: customizedAvatar,
+      status: customizedAvatar.status,
+    };
+    setCurrentUser(updated);
+    try {
+      sessionStorage.setItem('studyverse_session', JSON.stringify(updated));
+    } catch {}
+    presenceService.updatePresence({
+      avatarId: customizedAvatar.id,
+      avatarConfig: customizedAvatar,
+      status: customizedAvatar.status,
+    });
+    chatService.setCurrentUser(updated);
+  };
 
   const handleOnboardingComplete = (presence: StudentPresence) => {
     const isDndStored = localStorage.getItem('studyverse_dnd_enabled') === 'true';
@@ -281,6 +314,7 @@ export function App() {
         stats={stats}
         isDnd={currentUser.isDnd}
         onToggleDnd={handleToggleDnd}
+        onEditAvatar={() => setIsAvatarCustomizerOpen(true)}
       />
 
       {/* Global Toast for seat conflict or alerts */}
@@ -323,6 +357,17 @@ export function App() {
 
       {/* Global Unified Study Timer Utility (Pomodoro, Stopwatch, Study Duration) */}
       <FocusTimer currentUser={currentUser} />
+
+      {/* Global Interactive 2.5D Student Avatar Customizer Modal */}
+      {currentUser && (
+        <AvatarCustomizerModal
+          isOpen={isAvatarCustomizerOpen}
+          initialAvatar={currentUser.avatarConfig}
+          userName={currentUser.name}
+          onSave={handleSaveCustomizedAvatar}
+          onClose={() => setIsAvatarCustomizerOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
+import type { StudyStatus } from '../../types/studyverse';
 
 interface FloatingSeatTimerProps {
   seatEnteredAt: number | null;
   studentName: string;
   isSelf?: boolean;
   studyTopic?: string;
+  status?: StudyStatus;
   isDnd?: boolean;
   className?: string;
 }
@@ -114,6 +116,7 @@ export const FloatingSeatTimer: React.FC<FloatingSeatTimerProps> = ({
   studentName,
   isSelf = false,
   studyTopic,
+  status,
   isDnd = false,
   className = '',
 }) => {
@@ -128,6 +131,16 @@ export const FloatingSeatTimer: React.FC<FloatingSeatTimerProps> = ({
   }, []);
 
   const timeString = formatDuration(seatEnteredAt);
+  const statusEmoji =
+    status === 'deep-focus'
+      ? '🎯'
+      : status === 'break'
+      ? '☕'
+      : status === 'away'
+      ? '🌙'
+      : status === 'studying'
+      ? '📖'
+      : null;
 
   return (
     <div
@@ -142,6 +155,7 @@ export const FloatingSeatTimer: React.FC<FloatingSeatTimerProps> = ({
         }`}
       >
         <span className="font-semibold tracking-tight text-[11px] flex items-center gap-1">
+          {statusEmoji && <span className="text-[10px]">{statusEmoji}</span>}
           <span>{studentName}</span>
           {isDnd && <span title="Do Not Disturb (Quiet Study)" className="text-[10px]">🌙</span>}
         </span>

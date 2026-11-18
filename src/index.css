@@ -103,6 +103,81 @@
   animation: steam 2.4s ease-out infinite;
 }
 
+/* Soft 2.5D Avatar Expressive Keyframes */
+@keyframes avatar-blink {
+  0%, 93%, 97%, 100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.08);
+  }
+}
+
+@keyframes avatar-typing-hands {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-1.2px);
+  }
+}
+
+@keyframes avatar-pen-write {
+  0%, 100% {
+    transform: rotate(0deg) translate(0px, 0px);
+  }
+  30% {
+    transform: rotate(-3deg) translate(-0.8px, 0.4px);
+  }
+  70% {
+    transform: rotate(2deg) translate(0.6px, -0.2px);
+  }
+}
+
+@keyframes avatar-think-sparkle {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(10deg);
+  }
+}
+
+@keyframes avatar-gentle-breathe {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-1.2px) scale(1.006);
+  }
+}
+
+.animate-avatar-blink {
+  animation: avatar-blink 3.8s ease-in-out infinite;
+  transform-origin: center 37px;
+}
+
+.animate-avatar-type {
+  animation: avatar-typing-hands 0.55s ease-in-out infinite;
+}
+
+.animate-avatar-write {
+  animation: avatar-pen-write 1.4s ease-in-out infinite;
+  transform-origin: 55px 74px;
+}
+
+.animate-avatar-sparkle {
+  animation: avatar-think-sparkle 2s ease-in-out infinite;
+  transform-origin: 66px 20px;
+}
+
+.animate-avatar-breathe {
+  animation: avatar-gentle-breathe 3.5s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
 .font-serif-title {
   font-family: 'Cinzel', Georgia, serif;
 }

@@ -20,7 +20,6 @@ import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyve
 import { ALL_CAMPUS_NAV_ITEMS, type CampusNavigationItem } from '../../constants/locations';
 import { soundService } from '../../services/soundService';
 import { AvatarRenderer } from './AvatarRenderer';
-import { SessionTimeDisplay } from './TimerBadge';
 import { ConnectionModal } from './ConnectionModal';
 
 interface NavbarProps {
@@ -42,6 +41,7 @@ interface NavbarProps {
   };
   isDnd?: boolean;
   onToggleDnd?: () => void;
+  onEditAvatar?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -54,6 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   stats,
   isDnd = false,
   onToggleDnd,
+  onEditAvatar,
 }) => {
   const [isMuted, setIsMuted] = useState(soundService.getIsMuted());
   const [volume, setVolume] = useState(soundService.getVolume());
@@ -247,22 +248,32 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </button>
 
-            {/* Current Student Profile Pill */}
-            <div className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-3 border-l border-[#dbe7e0]">
+            {/* Current Student Profile Pill (Click to Customize Avatar) */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onEditAvatar) onEditAvatar();
+                else window.dispatchEvent(new CustomEvent('studyverse:open-avatar-customizer'));
+              }}
+              className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-3 border-l border-[#dbe7e0] hover:bg-[#eaf3ee] py-1 px-1.5 rounded-xl transition-all cursor-pointer group text-left"
+              title="Click to customize your student avatar & status"
+            >
               <div
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-[#e0eee6] border border-[#bcd2c6] flex items-center justify-center shrink-0 shadow-2xs"
-                title={`${currentUser.name} (${currentUser.avatarConfig?.summary || currentUser.avatarConfig?.name || 'Student'})`}
+                className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-[#e0eee6] border border-[#bcd2c6] group-hover:border-[#2d5a43] flex items-center justify-center shrink-0 shadow-2xs transition-all"
               >
                 <AvatarRenderer config={currentUser.avatarConfig} size="xs" showProp={false} />
               </div>
               <div className="hidden sm:flex flex-col text-left">
-                <span className="text-xs font-semibold text-[#1f3529] leading-tight truncate max-w-[110px] flex items-center gap-1">
+                <span className="text-xs font-semibold text-[#1f3529] group-hover:text-[#2d5a43] leading-tight truncate max-w-[110px] flex items-center gap-1">
                   <span>{currentUser.name}</span>
                   {isDnd && <span title="Do Not Disturb Active" className="text-[11px]">🌙</span>}
                 </span>
-                <SessionTimeDisplay sessionEnteredAt={currentUser.sessionEnteredAt} className="text-[10px] px-1.5 py-0 border-none bg-transparent shadow-none" />
+                <span className="text-[9.5px] text-[#55695d] flex items-center gap-1">
+                  <span>Edit Avatar</span>
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">✏️</span>
+                </span>
               </div>
-            </div>
+            </button>
 
             {/* Exit Campus button */}
             <button

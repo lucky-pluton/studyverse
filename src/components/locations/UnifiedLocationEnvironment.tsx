@@ -225,6 +225,7 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
               occupant={occupant}
               isSelf={isSelf}
               onSelectSeat={onSelectSeat}
+              locationId={location.id}
             />
           );
         })}
