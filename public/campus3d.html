@@ -1,0 +1,1377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IIT Madras Campus 3D Model — Sahej-Shala</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: full-bleed 3D canvas; title and tools top, info card and category chips docked at the bottom. */
+:root {
+  --bg: #e9ece3;
+  --sky: #cfe0e6;
+  --ground: #6f8c5a;
+  --lawn: #9bb67f;
+  --fg: #1f2a24;
+  --muted: #55645a;
+  --panel: rgba(250, 251, 247, 0.93);
+  --line: rgba(31, 42, 36, 0.16);
+  --accent: #0f6b64;
+  --accent-fg: #ffffff;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141a17; --sky: #1d2a2a; --ground: #2f4430; --lawn: #44603c; --fg: #e8ece4; --muted: #a2b0a5;
+    --panel: rgba(24, 32, 28, 0.93); --line: rgba(232, 236, 228, 0.18); --accent: #3fc4b5; --accent-fg: #1a1210;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141a17; --sky: #1d2a2a; --ground: #2f4430; --lawn: #44603c; --fg: #e8ece4; --muted: #a2b0a5;
+  --panel: rgba(24, 32, 28, 0.93); --line: rgba(232, 236, 228, 0.18); --accent: #3fc4b5; --accent-fg: #1a1210;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); overflow: hidden; }
+#stage { position: relative; height: 100%; width: 100%; overflow: hidden; touch-action: none; cursor: grab; }
+#stage.drag { cursor: grabbing; }
+canvas { display: block; width: 100%; height: 100%; }
+.pad { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { position: absolute; top: 0; left: 0; right: 0; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; padding-block: 14px; pointer-events: none; z-index: 10; }
+header > * { pointer-events: auto; }
+h1 { margin: 0; font: 700 1.25rem/1.15 var(--font-display); letter-spacing: -0.01em; text-wrap: balance; }
+.sub { margin: 4px 0 0; font-size: 0.76rem; color: var(--muted); max-width: 42ch; line-height: 1.4; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+button { font: 500 0.8rem var(--font-body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+button:hover { border-color: var(--accent); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+#pins { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+.pin { position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 0.7rem; padding: 3px 7px; will-change: transform; pointer-events: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+.pin.on { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.dock { position: absolute; left: 0; right: 0; bottom: 0; padding-block: 12px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; z-index: 10; }
+.dock > * { pointer-events: auto; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; max-width: 440px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+.card h2 { margin: 0 0 4px; font: 700 1rem var(--font-display); }
+.card p { margin: 0; font-size: 0.84rem; line-height: 1.5; color: var(--muted); }
+.card .tag { display: inline-block; margin-bottom: 6px; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.row button { flex: none; }
+.cats button { font-weight: 500; background: transparent; backdrop-filter: blur(4px); }
+.cats button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.hint { font-size: 0.72rem; color: var(--muted); background: var(--panel); display: inline-block; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); max-width: fit-content; }
+.rightcol { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: min(460px, 100%); margin-left: auto; }
+.panel { width: 260px; max-width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.ptitle { display: flex; justify-content: space-between; align-items: baseline; font: 700 0.85rem var(--font-display); }
+.ptitle span { font: 500 0.78rem var(--font-body); color: var(--muted); font-variant-numeric: tabular-nums; }
+.tgl { display: flex; flex-wrap: wrap; gap: 6px; }
+.panel label { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.panel p { margin: 0; color: var(--muted); line-height: 1.45; font-size: 0.76rem; }
+.keys { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; color: var(--muted); font-size: 0.76rem; }
+.keys b { color: var(--fg); font-weight: 500; }
+input[type="range"] { padding: 0; border: 0; background: transparent; accent-color: var(--accent); }
+#walkpad { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 150px; z-index: 20; display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px) auto; gap: 6px; justify-items: center; touch-action: none; background: var(--panel); padding: 8px; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+#walkpad button { width: 44px; height: 44px; padding: 0; font-size: 1rem; user-select: none; }
+#padW { grid-column: 2; grid-row: 1; } #padA { grid-column: 1; grid-row: 2; } #padS { grid-column: 2; grid-row: 2; } #padD { grid-column: 3; grid-row: 2; }
+#walkpad span { grid-column: 1 / -1; grid-row: 3; font-size: 0.7rem; color: var(--muted); text-align: center; margin-top: 4px; }
+.search { position: relative; margin-top: 10px; width: min(300px, 100%); }
+input, select { font: 400 0.82rem var(--font-body); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; width: 100%; box-sizing: border-box; }
+input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#qres { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; display: flex; flex-direction: column; gap: 2px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px; z-index: 25; max-height: 240px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+#qres button { text-align: left; border: 0; background: transparent; padding: 6px 8px; width: 100%; display: flex; justify-content: space-between; align-items: center; }
+#qres button:hover { background: rgba(0,0,0,0.06); }
+#qres button small { color: var(--muted); margin-left: 6px; }
+.routep { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; width: min(300px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.routep label { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.routep .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+#rInfo { font-size: 0.8rem; color: var(--fg); min-height: 1.2em; line-height: 1.4; }
+.tourbar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 8px 10px; font-size: 0.8rem; }
+.tourbar .spacer { flex: 1; }
+#loader { position: absolute; inset: 0; z-index: 50; display: grid; place-items: center; background: var(--bg); transition: opacity 0.5s; }
+#loader.done { opacity: 0; pointer-events: none; }
+.ld { width: min(320px, 80vw); }
+.ld h2 { margin: 0; font: 700 1.7rem var(--font-display); letter-spacing: -0.01em; }
+.ld p { margin: 4px 0 0; font-size: 0.82rem; color: var(--muted); }
+.ld .bar { height: 4px; background: var(--line); border-radius: 2px; margin: 16px 0 8px; overflow: hidden; }
+.ld .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.1s linear; }
+#err { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+@media (max-width: 560px) { .pin { display: none; } .sub { display: none; } h1 { font-size: 1.05rem; } }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<div id="stage" role="img" aria-label="Interactive 3D model of the IIT Madras campus in Chennai. Drag to rotate, scroll or pinch to zoom, tap a landmark for details.">
+  <header class="pad">
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span style="font-size:0.68rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#2d5a43;color:#ffffff;padding:2.5px 8px;border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,0.1);">Sahej-Shala 3D</span>
+        <button id="btnReturn2D" style="font-size:0.75rem;padding:3.5px 9px;border-radius:6px;background:var(--panel);border:1px solid var(--line);cursor:pointer;display:inline-flex;align-items:center;gap:4px;" title="Switch to 2D Illustrated Map">
+          <span>&larr;</span> <span>2D Map</span>
+        </button>
+      </div>
+      <h1>IIT Madras Campus</h1>
+      <p class="sub">Schematic 3D model of the Guindy campus, Chennai (12.99&deg; N, 80.23&deg; E). Explore academic halls, hostels, and landmarks.</p>
+      <div class="search">
+        <input id="q" type="search" placeholder="Search a building or hostel" autocomplete="off" aria-label="Search a building or hostel">
+        <div id="qres" hidden></div>
+      </div>
+      <div class="routep" id="routePanel" hidden>
+        <label for="rFrom">From</label><select id="rFrom"></select>
+        <label for="rTo">To</label><select id="rTo"></select>
+        <div class="acts"><button id="rGo">Show route</button><button id="rSwap">Swap</button><button id="rClear">Clear</button></div>
+        <div id="rInfo" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="rightcol">
+      <div class="tools">
+        <button id="btnTour" aria-pressed="false">Guided tour</button>
+        <button id="btnRoute" aria-pressed="false">Walking route</button>
+        <button id="btnStreet" aria-pressed="false">Street view</button>
+        <button id="btnLayersP" aria-pressed="false">Layers</button>
+        <button id="btnTimeP" aria-pressed="false">Time of day</button>
+        <button id="btnAboutP" aria-pressed="false">Controls</button>
+        <button id="btnReset">Reset view</button>
+      </div>
+      <div class="panel" id="layersPanel" hidden>
+        <div class="ptitle">Layers</div>
+        <div class="tgl">
+          <button id="btnLabels" aria-pressed="true">Labels</button>
+          <button id="btnBoundary" aria-pressed="true">Boundary</button>
+          <button id="btnTraffic" aria-pressed="true">Traffic</button>
+          <button id="btnLamps" aria-pressed="true">Street lamps</button>
+          <button id="btnSpin" aria-pressed="false">Auto-rotate</button>
+        </div>
+        <label for="detail">Detail</label>
+        <select id="detail"><option value="auto">Auto</option><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select>
+        <label for="emblemFile">Sign emblem</label>
+        <input id="emblemFile" type="file" accept="image/*">
+        <div class="tgl"><button id="emblemReset">Use default mark</button></div>
+        <p>Choose your own image to show on the Main Gate sign. It stays on your device.</p>
+      </div>
+      <div class="panel" id="timePanel" hidden>
+        <div class="ptitle">Time of day <span id="clock">15:30 IST</span></div>
+        <div class="tgl"><button data-h="6.25">Sunrise</button><button data-h="12.5">Midday</button><button data-h="17.5">Golden hour</button><button data-h="20.5">Night</button></div>
+        <input id="tod" type="range" min="0" max="24" step="0.25" value="15.5" aria-label="Time of day">
+      </div>
+      <div class="panel" id="aboutPanel" hidden>
+        <div class="ptitle">Controls</div>
+        <ul class="keys"><li><b>Drag</b> rotate</li><li><b>Scroll, pinch</b> zoom</li><li><b>Right-drag</b> pan</li><li><b>W A S D</b> move</li><li><b>Q / E</b> down / up</li><li><b>Z / X</b> turn</li><li><b>Click</b> a building</li><li><b>Street view</b> walk</li></ul>
+        <p>Schematic model built from IIT Madras's published campus descriptions and directions, not from surveyed footprints or map data. Positions are approximate.</p>
+      </div>
+    </div>
+  </header>
+  <div id="loader"><div class="ld"><h2>IIT Madras</h2><p>Guindy &middot; Chennai</p><div class="bar"><i id="ldBar"></i></div><p id="ldTxt">Surveying the campus&hellip; 0%</p></div></div>
+  <div id="pins"></div>
+  <div id="walkpad" hidden aria-label="Walking controls">
+    <button id="padW" aria-label="Walk forward">&#9650;</button>
+    <button id="padA" aria-label="Step left">&#9664;</button>
+    <button id="padS" aria-label="Walk back">&#9660;</button>
+    <button id="padD" aria-label="Step right">&#9654;</button>
+    <span>Walk &middot; drag to look</span>
+  </div>
+  <div class="dock pad">
+    <div class="card tourbar" id="tourbar" hidden><span id="tourText"></span><span class="spacer"></span><button id="tourPrev">Back</button><button id="tourNext">Next</button><button id="tourEnd">End tour</button></div>
+    <div class="card" id="card" hidden></div>
+    <div class="hint" id="hint">Drag to orbit. Scroll or pinch to zoom. Pick a place below, or tap a building.</div>
+    <div class="row" id="chips"></div>
+    <div class="row cats" id="cats"></div>
+  </div>
+</div>
+
+<script src="/vendor/three.min.js"></script>
+<script>
+if (!window.THREE) {
+  document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+}
+</script>
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  if (!window.THREE) { stage.insertAdjacentHTML('beforeend', '<div id="err">The 3D engine could not load. Check your connection and reload.</div>'); return; }
+
+  // Study destination mapping for Sahej-Shala integration
+  var STUDY_MAPPING = {
+    'library': { id: 'library', name: 'Central Library', icon: '🏛️' },
+    'crc': { id: 'lhc', name: 'Lecture Hall Complex (CRC)', icon: '🎓' },
+    'oat': { id: 'oat', name: 'Open Air Theatre', icon: '🎭' },
+    'tiffany': { id: 'cafe', name: 'Campus Café (Tiffany\'s)', icon: '☕' },
+    'wild': { id: 'banyan', name: 'Banyan Tree Grove (Wildlife Area)', icon: '🌳' },
+    'lake': { id: 'park', name: 'Sangam Gardens (Lake Grounds)', icon: '🌿' },
+    'gc': { id: 'gc', name: 'Gajendra Circle', icon: '🐘' }
+  };
+  window.STUDENT_COUNTS = {};
+
+  var scene = new THREE.Scene();
+  var renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  stage.insertBefore(renderer.domElement, stage.firstChild);
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.4, 1600);
+
+  var hemi = new THREE.HemisphereLight(0xffffff, 0x6d7f5a, 0.75);
+  scene.add(hemi);
+  var sun = new THREE.DirectionalLight(0xfff2dc, 0.85);
+  sun.position.set(110, 150, 70);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  var sc = sun.shadow.camera; sc.left = -190; sc.right = 190; sc.top = 190; sc.bottom = -190; sc.near = 10; sc.far = 520;
+  sun.shadow.bias = -0.0006;
+  scene.add(sun);
+
+  /* ---------- helpers ---------- */
+  var matCache = {};
+  function mat(c) { var k = 'm' + c; return matCache[k] || (matCache[k] = new THREE.MeshLambertMaterial({ color: c })); }
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+
+  function makeWinTex(lit) {
+    var c = document.createElement('canvas'); c.width = c.height = 32;
+    var x = c.getContext('2d');
+    x.fillStyle = lit ? '#000' : '#fff'; x.fillRect(0, 0, 32, 32);
+    x.fillStyle = lit ? '#ffcf6a' : '#6d8798'; x.fillRect(6, 9, 20, 14);
+    if (!lit) { x.fillStyle = '#c9c4b6'; x.fillRect(5, 23, 22, 2); }
+    var t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+  }
+  var winTex = makeWinTex(false), litTex = makeWinTex(true);
+  var winMats = [], facadeCache = {};
+  function facade(rx, ry, color) {
+    var k = rx + '_' + ry + '_' + color;
+    if (facadeCache[k]) return facadeCache[k];
+    var t = winTex.clone(); t.needsUpdate = true; t.repeat.set(rx, ry);
+    var e = litTex.clone(); e.needsUpdate = true; e.repeat.set(rx, ry);
+    var m = new THREE.MeshLambertMaterial({ color: color, map: t, emissive: 0xffffff, emissiveMap: e, emissiveIntensity: 0 });
+    winMats.push(m); return (facadeCache[k] = m);
+  }
+  function shade(c, f) { var k = new THREE.Color(c); k.multiplyScalar(f); return k.getHex(); }
+
+  /* building with window facades */
+  function bld(p, w, h, d, wall, roof, x, y, z, floors) {
+    floors = floors || Math.max(1, Math.round(h / 3.4));
+    var mx = facade(Math.max(1, Math.round(d / 3.2)), floors, wall);
+    var mz = facade(Math.max(1, Math.round(w / 3.2)), floors, wall);
+    var r = mat(roof == null ? shade(wall, 0.7) : roof);
+    var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [mx, mx, r, r, mz, mz]);
+    m.position.set(x, y + h / 2, z); m.castShadow = true; m.receiveShadow = true; (p || scene).add(m); return m;
+  }
+  function box(p, w, h, d, c, x, y, z) {
+    var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c));
+    m.position.set(x, y + h / 2, z); m.castShadow = true; m.receiveShadow = true; (p || scene).add(m); return m;
+  }
+  function cyl(p, rt, rb, h, c, x, y, z, seg) {
+    var m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg || 24), mat(c));
+    m.position.set(x, y + h / 2, z); m.castShadow = true; m.receiveShadow = true; (p || scene).add(m); return m;
+  }
+  function flat(r, c, x, z, y, sx, sz) {
+    var m = new THREE.Mesh(new THREE.CircleGeometry(r, 48), mat(c));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); m.scale.set(sx || 1, sz || 1, 1); m.receiveShadow = true; scene.add(m); return m;
+  }
+  function slab(w, d, c, x, z, y) {
+    var m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat(c));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); m.receiveShadow = true; scene.add(m); return m;
+  }
+  var roadSegs = [];
+  function road(x1, z1, x2, z2, w, c) {
+    roadSegs.push([x1, z1, x2, z2, w]);
+    var dx = x2 - x1, dz = z2 - z1, len = Math.sqrt(dx * dx + dz * dz);
+    var m = new THREE.Mesh(new THREE.PlaneGeometry(len, w), mat(c || 0x4b4f52));
+    m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.atan2(dz, dx);
+    m.position.set((x1 + x2) / 2, 0.12, (z1 + z2) / 2); m.receiveShadow = true; scene.add(m);
+  }
+
+  /* ---------- ground ---------- */
+  var outerMat = new THREE.MeshLambertMaterial({ color: 0x6f8c5a });
+  var lawnMat = new THREE.MeshLambertMaterial({ color: 0x9bb67f });
+  var outer = new THREE.Mesh(new THREE.CircleGeometry(520, 64), outerMat);
+  outer.rotation.x = -Math.PI / 2; outer.position.y = -0.1; outer.receiveShadow = true; scene.add(outer);
+  var CAMPUS = { x0: -56, x1: 74, z0: -130, z1: 150 };
+  var lawn = new THREE.Mesh(new THREE.PlaneGeometry(CAMPUS.x1 - CAMPUS.x0, CAMPUS.z1 - CAMPUS.z0), lawnMat);
+  lawn.rotation.x = -Math.PI / 2; lawn.position.set((CAMPUS.x0 + CAMPUS.x1) / 2, 0, (CAMPUS.z0 + CAMPUS.z1) / 2); lawn.receiveShadow = true; scene.add(lawn);
+  var wallFrom = scene.children.length;
+  /* boundary wall */
+  var cw = CAMPUS.x1 - CAMPUS.x0, cd = CAMPUS.z1 - CAMPUS.z0, cxm = (CAMPUS.x0 + CAMPUS.x1) / 2, czm = (CAMPUS.z0 + CAMPUS.z1) / 2;
+  box(null, cw, 1.2, 0.5, 0xcfc8b6, cxm, 0, CAMPUS.z0);
+  box(null, 0.5, 1.2, cd, 0xcfc8b6, CAMPUS.x0, 0, czm);
+  box(null, 0.5, 1.2, cd, 0xcfc8b6, CAMPUS.x1, 0, czm);
+  box(null, cw / 2 - 9, 1.2, 0.5, 0xcfc8b6, CAMPUS.x0 + (cw / 2 - 9) / 2, 0, CAMPUS.z1);
+  box(null, cw / 2 - 9, 1.2, 0.5, 0xcfc8b6, CAMPUS.x1 - (cw / 2 - 9) / 2, 0, CAMPUS.z1);
+
+  var wallTo = scene.children.length;
+  /* ---------- roads ---------- */
+  var BONN = 0, DELHI = 30;
+  road(-150, 160, 220, 160, 12, 0x3f4346);                       /* Sardar Patel Road */
+  road(BONN, 160, BONN, -76, 7);                                 /* Bonn Avenue to hostel zone */
+  road(DELHI, 160, DELHI, 22, 6);                                /* Delhi Avenue */
+  road(DELHI, 22, 4, 3, 6);                                       /* Delhi Avenue meets Gajendra Circle */
+  road(0, 16, 14, 16, 4);                                         /* Alumni Avenue */
+  road(0, -20, 74, -20, 4);                                    /* academic cross road */
+  road(0, -46, 52, -46, 4);
+  road(-48, -76, 52, -76, 5);                                    /* hostel zone road */
+  road(-48, -95, 46, -95, 4);
+  road(-48, -109, 46, -109, 4);
+  road(32, -20, 32, -46, 4);
+  road(52, -46, 52, -100, 4);
+  road(46, -100, 74, -100, 4);
+  road(-48, -76, -48, -109, 4);
+  road(46, -76, 46, -109, 4);
+
+  /* land-use zones, lane markings and street lamps */
+  slab(92, 56, 0xcfc9b8, 24, -40, 0.04);
+  slab(104, 52, 0xd3ccb9, 0, -102, 0.04);
+  var lampMat = new THREE.MeshBasicMaterial({ color: 0xd8d8d0 });
+  var lampMeshes = [];
+  (function () {
+    var o = new THREE.Object3D(), dashes = [];
+    for (var z = 150; z > -70; z -= 6) dashes.push(z);
+    var dm2 = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.35, 2.4), new THREE.MeshBasicMaterial({ color: 0xe9e6dc }), dashes.length);
+    dashes.forEach(function (z, i) { o.position.set(BONN, 0.14, z); o.rotation.set(-Math.PI / 2, 0, 0); o.updateMatrix(); dm2.setMatrixAt(i, o.matrix); });
+    scene.add(dm2);
+    var lamps = [];
+    for (var lz = 142; lz > 24; lz -= 13) { lamps.push([BONN - 5, lz], [BONN + 5, lz]); }
+    for (var dz = 142; dz > 34; dz -= 13) { lamps.push([DELHI - 4.5, dz], [DELHI + 4.5, dz]); }
+    var poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.12, 0.16, 5, 6), mat(0x5b5f62), lamps.length);
+    var heads = new THREE.InstancedMesh(new THREE.SphereGeometry(0.42, 8, 6), lampMat, lamps.length);
+    lamps.forEach(function (p, i) {
+      o.rotation.set(0, 0, 0); o.position.set(p[0], 2.5, p[1]); o.updateMatrix(); poles.setMatrixAt(i, o.matrix);
+      o.position.set(p[0], 5.2, p[1]); o.updateMatrix(); heads.setMatrixAt(i, o.matrix);
+    });
+    poles.castShadow = true; scene.add(poles); scene.add(heads); lampMeshes.push(poles, heads);
+  })();
+
+  /* ---------- landmark registry ---------- */
+  var landmarks = [], byId = {};
+  function LM(o) {
+    var g = new THREE.Group(); g.position.set(o.x, 0, o.z); scene.add(g);
+    o.group = g; o.h = o.h || 8; o.dist = o.dist || 46; o.pz = o.pz || 260; o.r = o.r == null ? 10 : o.r;
+    o.groups = o.groups || []; landmarks.push(o); byId[o.id] = o; return g;
+  }
+
+  /* detailed Main Gate: granite sign panel, white pillars, slate roof, brick-red piers with lamp finials, palms, hedges, fence */
+  var emblemCtl = null;
+  function makeEmblem(g, y, r) {
+    var c = document.createElement('canvas'); c.width = c.height = 512;
+    var x = c.getContext('2d'), tex = new THREE.CanvasTexture(c);
+    function ring() {
+      x.strokeStyle = '#d9c66e'; x.fillStyle = '#d9c66e';
+      x.lineWidth = 16; x.beginPath(); x.arc(256, 256, 244, 0, Math.PI * 2); x.stroke();
+      x.lineWidth = 6; x.beginPath(); x.arc(256, 256, 206, 0, Math.PI * 2); x.stroke();
+    }
+    function drawDefault() {
+      x.clearRect(0, 0, 512, 512); ring();
+      x.beginPath(); x.moveTo(256, 150); x.lineTo(306, 256); x.lineTo(256, 362); x.lineTo(206, 256); x.closePath(); x.fill();
+      x.beginPath(); x.arc(256, 256, 18, 0, Math.PI * 2); x.fillStyle = '#b97874'; x.fill();
+      tex.needsUpdate = true;
+    }
+    function drawImage(img) {
+      x.clearRect(0, 0, 512, 512);
+      x.save(); x.beginPath(); x.arc(256, 256, 200, 0, Math.PI * 2); x.clip();
+      var s = Math.max(400 / img.width, 400 / img.height), w = img.width * s, h = img.height * s;
+      x.drawImage(img, 256 - w / 2, 256 - h / 2, w, h); x.restore(); ring();
+      tex.needsUpdate = true;
+    }
+    drawDefault();
+    var m = new THREE.Mesh(new THREE.CircleGeometry(r, 48), new THREE.MeshLambertMaterial({ map: tex, transparent: true, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.3 }));
+    m.position.set(0, y, 0.22); g.add(m);
+    emblemCtl = { setImage: drawImage, reset: drawDefault };
+  }
+  function textPlane(w, h, lines, color, weight, bg) {
+    var c = document.createElement('canvas'); c.width = 1400; c.height = Math.round(1400 * h / w);
+    var x = c.getContext('2d');
+    if (bg) { x.fillStyle = bg; x.fillRect(0, 0, c.width, c.height); }
+    var n = lines.length, size = Math.floor(c.height / n * 0.62);
+    function fnt(sz) { return weight + ' ' + sz + 'px system-ui, Arial, sans-serif'; }
+    lines.forEach(function (t) { x.font = fnt(size); while (x.measureText(t).width > c.width * 0.92 && size > 16) { size -= 4; x.font = fnt(size); } });
+    x.font = fnt(size); x.fillStyle = color; x.textAlign = 'center'; x.textBaseline = 'middle';
+    lines.forEach(function (t, i) { x.fillText(t, c.width / 2, c.height * (i + 0.5) / n); });
+    var tex = new THREE.CanvasTexture(c);
+    return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshLambertMaterial({ map: tex, transparent: true, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.3 }));
+  }
+  function palm(g, x, z, sc) {
+    var tr = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * sc, 0.32 * sc, 3.6 * sc, 8), mat(0x6e5a44)); tr.position.set(x, 1.8 * sc, z); tr.castShadow = true; g.add(tr);
+    for (var k = 0; k < 9; k++) {
+      var piv = new THREE.Group(); piv.position.set(x, 3.6 * sc, z); piv.rotation.y = k * Math.PI * 2 / 9;
+      var fr = new THREE.Mesh(new THREE.BoxGeometry(0.42 * sc, 0.1, 3.0 * sc), mat(k % 2 ? 0x3f8a3a : 0x52a04a)); fr.position.set(0, -0.35 * sc, 1.35 * sc); fr.rotation.x = 0.45; fr.castShadow = true; piv.add(fr); g.add(piv);
+    }
+  }
+  function hedge(g, x, z, sx, sy, sz, c) {
+    var m = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), mat(c)); m.scale.set(sx, sy, sz); m.position.set(x, sy * 0.6, z); m.castShadow = true; m.receiveShadow = true; g.add(m);
+  }
+  function buildGate(g) {
+    var pink = 0xb97874, maroon = 0x7d2a36, white = 0xf3efe6, slate = 0x6d7b87, brick = 0x8a3b36;
+    var glowMat = new THREE.MeshLambertMaterial({ color: 0xf5f0e0, emissive: 0xfff0c0, emissiveIntensity: 0 }); winMats.push(glowMat);
+    var warmMat = new THREE.MeshLambertMaterial({ color: 0x7a5a30, emissive: 0xffc27a, emissiveIntensity: 0 }); winMats.push(warmMat);
+    box(g, 19, 0.7, 3.4, 0xcdc6b6, 0, 0, 0);
+    box(g, 14.4, 8.6, 0.9, pink, 0, 0.7, -0.3);
+    [-7.7, 7.7].forEach(function (px) { box(g, 1.2, 9.2, 2.2, white, px, 0.7, 0.3); });
+    box(g, 17.6, 1.1, 2.6, white, 0, 9.9, 0.2);
+    box(g, 15.4, 1.2, 1.8, maroon, 0, 11.0, 0.0);
+    box(g, 18.2, 0.9, 2.9, white, 0, 12.2, 0.2);
+    box(g, 17.0, 0.6, 2.4, slate, 0, 13.1, 0.1);
+    box(g, 14.5, 0.5, 1.8, slate, 0, 13.7, 0.1);
+    var t = textPlane(12.6, 3.6, ['Indian Institute of Technology', 'Madras'], '#d9c66e', 'bold');
+    t.position.set(0, 6.9, 0.22); g.add(t);
+    makeEmblem(g, 3.1, 1.9);
+    [-4.2, 4.2].forEach(function (ux) { var u = new THREE.Mesh(new THREE.BoxGeometry(6, 0.18, 0.35), warmMat); u.position.set(ux, 1.0, 0.45); g.add(u); });
+    [-22, 22].forEach(function (px) {
+      box(g, 3.4, 7.5, 3.4, brick, px, 0, 0);
+      box(g, 4.0, 0.7, 4.0, white, px, 7.5, 0);
+      cyl(g, 0.3, 2.3, 1.5, slate, px, 8.2, 0, 4);
+      var fin = new THREE.Mesh(new THREE.OctahedronGeometry(1.1, 0), glowMat); fin.scale.set(1, 0.8, 1); fin.position.set(px, 10.4, 0); fin.castShadow = true; g.add(fin);
+    });
+    var inn = textPlane(1.8, 1.8, ['IN'], '#ffffff', 'bold', '#1b1d1f'); inn.position.set(-22, 3.4, 1.74); g.add(inn);
+    [[-18.5, 2.2, 1.1], [18.5, 2.2, 1.1], [-12.2, 2.0, 0.9], [12.2, 2.0, 0.9]].forEach(function (p) { palm(g, p[0], p[1], p[2]); });
+    for (var hx = -9; hx <= 9; hx += 3) hedge(g, hx, 2.5, 1.7, 0.9, 1.1, 0x84a396);
+    [[-21.5, 2.6], [21.5, 2.6]].forEach(function (p) { hedge(g, p[0], p[1], 1.5, 1.4, 1.5, 0x3c7d3b); });
+    for (var fx = -21; fx <= 21; fx += 1.6) box(g, 0.1, 1.3, 0.1, 0x23272a, fx, 0, 3.5);
+    box(g, 43, 0.1, 0.1, 0x23272a, 0, 1.15, 3.5);
+    [-11, 12].forEach(function (rx) {
+      cyl(g, 0.7, 1.1, 7, 0x5b4636, rx, 0, -8, 8);
+      var cr = new THREE.Mesh(new THREE.IcosahedronGeometry(8, 0), mat(0x3d7a37)); cr.scale.set(1.5, 0.55, 1.2); cr.position.set(rx, 15.5, -8); cr.castShadow = true; g.add(cr);
+    });
+  }
+
+  /* --- Main Gate --- */
+  (function () {
+    var g = LM({ id: 'gate', name: 'Main Gate', tag: 'Entrance', x: BONN + 15, z: 150, h: 14, dist: 48, pz: 999, r: 12, groups: ['Highlights', 'Amenities & gates'],
+      text: 'The main entrance, on Sardar Patel Road between Adyar and Velachery. A pink granite sign with gold lettering stands in a white pavilion with a slate roof, flanked by brick-red piers topped with lamps, palms, trimmed hedges and an iron fence, and lit from below at night. Bonn Avenue and Delhi Avenue run from here to Gajendra Circle, about 2 km away.' });
+    buildGate(g);
+  })();
+
+  /* --- Gajendra Circle --- */
+  (function () {
+    var g = LM({ id: 'gc', name: 'Gajendra Circle', tag: 'Central landmark', x: 4, z: 0, h: 10, dist: 52, pz: 999, r: 14, groups: ['Highlights'],
+      text: 'The central roundabout with a fountain and two elephant statues. It marks the boundary between the faculty residential zone and the academic zone, with the Administrative Block close by. On special occasions it is decorated with lights.' });
+    cyl(g, 11, 11, 0.5, 0xb9b3a4, 0, 0, 0, 40);
+    cyl(g, 7, 7, 0.7, 0x6f8f5a, 0, 0.5, 0, 40);
+    cyl(g, 3.2, 3.6, 1.2, 0xcfc7b4, 0, 1.2, 0, 24);
+    var gcGlow = new THREE.MeshLambertMaterial({ color: 0xf5e6b0, emissive: 0xffd77a, emissiveIntensity: 0 }); winMats.push(gcGlow);
+    for (var bi2 = 0; bi2 < 28; bi2++) { var an = bi2 / 28 * Math.PI * 2; var bu = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), gcGlow); bu.position.set(Math.cos(an) * 10.4, 0.9, Math.sin(an) * 10.4); g.add(bu); }
+    var wat = new THREE.Mesh(new THREE.CylinderGeometry(2.8, 2.8, 0.3, 24), new THREE.MeshLambertMaterial({ color: 0x5f93a8 }));
+    wat.position.set(0, 2.5, 0); g.add(wat);
+    cyl(g, 0.3, 0.6, 3.2, 0xe2dccb, 0, 2.5, 0, 12);
+    [-4.6, 4.6].forEach(function (ex) {
+      box(g, 2.4, 1.8, 1.2, 0x8a8f94, ex, 1.2, 0); box(g, 1, 1.2, 1, 0x8a8f94, ex + (ex > 0 ? 1.4 : -1.4), 2.2, 0);
+      box(g, 0.4, 1.2, 0.4, 0x8a8f94, ex + (ex > 0 ? 2 : -2), 1.0, 0);
+    });
+  })();
+
+  /* --- Faculty residential zone infrastructure along Bonn & Delhi Avenues --- */
+  LM({ id: 'vanavani', name: 'Vana Vani School', tag: 'School', x: BONN - 14, z: 82, h: 8, dist: 40, pz: 140, r: 11, groups: ['Amenities & gates'],
+    text: 'The campus school, about 1 km from the gate on Bonn Avenue. IIT Madras has two schools on campus.' });
+  bld(byId.vanavani.group, 18, 7, 9, 0xe0cfa8, 0xa8402a, 0, 0, 0); bld(byId.vanavani.group, 8, 7, 8, 0xe0cfa8, 0xa8402a, -13.5, 0, 2);
+
+  LM({ id: 'po', name: 'Post Office', tag: 'Amenity', x: BONN + 12, z: 52, h: 5, dist: 34, pz: 110, r: 7, groups: ['Amenities & gates'],
+    text: 'The campus post office on Bonn Avenue, on the right as you walk from the gate towards Gajendra Circle.' });
+  bld(byId.po.group, 9, 5, 7, 0xe5c9b0, 0xb5493a, 0, 0, 0);
+
+  LM({ id: 'sbi', name: 'State Bank of India', tag: 'Amenity', x: BONN - 12, z: 40, h: 5, dist: 34, pz: 110, r: 7, groups: ['Amenities & gates'],
+    text: 'A bank branch on Bonn Avenue, on the left before Gajendra Circle. The campus has three bank branches.' });
+  bld(byId.sbi.group, 9, 5.5, 7, 0xd6dce0, 0x4a6a8a, 0, 0, 0);
+
+  LM({ id: 'kv', name: 'Kendriya Vidyalaya', tag: 'School', x: BONN + 14, z: 26, h: 8, dist: 38, pz: 130, r: 10, groups: ['Amenities & gates'],
+    text: 'The second school on campus, on the right of Bonn Avenue shortly before Gajendra Circle.' });
+  bld(byId.kv.group, 16, 8, 8, 0xefe2c0, 0x8c4a3a, 0, 0, 0);
+
+  LM({ id: 'temple', name: 'Jalakandeshwarar Temple', tag: 'Temple', x: DELHI - 14, z: 108, h: 12, dist: 38, pz: 140, r: 9, groups: ['Amenities & gates'],
+    text: 'A temple on Delhi Avenue. The campus has three temples.' });
+  (function () {
+    var g = byId.temple.group;
+    for (var i = 0; i < 5; i++) box(g, 8 - i * 1.3, 1.8, 6 - i * 0.9, i % 2 ? 0xd8a773 : 0xe8c9a0, 0, i * 1.8, 0);
+    cyl(g, 0.2, 0.2, 2.5, 0xd9b44a, 0, 9, 0, 8);
+  })();
+
+  LM({ id: 'shop', name: 'Shopping Centre', tag: 'Amenity', x: DELHI - 14, z: 82, h: 6, dist: 40, pz: 130, r: 11, groups: ['Amenities & gates'],
+    text: 'Shops and food outlets on Delhi Avenue. The campus is largely self-contained, with banks, a hospital, a gym and eateries.' });
+  bld(byId.shop.group, 20, 6, 8, 0xe9d8b4, 0x8a4b3b, 0, 0, 0);
+  box(byId.shop.group, 20, 0.5, 3, 0xa8402a, 0, 3.3, 5.2);
+
+  LM({ id: 'stadium', name: 'Manohar C Watsa Stadium', tag: 'Sport', x: DELHI + 24, z: 62, h: 6, dist: 62, pz: 200, r: 24, groups: ['Student life', 'Highlights'],
+    text: 'The Manohar C Watsa Stadium on Delhi Avenue, with an entrance gate and an athletics track. The campus has stadiums for cricket, football, hockey and badminton.' });
+  (function () {
+    var g = byId.stadium.group;
+    var tr = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 0.3, 48), mat(0xb4553a)); tr.scale.set(1.35, 1, 0.9); tr.position.y = 0.25; tr.receiveShadow = true; g.add(tr);
+    var fd = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 0.4, 48), mat(0x5d8f4a)); fd.scale.set(1.35, 1, 0.8); fd.position.y = 0.35; fd.receiveShadow = true; g.add(fd);
+    box(g, 30, 3, 3, 0xcfc7b4, 0, 0, 20);
+    box(g, 2, 6, 2, 0xcfc7b4, -27, 0, -4); box(g, 2, 6, 2, 0xcfc7b4, -27, 0, 4); box(g, 2.6, 1, 10, 0xa8402a, -27, 6, 0);
+  })();
+
+  LM({ id: 'doms', name: 'Dept. of Management Studies', tag: 'Academic', x: DELHI - 15, z: 36, h: 10, dist: 40, pz: 150, r: 11, groups: ['Academic'],
+    text: 'The Department of Management Studies, on Delhi Avenue.' });
+  bld(byId.doms.group, 16, 10, 10, 0xd9c8a8, 0xa8402a, 0, 0, 0);
+
+  LM({ id: 'beguest', name: 'Bose-Einstein Guest House', tag: 'Guest house', x: DELHI + 14, z: 22, h: 8, dist: 36, pz: 120, r: 9, groups: ['Amenities & gates'],
+    text: 'A guest house on Delhi Avenue, not far from Gajendra Circle.' });
+  bld(byId.beguest.group, 14, 7, 8, 0xe7d7b5, 0x8c4a3a, 0, 0, 0);
+
+  /* --- around GC: admin, ICSR --- */
+  LM({ id: 'admin', name: 'Administrative Building', tag: 'Administration', x: -28, z: 2, h: 16, dist: 50, pz: 260, r: 14, groups: ['Highlights', 'Academic'],
+    text: 'The Administrative Block, near Gajendra Circle. The Director\'s office and the Institute\'s main administrative offices are here.' });
+  (function () {
+    var g = byId.admin.group;
+    bld(g, 28, 13, 13, 0xe2d4b4, 0xa8402a, 0, 0, 0);
+    box(g, 30, 1, 15, 0xa8402a, 0, 13, 0);
+    for (var i = -5; i <= 5; i++) cyl(g, 0.5, 0.5, 9, 0xf0e8d6, i * 2.5, 0, 7.6, 12);
+    box(g, 28, 1, 3, 0xf0e8d6, 0, 9, 8.2);
+    bld(g, 7, 4, 7, 0xe2d4b4, 0xa8402a, 0, 14, 0);
+  })();
+
+  LM({ id: 'icsr', name: 'ICSR Building', tag: 'Research office', x: 30, z: 6, h: 12, dist: 38, pz: 140, r: 9, groups: ['Academic'],
+    text: 'Industrial Consultancy and Sponsored Research. It is the first building on the right along Alumni Avenue, which branches off Bonn Avenue near GC.' });
+  bld(byId.icsr.group, 12, 11, 9, 0xd7cbb0, 0x7a5a4a, 0, 0, 0);
+
+  /* --- Academic and student zone past GC --- */
+  LM({ id: 'library', name: 'Central Library', tag: 'Library', x: -22, z: -22, h: 24, dist: 55, pz: 999, r: 14, groups: ['Highlights', 'Academic'],
+    text: 'The Central Library, on the left just past Gajendra Circle along Bonn Avenue, close to the Tiffany\'s food court. A tall block of reading floors and reference stacks.' });
+  (function () {
+    var g = byId.library.group;
+    bld(g, 22, 22, 16, 0xe6dac5, 0xa8402a, 0, 0, 0, 6);
+    var gl = new THREE.Mesh(new THREE.BoxGeometry(12, 18, 0.4), new THREE.MeshLambertMaterial({ color: 0x7fb5cc })); gl.position.set(0, 10, 8.3); g.add(gl);
+    box(g, 12, 0.8, 5, 0xe6dac5, 0, 0, 10.5);
+  })();
+
+  LM({ id: 'tiffany', name: 'Tiffany\'s Food Court', tag: 'Eatery', x: -14, z: -40, h: 5, dist: 32, pz: 110, r: 7, groups: ['Student life'],
+    text: 'A popular open food court on the left of Bonn Avenue, just past the Central Library.' });
+  bld(byId.tiffany.group, 12, 4.5, 8, 0xe9ceaa, 0xb5493a, 0, 0, 0); box(byId.tiffany.group, 12, 0.4, 3, 0x2f7a6a, 0, 3.2, 5);
+
+  LM({ id: 'oat', name: 'Open Air Theatre', tag: 'Events', x: -28, z: -62, h: 8, dist: 52, pz: 260, r: 20, groups: ['Highlights', 'Student life'],
+    text: 'The Open Air Theatre sits between Gajendra Circle and the hostel zone and seats over 7,000. It hosts a weekly Saturday night movie, and Saarang pro-shows are staged here.' });
+  (function () {
+    var g = byId.oat.group;
+    for (var i = 0; i < 7; i++) {
+      var r = 7 + i * 2.2;
+      var m = new THREE.Mesh(new THREE.CylinderGeometry(r + 2.2, r, 1, 44, 1, false, Math.PI * 0.15, Math.PI * 0.7), mat(i % 2 ? 0xc9c1ae : 0xb7b09c));
+      m.position.set(0, 0.5 + i * 0.9, 11); m.rotation.y = Math.PI; m.castShadow = true; m.receiveShadow = true; g.add(m);
+    }
+    box(g, 18, 2, 7, 0x6b5d4a, 0, 0, -6); box(g, 19, 0.6, 8, 0xa8402a, 0, 6.5, -6);
+    box(g, 0.7, 6.5, 0.7, 0x6b5d4a, -8.5, 0, -9); box(g, 0.7, 6.5, 0.7, 0x6b5d4a, 8.5, 0, -9);
+  })();
+
+  LM({ id: 'badminton', name: 'Badminton Court', tag: 'Sport', x: -12, z: -90 + 22, h: 8, dist: 34, pz: 110, r: 8, groups: ['Student life'],
+    text: 'An indoor badminton court on the left of Bonn Avenue, past the Open Air Theatre.' });
+  (function () { var g = byId.badminton.group; box(g, 14, 6, 10, 0xc7d0d6, 0, 0, 0); box(g, 15, 1, 11, 0x4a6a8a, 0, 6, 0); })();
+
+  LM({ id: 'taramani', name: 'Taramani Guest House', tag: 'Guest house', x: 26, z: -12, h: 6, dist: 34, pz: 110, r: 8, groups: ['Amenities & gates'],
+    text: 'A guest house about 0.5 km past Gajendra Circle on Bonn Avenue. Institute buses stop in front of it.' });
+  bld(byId.taramani.group, 12, 6, 8, 0xe9ddc0, 0x8c4a3a, 0, 0, 0);
+
+  LM({ id: 'crc', name: 'Class Room Complex (CRC)', tag: 'Teaching', x: 47, z: -34, h: 12, dist: 46, pz: 200, r: 14, groups: ['Academic', 'Highlights'],
+    text: 'The CRC (Lecture Hall Complex) is one of the main classroom buildings. Its ground floor is air-conditioned with tiered seating rows.' });
+  bld(byId.crc.group, 26, 11, 12, 0xdccfb0, 0xa8402a, 0, 0, 0);
+
+  LM({ id: 'hsb', name: 'Humanities & Social Sciences Block', tag: 'Teaching', x: 14, z: -34, h: 12, dist: 44, pz: 180, r: 12, groups: ['Academic'],
+    text: 'The Humanities and Social Sciences Block (HSB), home to the Central Lecture Theatre, which seats about 400.' });
+  (function () { var g = byId.hsb.group; bld(g, 16, 10, 12, 0xd9ccae, 0x8c4a3a, 0, 0, 0); cyl(g, 5, 5.6, 9, 0xc9b896, 10.5, 0, 0, 28); cyl(g, 5.2, 5.2, 0.6, 0xa8402a, 10.5, 9, 0, 28); })();
+
+  LM({ id: 'raman', name: 'Raman Block', tag: 'Teaching', x: 67, z: -34, h: 10, dist: 42, pz: 160, r: 10, groups: ['Academic'],
+    text: 'One of the main classroom blocks, with the CRC and the Ramanujan Block.' });
+  bld(byId.raman.group, 12, 10, 10, 0xe0d3b4, 0xa8402a, 0, 0, 0);
+
+  LM({ id: 'ramanujan', name: 'Ramanujan Block', tag: 'Teaching', x: 44, z: -10, h: 10, dist: 42, pz: 160, r: 10, groups: ['Academic'],
+    text: 'One of the main classroom blocks, grouped with the CRC and the Raman Block.' });
+  bld(byId.ramanujan.group, 12, 10, 10, 0xdacfb2, 0xa8402a, 0, 0, 0);
+
+  LM({ id: 'nac', name: 'New Academic Complex', tag: 'Academic', x: 38, z: -62, h: 16, dist: 52, pz: 200, r: 16, groups: ['Academic'],
+    text: 'Houses Mathematics, Chemical Engineering, and Metallurgical and Materials Engineering.' });
+  (function () { var g = byId.nac.group; bld(g, 22, 15, 9, 0xd6dcdf, 0x4a6a8a, 0, 0, -8); bld(g, 9, 15, 15, 0xd6dcdf, 0x4a6a8a, -7, 0, 2); bld(g, 9, 15, 15, 0xd6dcdf, 0x4a6a8a, 7, 0, 2); })();
+
+  LM({ id: 'cc', name: 'P G Senapathy Computer Centre', tag: 'Computing', x: 16, z: -56, h: 10, dist: 38, pz: 140, r: 9, groups: ['Academic'],
+    text: 'The central computing facility for the Institute.' });
+  bld(byId.cc.group, 13, 9, 9, 0xdad8cf, 0x5a6770, 0, 0, 0);
+
+  LM({ id: 'hospital', name: 'Campus Hospital', tag: 'Health', x: 56, z: 0, h: 8, dist: 38, pz: 140, r: 9, groups: ['Amenities & gates'],
+    text: 'The campus has its own hospital, alongside the other amenities that make it largely self-contained.' });
+  (function () { var g = byId.hospital.group; bld(g, 14, 8, 9, 0xf0eee6, 0xc0392b, 0, 0, 0); box(g, 3.4, 0.3, 1, 0xc0392b, 0, 8.4, 5); })();
+
+  LM({ id: 'lake', name: 'Campus Lake & Sangam Grounds', tag: 'Green campus', x: -42, z: 18, h: 2, dist: 48, pz: 220, r: 16, groups: ['Highlights'],
+    text: 'A natural scenic lake that drains most of the campus rainwater, surrounded by serene flowering gardens and quiet study benches.' });
+  flat(14, 0x5f93a8, -42, 18, 0.1, 1.2, 0.8);
+
+  LM({ id: 'wild', name: 'Banyan Tree & Wildlife Grove', tag: 'Ancient Canopy', x: -42, z: 40, h: 4, dist: 56, pz: 220, r: 18, groups: ['Highlights'],
+    text: 'Shaded banyan tree groves and open green woodland where spotted deer, blackbuck, and songbirds dwell under majestic foliage.' });
+
+  /* --- Environmental lab, workshop, flower beds --- */
+  LM({ id: 'envlab', name: 'Environmental Engineering Lab', tag: 'Research', x: 64, z: -56, h: 7, dist: 36, pz: 130, r: 9, groups: ['Academic'],
+    text: 'Laboratories for environmental engineering.' });
+  bld(byId.envlab.group, 12, 7, 9, 0xd8dccf, 0x5f7a68, 0, 0, 0);
+
+  LM({ id: 'cstf', name: 'Central Workshop (CSTF)', tag: 'Fabrication', x: 66, z: -10, h: 9, dist: 38, pz: 140, r: 9, groups: ['Academic', 'Student life'],
+    text: 'The Central Skill Training and Fabrication Facility, where students build and test their projects.' });
+  (function () {
+    var g = byId.cstf.group; bld(g, 14, 6, 10, 0xd9d3c4, 0x6d7b87, 0, 0, 0);
+    for (var i = -2; i <= 2; i++) box(g, 2.4, 1.8, 10, 0x6d7b87, i * 2.8, 6, 0);
+  })();
+
+  (function () {
+    var cols = [0xe0508a, 0xf2c14e, 0xe8603c, 0xf4f0e6, 0xb85cd6], seed3 = 9;
+    function r3() { seed3 = (seed3 * 16807) % 2147483647; return (seed3 - 1) / 2147483646; }
+    var pts = [];
+    for (var i = 0; i < 46; i++) pts.push([-12 + (r3() * 2 - 1) * 5, -52 + (r3() * 2 - 1) * 3.5]);
+    for (i = 0; i < 24; i++) pts.push([-12 + (r3() * 2 - 1) * 9, -62 + (r3() * 2 - 1) * 1.6]);
+    var fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.4, 6, 5), new THREE.MeshLambertMaterial({ color: 0xffffff }), pts.length);
+    var o = new THREE.Object3D(), c = new THREE.Color();
+    pts.forEach(function (p, i) { o.position.set(p[0], 0.4, p[1]); o.updateMatrix(); fl.setMatrixAt(i, o.matrix); c.set(cols[i % 5]); fl.setColorAt(i, c); });
+    scene.add(fl);
+  })();
+
+  /* --- Hostel zone --- */
+  LM({ id: 'ccw', name: 'CCW Office', tag: 'Hostel management', x: 10, z: -67, h: 6, dist: 34, pz: 130, r: 7, groups: ['Hostels'],
+    text: 'The Office of Hostel Management, about 3 km from the gate and 1 km from Gajendra Circle.' });
+  bld(byId.ccw.group, 10, 6, 7, 0xe6d9ba, 0x8c4a3a, 0, 0, 0);
+
+  LM({ id: 'himalaya', name: 'Himalaya Mess', tag: 'Dining', x: -22, z: -66, h: 6, dist: 36, pz: 130, r: 10, groups: ['Hostels', 'Student life'],
+    text: 'The main mess building, with a lawn in front. Dining is in three central halls: Nilgiri, Vindhya and Himalaya.' });
+  (function () { var g = byId.himalaya.group; bld(g, 16, 6, 10, 0xe9d7b0, 0x8c4a3a, 0, 0, 0); flat(6, 0x5d8f4a, 0, 8, 0.2); })();
+
+  LM({ id: 'nilgiri', name: 'Nilgiri Mess', tag: 'Dining', x: 22, z: -67, h: 6, dist: 34, pz: 120, r: 9, groups: ['Hostels'],
+    text: 'One of the three central dining halls, with Himalaya and Vindhya.' });
+  bld(byId.nilgiri.group, 13, 6, 9, 0xe6d3ae, 0x8c4a3a, 0, 0, 0);
+
+  LM({ id: 'vindhya', name: 'Vindhya Mess', tag: 'Dining', x: -46, z: -67, h: 6, dist: 34, pz: 120, r: 9, groups: ['Hostels'],
+    text: 'One of the three central dining halls, with Himalaya and Nilgiri.' });
+  bld(byId.vindhya.group, 13, 6, 9, 0xe6d3ae, 0x8c4a3a, 0, 0, 0);
+
+  /* named hostels */
+  var hostelDefs = [
+    [['Ganga', 4], ['Godavari', 4], ['Jamuna', 4], ['Krishna', 4], ['Narmada', 4], ['Cauvery', 4]],
+    [['Saraswathi', 4], ['Alakananda', 4], ['Brahmaputra', 4], ['Tapti', 4], ['Sindhu', 7], ['Mahanadi', 7]],
+    [['Pampa', 7], ['Tamiraparani', 7], ['Mandakini A', 9], ['Mandakini B', 9]]
+  ];
+  var womenDefs = [['Sabarmati', 4], ['Sarayu', 4], ['Sharavathi', 4], ['Swarnamukhi', 4], ['Tunga', 4], ['Bhadra', 4]];
+  var rowZ = [-88, -102, -116];
+  var hostelNotes = {
+    Sabarmati: 'Known for its green quadrangle courtyard.',
+    Cauvery: 'Reached by turning off Bonn Avenue near the hostel zone entrance.',
+    Sindhu: 'Sindhu and Mahanadi sit just before the CCW office, off Bonn Avenue.',
+    Mahanadi: 'Sindhu and Mahanadi sit just before the CCW office, off Bonn Avenue.',
+    'Mandakini A': 'Mandakini is the tallest hostel, at nine storeys.',
+    'Mandakini B': 'Mandakini is the tallest hostel, at nine storeys.'
+  };
+  function addHostel(name, floors, x, z, women) {
+    var id = 'h-' + name.toLowerCase().replace(/\s+/g, '-');
+    var tall = floors > 5; var w = tall ? 8 : 9.5, d = tall ? 8 : 6;
+    var g = LM({ id: id, name: name, tag: (women ? 'Women\'s hostel' : 'Men\'s hostel'), x: x, z: z, h: floors * 3.4, dist: 26, pz: 70, r: 5.5, groups: ['Hostels'], hostel: true,
+      text: name + ' hostel, ' + floors + ' storeys. ' + (hostelNotes[name] || '') + ' Its exact spot inside the hostel zone is schematic. IIT Madras has 21 hostels.' });
+    if (name === 'Sabarmati') { flat(3.6, 0x6fa05a, x, z + 5.8, 0.15); }
+    bld(g, w, floors * 3.4, d, women ? 0xe6cfc0 : 0xe4d6b4, women ? 0x8a4f5a : 0x8c4a3a, 0, 0, 0, floors);
+  }
+  hostelDefs.forEach(function (row, ri) {
+    var start = ri === 2 ? -30 : -40;
+    row.forEach(function (h, i) { addHostel(h[0], h[1], start + i * 11, rowZ[ri], false); });
+  });
+  womenDefs.forEach(function (h, i) { addHostel(h[0], h[1], 26 + (i % 2) * 12, rowZ[Math.floor(i / 2)], true); });
+
+  /* --- Research Park --- */
+  LM({ id: 'park', name: 'IITM Research Park', tag: 'Innovation', x: 64, z: -76, h: 22, dist: 62, pz: 260, r: 16, groups: ['Highlights', 'Academic'],
+    text: 'The Research Park brings companies, start-ups and Institute labs together on campus.' });
+  (function () {
+    var g = byId.park.group;
+    [[-5, -5, 15], [4, -5, 21], [-5, 7, 18], [4, 7, 24]].forEach(function (p) {
+      bld(g, 7, p[2], 7, 0xc0d2dc, 0x5a7a8a, p[0], 0, p[1]);
+    });
+    box(g, 4, 3, 4, 0xe7edf0, -1.5, 0, 1);
+  })();
+
+  /* --- Gates (side) --- */
+  LM({ id: 'velachery', name: 'Velachery Gate', tag: 'Entrance', x: CAMPUS.x1, z: -20, h: 6, dist: 40, pz: 150, r: 6, groups: ['Amenities & gates'],
+    text: 'One of the campus\'s other entrances, on the Velachery side. The others are on Gandhi Road and at the Taramani gate.' });
+  (function () { var g = byId.velachery.group; box(g, 2, 6, 2, 0xcfc2a0, 0, 0, -4); box(g, 2, 6, 2, 0xcfc2a0, 0, 0, 4); box(g, 2.4, 1, 10, 0xb8a984, 0, 6, 0); })();
+
+  LM({ id: 'taramanigate', name: 'Taramani Gate', tag: 'Entrance', x: CAMPUS.x1, z: -100, h: 6, dist: 40, pz: 150, r: 6, groups: ['Amenities & gates'],
+    text: 'An entrance at Taramani, near Ascendas Tech Park.' });
+  (function () { var g = byId.taramanigate.group; box(g, 2, 6, 2, 0xcfc2a0, 0, 0, -4); box(g, 2, 6, 2, 0xcfc2a0, 0, 0, 4); box(g, 2.4, 1, 10, 0xb8a984, 0, 6, 0); })();
+
+  /* ---------- faculty housing ---------- */
+  var houseSpots = [];
+  var zones = [[-38, 'w2'], [-24, 'w1'], [15, 'mid'], [46, 'e1'], [60, 'e2']];
+  zones.forEach(function (zn) {
+    for (var z = 20; z < 138; z += 10.5) {
+      var x = zn[0], hit = false;
+      landmarks.forEach(function (l) {
+        var dx = x - l.x, dz = z - l.z; if (dx * dx + dz * dz < (l.r + 5) * (l.r + 5)) hit = true;
+      });
+      if (!hit) houseSpots.push([x + ((z * 7) % 3) - 1, z]);
+    }
+  });
+  var hb = new THREE.InstancedMesh(new THREE.BoxGeometry(6, 3.2, 5), mat(0xece0c6), houseSpots.length);
+  var hr = new THREE.InstancedMesh(new THREE.ConeGeometry(4.6, 2, 4), mat(0xb5593f), houseSpots.length);
+  hb.castShadow = true; hr.castShadow = true; hb.receiveShadow = true;
+  var dm = new THREE.Object3D();
+  houseSpots.forEach(function (s, i) {
+    dm.position.set(s[0], 1.6, s[1]); dm.rotation.set(0, 0, 0); dm.scale.set(1, 1, 1); dm.updateMatrix(); hb.setMatrixAt(i, dm.matrix);
+    dm.position.set(s[0], 4.2, s[1]); dm.rotation.y = Math.PI / 4; dm.updateMatrix(); hr.setMatrixAt(i, dm.matrix);
+  });
+  scene.add(hb); scene.add(hr);
+
+  /* city outside the gate */
+  (function () {
+    var seed = 3; function rn() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    var cols = [0xd8d0c0, 0xc6beb0, 0xdcd2c2, 0xbfb7aa];
+    for (var x = -140; x < 220; x += 14) {
+      var h = 8 + rn() * 14;
+      bld(null, 11, h, 10, cols[Math.floor(rn() * 4)], 0x6c6a66, x + rn() * 3, 0, 182 + rn() * 6);
+    }
+    for (var z = -120; z < 140; z += 16) {
+      bld(null, 10, 8 + rn() * 10, 12, cols[Math.floor(rn() * 4)], 0x6c6a66, 96 + rn() * 4, 0, z);
+    }
+    road(88, -140, 88, 160, 8, 0x3f4346);
+  })();
+
+  /* ---------- trees ---------- */
+  var seed2 = 11;
+  function rnd() { seed2 = (seed2 * 16807) % 2147483647; return (seed2 - 1) / 2147483646; }
+  function inCampus(x, z) { return x > CAMPUS.x0 && x < CAMPUS.x1 && z > CAMPUS.z0 && z < CAMPUS.z1; }
+  function blocked(x, z) {
+    if (Math.abs(x - BONN) < 6 && z > -80 && z < 164) return true;
+    if (Math.abs(x - DELHI) < 5 && z > 18 && z < 164) return true;
+    if (Math.abs(z - 160) < 9) return true;
+    if (z > 168 && z < 198 && x > -150 && x < 230) return true;
+    if (x > 80 && x < 108) return true;
+    if (z < -74 && z > -126 && x > -52 && x < 52) return true;
+    if (Math.abs(z + 20) < 4 && x > -2 && x < 76) return true;
+    if (Math.abs(z + 46) < 4 && x > 0 && x < 58) return true;
+    if (Math.abs(x - 32) < 4 && z > -48 && z < -18) return true;
+    if (Math.abs(x - 52) < 4 && z > -102 && z < -44) return true;
+    for (var i = 0; i < landmarks.length; i++) {
+      var l = landmarks[i], dx = x - l.x, dz = z - l.z, rr = l.r + 3;
+      if (dx * dx + dz * dz < rr * rr) return true;
+    }
+    for (var j = 0; j < houseSpots.length; j++) {
+      var hx = x - houseSpots[j][0], hz = z - houseSpots[j][1]; if (hx * hx + hz * hz < 30) return true;
+    }
+    return false;
+  }
+  var treePts = [], tries = 0, TREES = 1500;
+  while (treePts.length < TREES && tries < 40000) {
+    tries++;
+    var ax = (rnd() * 2 - 1) * 330, az = (rnd() * 2 - 1) * 330;
+    var inside = inCampus(ax, az);
+    if (!inside && Math.sqrt(ax * ax + az * az) > 360) continue;
+    if (!inside && az > 160) continue;
+    if (!inside && ax > 80 && rnd() < 0.85) continue;
+    if (inside && rnd() < 0.55) continue;
+    if (!blocked(ax, az)) treePts.push([ax, az, 0.8 + rnd() * 0.9]);
+  }
+  var trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.35, 0.5, 3, 6), mat(0x6b4f3a), treePts.length);
+  var crowns = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(2.6, 0), new THREE.MeshLambertMaterial({ color: 0xffffff }), treePts.length);
+  crowns.castShadow = true; trunks.castShadow = true;
+  var colr = new THREE.Color();
+  treePts.forEach(function (t, i) {
+    dm.position.set(t[0], 1.5 * t[2], t[1]); dm.scale.set(t[2], t[2], t[2]); dm.rotation.set(0, 0, 0); dm.updateMatrix(); trunks.setMatrixAt(i, dm.matrix);
+    dm.position.set(t[0], 4.2 * t[2], t[1]); dm.rotation.y = rnd() * 6; dm.updateMatrix(); crowns.setMatrixAt(i, dm.matrix);
+    colr.setHSL(0.26 + rnd() * 0.06, 0.42, 0.24 + rnd() * 0.12); crowns.setColorAt(i, colr);
+  });
+  scene.add(trunks); scene.add(crowns);
+
+  /* shade trees lining Bonn and Delhi Avenues */
+  (function () {
+    var pts = [];
+    function free(x, z) {
+      for (var i = 0; i < landmarks.length; i++) { var l = landmarks[i], dx = x - l.x, dz = z - l.z, rr = l.r + 3; if (dx * dx + dz * dz < rr * rr) return false; }
+      for (var j = 0; j < houseSpots.length; j++) { var hx = x - houseSpots[j][0], hz = z - houseSpots[j][1]; if (hx * hx + hz * hz < 36) return false; }
+      return true;
+    }
+    [BONN - 9.5, BONN + 9.5, DELHI - 9.5, DELHI + 9.5].forEach(function (x) {
+      for (var z = 138; z > 28; z -= 11) if (free(x, z)) pts.push([x, z]);
+    });
+    var tk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.5, 0.8, 5, 6), mat(0x5b4636), pts.length);
+    var cr = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(3.4, 0), new THREE.MeshLambertMaterial({ color: 0x3d7a37 }), pts.length);
+    cr.castShadow = true; tk.castShadow = true;
+    var o = new THREE.Object3D();
+    pts.forEach(function (p, i) {
+      o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1); o.position.set(p[0], 2.5, p[1]); o.updateMatrix(); tk.setMatrixAt(i, o.matrix);
+      o.position.set(p[0], 6.6, p[1]); o.scale.set(1.5, 0.9, 1.5); o.rotation.y = (p[1] * 7) % 6; o.updateMatrix(); cr.setMatrixAt(i, o.matrix);
+    });
+    scene.add(tk); scene.add(cr);
+  })();
+
+  /* deer in the wildlife zone */
+  (function () {
+    var spots = []; var s = 5;
+    function r() { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }
+    for (var i = 0; i < 22; i++) { var cl = i < 12 ? [-42, 40, 12, 14] : (i < 17 ? [-44, -26, 6, 6] : [-18, -9, 3, 2]); spots.push([cl[0] + (r() * 2 - 1) * cl[2], cl[1] + (r() * 2 - 1) * cl[3], r() * 6.28, i % 4 === 0]); }
+    var body = new THREE.InstancedMesh(new THREE.BoxGeometry(2, 1.1, 0.8), new THREE.MeshLambertMaterial({ color: 0xffffff }), spots.length);
+    var head = new THREE.InstancedMesh(new THREE.BoxGeometry(0.7, 1.5, 0.5), new THREE.MeshLambertMaterial({ color: 0xffffff }), spots.length);
+    var o = new THREE.Object3D(), c = new THREE.Color();
+    spots.forEach(function (p, i) {
+      o.position.set(p[0], 1.1, p[1]); o.rotation.set(0, p[2], 0); o.scale.set(1, 1, 1); o.updateMatrix(); body.setMatrixAt(i, o.matrix);
+      o.position.set(p[0] + Math.cos(p[2]) * 1.2, 1.9, p[1] - Math.sin(p[2]) * 1.2); o.updateMatrix(); head.setMatrixAt(i, o.matrix);
+      c.set(p[3] ? 0x3a2f28 : 0xb9855a); body.setColorAt(i, c); head.setColorAt(i, c);
+    });
+    body.castShadow = true; head.castShadow = true; scene.add(body); scene.add(head);
+  })();
+
+  /* buses and cars */
+  var busPath = new THREE.CatmullRomCurve3([
+    [-1.6, 136], [-1.6, 90], [-1.6, 50], [-1.6, 24],
+    [-9, 11], [-10, 0], [-6, -10], [4, -14], [14, -10], [18, 0], [14, 10], [4, 14],
+    [1.6, 24], [1.6, 50], [1.6, 90], [1.6, 136], [4, 143], [-4, 143]
+  ].map(function (p) { return new THREE.Vector3(p[0], 0.1, p[1]); }), true, 'centripetal');
+  var busLen = busPath.getLength();
+  var buses = [];
+  for (var bi = 0; bi < 3; bi++) {
+    var bus = new THREE.Group();
+    box(bus, 2.4, 2.2, 7, 0xe7b03a, 0, 0.4, 0); box(bus, 2.5, 0.8, 5.6, 0x5a7a8a, 0, 1.6, 0); box(bus, 2.5, 0.5, 7.1, 0xa8402a, 0, 0.1, 0);
+    scene.add(bus);
+    buses.push({ m: bus, u: bi / 3, speed: 9 + bi });
+  }
+  var busTan = new THREE.Vector3(), busPos = new THREE.Vector3();
+  function placeBus(b) {
+    var u = ((b.u % 1) + 1) % 1;
+    busPath.getPointAt(u, busPos); busPath.getTangentAt(u, busTan);
+    b.m.position.copy(busPos); b.m.rotation.y = Math.atan2(busTan.x, busTan.z);
+  }
+  buses.forEach(placeBus);
+
+  var carPath = new THREE.CatmullRomCurve3([
+    [28.4, 138], [28.4, 80], [28.4, 34], [31, 27], [31.6, 34], [31.6, 80], [31.6, 138], [34, 144], [26, 144]
+  ].map(function (p) { return new THREE.Vector3(p[0], 0.1, p[1]); }), true, 'centripetal');
+  var carLen = carPath.getLength(), cars = [], carCols = [0xd9d9d6, 0x2f5a8a, 0xb23a3a, 0xe9e3c9, 0x3d3d40];
+  for (var ci = 0; ci < 7; ci++) {
+    var car = new THREE.Group();
+    box(car, 1.8, 0.9, 3.8, carCols[ci % 5], 0, 0.3, 0); box(car, 1.6, 0.7, 2.0, 0x28313a, 0, 1.2, -0.1);
+    scene.add(car); cars.push({ m: car, u: ci / 7, speed: 10 + (ci % 3) * 2 });
+  }
+  var carTan = new THREE.Vector3(), carPos = new THREE.Vector3();
+  function placeCar(b) {
+    var u = ((b.u % 1) + 1) % 1;
+    carPath.getPointAt(u, carPos); carPath.getTangentAt(u, carTan);
+    b.m.position.copy(carPos); b.m.rotation.y = Math.atan2(carTan.x, carTan.z);
+  }
+  cars.forEach(placeCar);
+
+  /* ---------- road graph and walking routes ---------- */
+  var M_PER_UNIT = 13.3;
+  function segPt(ax, az, bx, bz, px, pz) {
+    var dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz;
+    var t = l2 ? ((px - ax) * dx + (pz - az) * dz) / l2 : 0; t = Math.max(0, Math.min(1, t));
+    return { x: ax + t * dx, z: az + t * dz };
+  }
+  function segInter(a, b) {
+    var x1 = a[0], z1 = a[1], x2 = a[2], z2 = a[3], x3 = b[0], z3 = b[1], x4 = b[2], z4 = b[3];
+    var d = (x2 - x1) * (z4 - z3) - (z2 - z1) * (x4 - x3); if (Math.abs(d) < 1e-9) return null;
+    var t = ((x3 - x1) * (z4 - z3) - (z3 - z1) * (x4 - x3)) / d, u = ((x3 - x1) * (z2 - z1) - (z3 - z1) * (x2 - x1)) / d, e = 0.001;
+    if (t < -e || t > 1 + e || u < -e || u > 1 + e) return null;
+    return { x: x1 + t * (x2 - x1), z: z1 + t * (z2 - z1) };
+  }
+  var nodes = [], adj = [], nodeIdx = {};
+  function nid(p) {
+    var k = Math.round(p.x * 100) + ',' + Math.round(p.z * 100);
+    if (!(k in nodeIdx)) { nodeIdx[k] = nodes.length; nodes.push({ x: p.x, z: p.z }); adj.push([]); }
+    return nodeIdx[k];
+  }
+  (function () {
+    var splits = roadSegs.map(function (s) { return [{ x: s[0], z: s[1] }, { x: s[2], z: s[3] }]; });
+    for (var i = 0; i < roadSegs.length; i++) for (var j = i + 1; j < roadSegs.length; j++) {
+      var p = segInter(roadSegs[i], roadSegs[j]); if (p) { splits[i].push(p); splits[j].push(p); }
+    }
+    landmarks.forEach(function (l) {
+      var best = 1e9, bq = null, bi = -1;
+      roadSegs.forEach(function (s, k) {
+        var q = segPt(s[0], s[1], s[2], s[3], l.x, l.z), d = (q.x - l.x) * (q.x - l.x) + (q.z - l.z) * (q.z - l.z);
+        if (d < best) { best = d; bq = q; bi = k; }
+      });
+      l.attach = bq; splits[bi].push(bq);
+    });
+    splits.forEach(function (pts, i) {
+      var s = roadSegs[i], dx = s[2] - s[0], dz = s[3] - s[1], l2 = dx * dx + dz * dz;
+      pts.sort(function (a, b) { return ((a.x - s[0]) * dx + (a.z - s[1]) * dz) / l2 - ((b.x - s[0]) * dx + (b.z - s[1]) * dz) / l2; });
+      for (var k = 0; k < pts.length - 1; k++) {
+        var a = nid(pts[k]), b = nid(pts[k + 1]); if (a === b) continue;
+        var w = Math.hypot(nodes[a].x - nodes[b].x, nodes[a].z - nodes[b].z);
+        adj[a].push([b, w]); adj[b].push([a, w]);
+      }
+    });
+    landmarks.forEach(function (l) { l.node = nid(l.attach); });
+  })();
+  function dijkstra(s, t) {
+    var n = nodes.length, dist = [], prev = [], done = [], i;
+    for (i = 0; i < n; i++) { dist[i] = Infinity; prev[i] = -1; done[i] = false; }
+    dist[s] = 0;
+    for (var it = 0; it < n; it++) {
+      var u = -1, best = Infinity;
+      for (i = 0; i < n; i++) if (!done[i] && dist[i] < best) { best = dist[i]; u = i; }
+      if (u < 0 || u === t) break;
+      done[u] = true;
+      for (var q = 0; q < adj[u].length; q++) { var e = adj[u][q], nd = dist[u] + e[1]; if (nd < dist[e[0]]) { dist[e[0]] = nd; prev[e[0]] = u; } }
+    }
+    if (dist[t] === Infinity) return null;
+    var path = [], c = t; while (c !== -1) { path.unshift(c); c = prev[c]; } return path;
+  }
+  var routeMat = new THREE.MeshBasicMaterial({ color: 0x14b8a6 });
+  var routeGroup = new THREE.Group(); scene.add(routeGroup);
+  var routePts = null, routeCum = [], routeLen = 0, walker = null;
+  function clearRoute() {
+    while (routeGroup.children.length) { var c = routeGroup.children[routeGroup.children.length - 1]; routeGroup.remove(c); if (c.geometry) c.geometry.dispose(); }
+    routePts = null; walker = null;
+  }
+  function ribbon(a, b, w) {
+    var dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz);
+    var m = new THREE.Mesh(new THREE.PlaneGeometry(len, w), routeMat);
+    m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.atan2(dz, dx); m.position.set((a.x + b.x) / 2, 0.4, (a.z + b.z) / 2); routeGroup.add(m);
+    var j = new THREE.Mesh(new THREE.CircleGeometry(w / 2, 14), routeMat); j.rotation.x = -Math.PI / 2; j.position.set(b.x, 0.4, b.z); routeGroup.add(j);
+  }
+  function showRoute(aId, bId) {
+    clearRoute();
+    var a = byId[aId], b = byId[bId]; if (!a || !b || a === b) return null;
+    var path = dijkstra(a.node, b.node); if (!path) return null;
+    var raw = [{ x: a.attach.x, z: a.attach.z }];
+    path.forEach(function (i) { raw.push({ x: nodes[i].x, z: nodes[i].z }); });
+    raw.push({ x: b.attach.x, z: b.attach.z });
+    var pts = [raw[0]];
+    for (var i = 1; i < raw.length; i++) if (Math.hypot(raw[i].x - pts[pts.length - 1].x, raw[i].z - pts[pts.length - 1].z) > 0.01) pts.push(raw[i]);
+    for (i = 0; i < pts.length - 1; i++) ribbon(pts[i], pts[i + 1], 1.6);
+    ribbon({ x: a.x, z: a.z }, pts[0], 0.6); ribbon(pts[pts.length - 1], { x: b.x, z: b.z }, 0.6);
+    routeCum = [0]; for (i = 1; i < pts.length; i++) routeCum.push(routeCum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
+    routeLen = routeCum[routeCum.length - 1]; routePts = pts;
+    [[a, 0x6b7a74], [b, 0x14b8a6]].forEach(function (e) {
+      var l = e[0], top = l.h + 5;
+      var pole = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, top, 6), new THREE.MeshBasicMaterial({ color: e[1] })); pole.position.set(l.x, top / 2, l.z); routeGroup.add(pole);
+      var ball = new THREE.Mesh(new THREE.SphereGeometry(1.5, 14, 10), new THREE.MeshBasicMaterial({ color: e[1] })); ball.position.set(l.x, top + 1, l.z); routeGroup.add(ball);
+    });
+    walker = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), new THREE.MeshBasicMaterial({ color: 0xffffff })); walker.position.y = 1.6; routeGroup.add(walker);
+    var minx = 1e9, maxx = -1e9, minz = 1e9, maxz = -1e9;
+    [{ x: a.x, z: a.z }, { x: b.x, z: b.z }].concat(pts).forEach(function (p) { minx = Math.min(minx, p.x); maxx = Math.max(maxx, p.x); minz = Math.min(minz, p.z); maxz = Math.max(maxz, p.z); });
+    goal.tx = (minx + maxx) / 2; goal.tz = (minz + maxz) / 2; goal.ty = 4; goal.phi = 0.9;
+    goal.dist = clamp(Math.max(maxx - minx, maxz - minz) * 1.7 + 50, 70, 480);
+    return Math.round((routeLen + Math.hypot(a.x - a.attach.x, a.z - a.attach.z) + Math.hypot(b.x - b.attach.x, b.z - b.attach.z)) * M_PER_UNIT);
+  }
+  function walkerAt(u) {
+    var i = 1; while (i < routeCum.length - 1 && routeCum[i] < u) i++;
+    var t = (u - routeCum[i - 1]) / ((routeCum[i] - routeCum[i - 1]) || 1), p = routePts[i - 1], q = routePts[i];
+    walker.position.x = p.x + (q.x - p.x) * t; walker.position.z = p.z + (q.z - p.z) * t;
+  }
+
+  /* ---------- environment (day / evening / theme) ---------- */
+  var hour = 15.5;
+  var KEYS = [
+    [0,    0x0a1022, 0x8aa4ff, 0.22, 0.35, 0x6f86c0, 0.42, 1],
+    [5.0,  0x141c38, 0x8aa4ff, 0.22, 0.38, 0x6f86c0, 0.45, 1],
+    [6.2,  0xf2a779, 0xffb06e, 0.60, 0.50, 0xf3cdb0, 0.75, 0.45],
+    [7.6,  0xbad4e6, 0xfff1d6, 0.80, 0.68, 0xffffff, 0.95, 0],
+    [12,   0xaed0e8, 0xffffff, 0.95, 0.75, 0xffffff, 1.00, 0],
+    [16,   0xb9d3e4, 0xfff0d2, 0.85, 0.70, 0xffffff, 0.98, 0],
+    [17.7, 0xf0b27c, 0xffa860, 0.75, 0.55, 0xf6d2b0, 0.80, 0.15],
+    [18.5, 0x5b4a6e, 0xff8a58, 0.40, 0.42, 0xa9a1c8, 0.55, 0.70],
+    [19.5, 0x1b2342, 0x8aa4ff, 0.24, 0.38, 0x6f86c0, 0.45, 1],
+    [24,   0x0a1022, 0x8aa4ff, 0.22, 0.35, 0x6f86c0, 0.42, 1]
+  ];
+  var nightF = 0;
+  function applyEnv() {
+    var i = 0; while (i < KEYS.length - 2 && hour > KEYS[i + 1][0]) i++;
+    var A = KEYS[i], B = KEYS[i + 1], t = clamp((hour - A[0]) / (B[0] - A[0]), 0, 1);
+    function lc(x, y) { return new THREE.Color(x).lerp(new THREE.Color(y), t); }
+    function ln(x, y) { return x + (y - x) * t; }
+    var sky = lc(A[1], B[1]), tint = ln(A[6], B[6]); nightF = ln(A[7], B[7]);
+    sun.color.copy(lc(A[2], B[2])); sun.intensity = ln(A[3], B[3]);
+    hemi.color.copy(lc(A[5], B[5])); hemi.intensity = ln(A[4], B[4]);
+    hemi.groundColor.set(0x6d7f5a).multiplyScalar(tint);
+    outerMat.color.set(cssVar('--ground') || '#6f8c5a').multiplyScalar(tint);
+    lawnMat.color.set(cssVar('--lawn') || '#9bb67f').multiplyScalar(tint);
+    if (hour < 5.6 || hour > 18.7) sun.position.set(-90, 110, 50);
+    else { var ang = ((hour - 6) / 12) * Math.PI; sun.position.set(Math.cos(ang) * 150, Math.max(22, Math.sin(ang) * 170), 60); }
+    winMats.forEach(function (m) { m.emissiveIntensity = nightF; });
+    lampMat.color.set(0xd8d8d0).lerp(new THREE.Color(0xffe6a0), nightF);
+    scene.background = sky; scene.fog = new THREE.Fog(sky.getHex(), 340, 900);
+  }
+  applyEnv();
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyEnv); } catch (e) {}
+  new MutationObserver(applyEnv).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  /* ---------- orbit camera ---------- */
+  var HOME = { tx: 8, ty: 4, tz: 10, theta: 0.5, phi: 1.0, dist: 400 };
+  var cam = { tx: HOME.tx, ty: HOME.ty, tz: HOME.tz, theta: HOME.theta, phi: HOME.phi, dist: HOME.dist };
+  var goal = { tx: HOME.tx, ty: HOME.ty, tz: HOME.tz, theta: HOME.theta, phi: HOME.phi, dist: HOME.dist };
+  var spin = false;
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function place() {
+    var sp = Math.sin(cam.phi), cp = Math.cos(cam.phi);
+    camera.position.set(cam.tx + cam.dist * sp * Math.sin(cam.theta), cam.ty + cam.dist * cp, cam.tz + cam.dist * sp * Math.cos(cam.theta));
+    camera.lookAt(cam.tx, cam.ty, cam.tz);
+  }
+
+  var pointers = {}, lastPinch = 0, moved = 0;
+  stage.addEventListener('pointerdown', function (e) {
+    if (e.target.closest('button')) return;
+    try { stage.setPointerCapture(e.pointerId); } catch (x) {}
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY, btn: e.button };
+    moved = 0; stage.classList.add('drag'); lastPinch = 0;
+  });
+  stage.addEventListener('pointermove', function (e) {
+    var p = pointers[e.pointerId]; if (!p) return;
+    var ids = Object.keys(pointers);
+    if (ids.length === 1) {
+      var dx = e.clientX - p.x, dy = e.clientY - p.y;
+      if (p.btn === 2) { panBy(dx, dy); p.x = e.clientX; p.y = e.clientY; moved += 10; return; }
+      goal.theta -= dx * 0.006; cam.theta = goal.theta;
+      goal.phi = clamp(goal.phi - dy * 0.005, street ? 1.25 : 0.2, street ? 2.0 : 1.45); cam.phi = goal.phi;
+      moved += Math.abs(dx) + Math.abs(dy);
+    } else if (ids.length === 2) {
+      var a = pointers[ids[0]], b = pointers[ids[1]];
+      if (ids[0] === String(e.pointerId)) a = { x: e.clientX, y: e.clientY }; else b = { x: e.clientX, y: e.clientY };
+      var d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (lastPinch && !street) { goal.dist = clamp(goal.dist * (lastPinch / d), 18, 560); cam.dist = goal.dist; }
+      lastPinch = d; moved += 10;
+    }
+    p.x = e.clientX; p.y = e.clientY;
+  });
+  function up(e) {
+    delete pointers[e.pointerId]; lastPinch = 0;
+    if (!Object.keys(pointers).length) stage.classList.remove('drag');
+    if (moved < 6 && e.type === 'pointerup' && e.button !== 2 && !e.target.closest('button')) pick(e.clientX, e.clientY);
+  }
+  stage.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  stage.addEventListener('pointerup', up);
+  stage.addEventListener('pointercancel', up);
+  stage.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    if (street) { walk(-e.deltaY * 0.03); return; }
+    goal.dist = clamp(goal.dist * Math.exp(e.deltaY * 0.001), 18, 560); cam.dist = goal.dist;
+  }, { passive: false });
+
+  var ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  function pick(cx, cy) {
+    var r = renderer.domElement.getBoundingClientRect();
+    ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, camera);
+    var best = null, bd = 1e9;
+    landmarks.forEach(function (l) {
+      var hits = ray.intersectObject(l.group, true);
+      if (hits.length && hits[0].distance < bd) { bd = hits[0].distance; best = l; }
+    });
+    if (best) select(best.id);
+  }
+
+  /* ---------- UI ---------- */
+  var GROUPS = ['Highlights', 'Academic', 'Student life', 'Hostels', 'Amenities & gates'];
+  var pinsEl = document.getElementById('pins'), chipsEl = document.getElementById('chips'), catsEl = document.getElementById('cats');
+  var card = document.getElementById('card'), hint = document.getElementById('hint');
+  var pinEls = {}, chipEls = {}, current = null, group = 'Highlights';
+
+  landmarks.forEach(function (l) {
+    var p = document.createElement('button'); p.className = 'pin'; p.textContent = l.name; p.tabIndex = -1;
+    p.addEventListener('click', function () { select(l.id); });
+    pinsEl.appendChild(p); pinEls[l.id] = p;
+  });
+  var catEls = {};
+  GROUPS.forEach(function (g) {
+    var b = document.createElement('button'); b.textContent = g; b.setAttribute('aria-pressed', String(g === group));
+    b.addEventListener('click', function () { group = g; renderChips(); GROUPS.forEach(function (k) { catEls[k].setAttribute('aria-pressed', String(k === g)); }); });
+    catsEl.appendChild(b); catEls[g] = b;
+  });
+  function renderChips() {
+    chipsEl.innerHTML = ''; chipEls = {};
+    landmarks.filter(function (l) { return l.groups.indexOf(group) >= 0; }).forEach(function (l) {
+      var c = document.createElement('button'); c.textContent = l.name; c.setAttribute('aria-pressed', String(l.id === current));
+      c.addEventListener('click', function () { select(l.id); });
+      chipsEl.appendChild(c); chipEls[l.id] = c;
+    });
+  }
+  renderChips();
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function select(id, fromTour) {
+    var l = byId[id]; if (!l) return;
+    if (!fromTour) tourStop();
+    current = id;
+    if (street) { goal.tx = l.x; goal.tz = l.z + l.r + 7; goal.ty = 2.2; goal.dist = 0.5; goal.phi = 1.72; goal.theta = 0; }
+    else { goal.tx = l.x; goal.ty = 4; goal.tz = l.z; goal.dist = l.dist; goal.phi = 0.95; goal.theta = cam.theta; }
+    spin = false; document.getElementById('btnSpin').setAttribute('aria-pressed', 'false');
+    card.hidden = false; hint.hidden = true;
+
+    // Study destination action button
+    var studyAction = '';
+    var study = STUDY_MAPPING[id];
+    if (study) {
+      var count = (window.STUDENT_COUNTS && window.STUDENT_COUNTS[study.id]) || 0;
+      var countText = count > 0 ? (count + ' student' + (count === 1 ? '' : 's') + ' studying') : 'Available study desks';
+      studyAction = '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
+        '<div style="font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:6px;">' +
+          '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;"></span>' +
+          '<span>' + countText + '</span>' +
+        '</div>' +
+        '<button type="button" id="btnEnterStudyRoom" style="background:#2d5a43;color:#ffffff;border:none;border-radius:8px;padding:7px 14px;font-weight:600;font-size:0.78rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(45,90,67,0.25);">' +
+          '<span>Enter ' + esc(study.name) + '</span> <span>&rarr;</span>' +
+        '</button>' +
+      '</div>';
+    }
+
+    card.innerHTML = '<span class="tag">' + esc(l.tag) + '</span><h2>' + esc(l.name) + '</h2><p>' + esc(l.text) + '</p>' + studyAction;
+
+    if (study) {
+      var enterBtn = document.getElementById('btnEnterStudyRoom');
+      if (enterBtn) {
+        enterBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (window.parent) {
+            window.parent.postMessage({ type: 'SAHEJ_ENTER_LOCATION', locationId: study.id }, '*');
+          }
+        });
+      }
+    }
+
+    Object.keys(pinEls).forEach(function (k) { pinEls[k].classList.toggle('on', k === id); });
+    Object.keys(chipEls).forEach(function (k) { chipEls[k].setAttribute('aria-pressed', String(k === id)); });
+  }
+
+  document.getElementById('btnSpin').addEventListener('click', function () { spin = !spin; this.setAttribute('aria-pressed', String(spin)); });
+  var showLabels = true;
+  document.getElementById('btnLabels').addEventListener('click', function () { showLabels = !showLabels; this.setAttribute('aria-pressed', String(showLabels)); pinsEl.hidden = !showLabels; });
+  document.getElementById('btnReset').addEventListener('click', function () {
+    for (var k in HOME) goal[k] = HOME[k];
+    tourStop(); if (street) { street = false; btnStreet.setAttribute('aria-pressed', 'false'); document.getElementById('walkpad').hidden = true; } current = null; card.hidden = true; hint.hidden = false;
+    Object.keys(pinEls).forEach(function (k) { pinEls[k].classList.remove('on'); });
+    Object.keys(chipEls).forEach(function (k) { chipEls[k].setAttribute('aria-pressed', 'false'); });
+  });
+
+  // Switch to 2D Map button
+  var btnReturn2D = document.getElementById('btnReturn2D');
+  if (btnReturn2D) {
+    btnReturn2D.addEventListener('click', function () {
+      if (window.parent) {
+        window.parent.postMessage({ type: 'SAHEJ_SWITCH_VIEW', view: '2d' }, '*');
+      }
+    });
+  }
+
+  /* panels, layers, time of day, street view, keyboard, detail */
+  Object.keys({ btnLayersP: 1, btnTimeP: 1, btnAboutP: 1 }).forEach(function (bid) {
+    var pid = { btnLayersP: 'layersPanel', btnTimeP: 'timePanel', btnAboutP: 'aboutPanel' }[bid];
+    var btn = document.getElementById(bid), pan = document.getElementById(pid);
+    btn.addEventListener('click', function () { var open = pan.hidden; pan.hidden = !open; btn.setAttribute('aria-pressed', String(open)); });
+  });
+  function toggleBtn(id, fn) {
+    var b = document.getElementById(id);
+    b.addEventListener('click', function () { var on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on)); fn(on); });
+  }
+  toggleBtn('btnBoundary', function (on) { for (var i = wallFrom; i < wallTo; i++) scene.children[i].visible = on; });
+  toggleBtn('btnTraffic', function (on) { buses.forEach(function (b) { b.m.visible = on; }); cars.forEach(function (c) { c.m.visible = on; }); });
+  toggleBtn('btnLamps', function (on) { lampMeshes.forEach(function (m) { m.visible = on; }); });
+
+  var clockEl = document.getElementById('clock'), tod = document.getElementById('tod'), presetBtns = Array.prototype.slice.call(document.querySelectorAll('#timePanel [data-h]'));
+  function setHour(h) {
+    hour = ((h % 24) + 24) % 24; tod.value = hour; applyEnv();
+    var hh = Math.floor(hour), mm = Math.round((hour - hh) * 60); if (mm === 60) { hh = (hh + 1) % 24; mm = 0; }
+    clockEl.textContent = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm + ' IST';
+    presetBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(Math.abs(parseFloat(b.getAttribute('data-h')) - hour) < 0.3)); });
+  }
+  tod.addEventListener('input', function () { setHour(parseFloat(tod.value)); });
+  presetBtns.forEach(function (b) { b.addEventListener('click', function () { setHour(parseFloat(b.getAttribute('data-h'))); }); });
+  setHour(15.5);
+
+  var street = false, savedView = null, btnStreet = document.getElementById('btnStreet');
+  function setStreet(on) {
+    if (on === street) return;
+    street = on; btnStreet.setAttribute('aria-pressed', String(on)); document.getElementById('walkpad').hidden = !on;
+    if (on) {
+      tourStop();
+      savedView = { tx: goal.tx, ty: goal.ty, tz: goal.tz, theta: goal.theta, phi: goal.phi, dist: goal.dist };
+      spin = false; document.getElementById('btnSpin').setAttribute('aria-pressed', 'false');
+      var l = current ? byId[current] : null;
+      goal.tx = l ? l.x : 15; goal.tz = l ? l.z + l.r + 7 : 172; goal.ty = 2.2; goal.dist = 0.5; goal.phi = 1.72; goal.theta = 0;
+    } else if (savedView) { for (var k in savedView) goal[k] = savedView[k]; }
+  }
+  function exitStreet() { if (street) setStreet(false); }
+  btnStreet.addEventListener('click', function () { setStreet(!street); });
+
+  var keys = {};
+  window.addEventListener('keydown', function (e) {
+    if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName || '') || e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = (e.key || '').toLowerCase();
+    if (k.length === 1 && 'wasdqezx'.indexOf(k) >= 0) { keys[k] = true; e.preventDefault(); }
+  });
+  window.addEventListener('keyup', function (e) { delete keys[(e.key || '').toLowerCase()]; });
+  window.addEventListener('blur', function () { keys = {}; });
+  [['padW', 'w'], ['padA', 'a'], ['padS', 's'], ['padD', 'd']].forEach(function (p) {
+    var b = document.getElementById(p[0]);
+    b.addEventListener('pointerdown', function (e) { e.preventDefault(); keys[p[1]] = true; });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { delete keys[p[1]]; }); });
+  });
+  function panBy(dx, dy) {
+    var k = street ? 0.05 : cam.dist * 0.0018, rx = Math.cos(cam.theta), rz = -Math.sin(cam.theta), fx = -Math.sin(cam.theta), fz = -Math.cos(cam.theta);
+    goal.tx += (-rx * dx + fx * dy) * k; goal.tz += (-rz * dx + fz * dy) * k; cam.tx = goal.tx; cam.tz = goal.tz;
+  }
+  function walk(a) { goal.tx += -Math.sin(cam.theta) * a; goal.tz += -Math.cos(cam.theta) * a; cam.tx = goal.tx; cam.tz = goal.tz; }
+
+  var detailSel = document.getElementById('detail');
+  function setDetail(mode) {
+    var m = mode === 'auto' ? (Math.min(window.innerWidth, window.innerHeight) < 600 ? 'med' : 'high') : mode;
+    var cfg = { low: { pr: 1, sh: false, tr: 0.3 }, med: { pr: 1.5, sh: true, tr: 0.65 }, high: { pr: 2, sh: true, tr: 1 } }[m];
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cfg.pr)); resize();
+    sun.castShadow = cfg.sh;
+    trunks.count = crowns.count = Math.floor(treePts.length * cfg.tr);
+  }
+  detailSel.addEventListener('change', function () { setDetail(detailSel.value); });
+  var emblemFile = document.getElementById('emblemFile');
+  emblemFile.addEventListener('change', function () {
+    var f = emblemFile.files && emblemFile.files[0]; if (!f || !emblemCtl) return;
+    var rd = new FileReader();
+    rd.onload = function () { var img = new Image(); img.onload = function () { emblemCtl.setImage(img); }; img.src = rd.result; };
+    rd.readAsDataURL(f);
+  });
+  document.getElementById('emblemReset').addEventListener('click', function () { if (emblemCtl) emblemCtl.reset(); emblemFile.value = ''; });
+
+  /* search */
+  var qEl = document.getElementById('q'), qres = document.getElementById('qres');
+  function runSearch() {
+    var s = qEl.value.trim().toLowerCase(); qres.innerHTML = '';
+    if (!s) { qres.hidden = true; return; }
+    var hits = landmarks.filter(function (l) { return l.name.toLowerCase().indexOf(s) >= 0 || l.tag.toLowerCase().indexOf(s) >= 0; }).slice(0, 7);
+    if (!hits.length) { qres.innerHTML = '<button disabled>No match</button>'; qres.hidden = false; return; }
+    hits.forEach(function (l) {
+      var b = document.createElement('button'); b.innerHTML = esc(l.name) + '<small>' + esc(l.tag) + '</small>';
+      b.addEventListener('click', function () { select(l.id); qEl.value = ''; qres.hidden = true; });
+      qres.appendChild(b);
+    });
+    qres.hidden = false;
+  }
+  qEl.addEventListener('input', runSearch);
+  qEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { var f = qres.querySelector('button:not([disabled])'); if (f) f.click(); }
+    if (e.key === 'Escape') { qEl.value = ''; qres.hidden = true; }
+  });
+  document.addEventListener('pointerdown', function (e) { if (!e.target.closest('.search')) qres.hidden = true; });
+
+  /* walking route panel */
+  var rFrom = document.getElementById('rFrom'), rTo = document.getElementById('rTo'), rInfo = document.getElementById('rInfo');
+  landmarks.slice().sort(function (a, b) { return a.name < b.name ? -1 : 1; }).forEach(function (l) {
+    [rFrom, rTo].forEach(function (sel) { var o = document.createElement('option'); o.value = l.id; o.textContent = l.name; sel.appendChild(o); });
+  });
+  rFrom.value = 'gate'; rTo.value = 'library';
+  var btnRoute = document.getElementById('btnRoute'), routePanel = document.getElementById('routePanel');
+  btnRoute.addEventListener('click', function () {
+    routePanel.hidden = !routePanel.hidden; btnRoute.setAttribute('aria-pressed', String(!routePanel.hidden));
+    if (routePanel.hidden) { clearRoute(); rInfo.textContent = ''; }
+  });
+  document.getElementById('rGo').addEventListener('click', function () {
+    tourStop();
+    exitStreet();
+    if (rFrom.value === rTo.value) { rInfo.textContent = 'Pick two different places.'; return; }
+    var m = showRoute(rFrom.value, rTo.value);
+    if (m == null) { rInfo.textContent = 'No route found.'; return; }
+    spin = false; document.getElementById('btnSpin').setAttribute('aria-pressed', 'false');
+    rInfo.textContent = '≈ ' + (m >= 1000 ? (m / 1000).toFixed(1) + ' km' : m + ' m') + ' · about ' + Math.max(1, Math.round(m / 80)) + ' min on foot';
+  });
+  document.getElementById('rSwap').addEventListener('click', function () { var t = rFrom.value; rFrom.value = rTo.value; rTo.value = t; });
+  document.getElementById('rClear').addEventListener('click', function () { clearRoute(); rInfo.textContent = ''; });
+
+  /* guided tour */
+  var TOUR = ['gate', 'gc', 'admin', 'library', 'oat', 'crc', 'nac', 'stadium', 'lake', 'wild', 'himalaya', 'h-mandakini-a', 'park'];
+  var tourI = -1, tourTimer = null, tourBar = document.getElementById('tourbar'), btnTour = document.getElementById('btnTour');
+  function tourGo(i) {
+    tourI = (i + TOUR.length) % TOUR.length;
+    select(TOUR[tourI], true);
+    document.getElementById('tourText').textContent = 'Tour · stop ' + (tourI + 1) + ' of ' + TOUR.length;
+    clearTimeout(tourTimer); tourTimer = setTimeout(function () { tourGo(tourI + 1); }, 8000);
+  }
+  function tourStop() {
+    clearTimeout(tourTimer); tourTimer = null;
+    if (tourI >= 0) { tourI = -1; tourBar.hidden = true; btnTour.setAttribute('aria-pressed', 'false'); }
+  }
+  btnTour.addEventListener('click', function () {
+    if (tourI >= 0) { tourStop(); return; }
+    exitStreet(); clearRoute(); routePanel.hidden = true; btnRoute.setAttribute('aria-pressed', 'false'); rInfo.textContent = '';
+    tourBar.hidden = false; btnTour.setAttribute('aria-pressed', 'true'); tourGo(0);
+  });
+  document.getElementById('tourNext').addEventListener('click', function () { tourGo(tourI + 1); });
+  document.getElementById('tourPrev').addEventListener('click', function () { tourGo(tourI - 1); });
+  document.getElementById('tourEnd').addEventListener('click', tourStop);
+
+  function resize() {
+    var w = stage.clientWidth, h = stage.clientHeight;
+    renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize); resize();
+
+  var v = new THREE.Vector3(), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (spin && !reduce && !Object.keys(pointers).length) { goal.theta += dt * 0.12; cam.theta = goal.theta; }
+    var k = reduce ? 1 : 1 - Math.pow(0.0008, dt);
+    cam.tx += (goal.tx - cam.tx) * k; cam.ty += (goal.ty - cam.ty) * k; cam.tz += (goal.tz - cam.tz) * k;
+    cam.dist += (goal.dist - cam.dist) * k; cam.phi += (goal.phi - cam.phi) * k;
+    cam.theta += (goal.theta - cam.theta) * k;
+    if (keys.w || keys.s || keys.a || keys.d || keys.q || keys.e || keys.z || keys.x) {
+      var sp = (street ? 12 : Math.max(20, cam.dist * 0.5)) * dt;
+      var fx = -Math.sin(cam.theta), fz = -Math.cos(cam.theta), rx = Math.cos(cam.theta), rz = -Math.sin(cam.theta), mx = 0, mz = 0;
+      if (keys.w) { mx += fx; mz += fz; } if (keys.s) { mx -= fx; mz -= fz; }
+      if (keys.d) { mx += rx; mz += rz; } if (keys.a) { mx -= rx; mz -= rz; }
+      goal.tx += mx * sp; goal.tz += mz * sp; cam.tx = goal.tx; cam.tz = goal.tz;
+      goal.ty = clamp(goal.ty + ((keys.e ? 1 : 0) - (keys.q ? 1 : 0)) * sp, street ? 0.8 : 0.5, 120); cam.ty = goal.ty;
+      goal.theta += ((keys.z ? 1 : 0) - (keys.x ? 1 : 0)) * 1.3 * dt; cam.theta = goal.theta;
+    }
+    place();
+    if (!reduce) { buses.forEach(function (b) { b.u += (b.speed * dt) / busLen; placeBus(b); }); cars.forEach(function (b) { b.u += (b.speed * dt) / carLen; placeCar(b); }); }
+    if (showLabels) {
+      var w = stage.clientWidth, h = stage.clientHeight;
+      landmarks.forEach(function (l) {
+        var el = pinEls[l.id], show = street ? ((l.x - cam.tx) * (l.x - cam.tx) + (l.z - cam.tz) * (l.z - cam.tz) < 6400) : cam.dist < l.pz;
+        if (show && l.hostel) { var dx = l.x - cam.tx, dz = l.z - cam.tz; show = dx * dx + dz * dz < 45 * 45; }
+        if (l.id === current) show = true;
+        if (!show) { el.style.visibility = 'hidden'; return; }
+        v.set(l.x, l.h + 3, l.z).project(camera);
+        if (v.z > 1) { el.style.visibility = 'hidden'; return; }
+        el.style.visibility = 'visible';
+        el.style.transform = 'translate(' + ((v.x * 0.5 + 0.5) * w).toFixed(1) + 'px,' + ((-v.y * 0.5 + 0.5) * h).toFixed(1) + 'px) translate(-50%,-100%)';
+      });
+    }
+    if (walker && routePts && !reduce) { routeU = (routeU + 16 * dt) % routeLen; walkerAt(routeU); }
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  setDetail('auto');
+
+  /* loading screen */
+  (function () {
+    var ld = document.getElementById('loader'), bar = document.getElementById('ldBar'), txt = document.getElementById('ldTxt');
+    var stages = ['Laying out the ground', 'Raising the buildings', 'Planting the trees', 'Opening the gates'], t0 = performance.now();
+    function tick(n) {
+      var p = Math.min(1, (n - t0) / 900);
+      bar.style.width = (p * 100).toFixed(0) + '%';
+      txt.textContent = stages[Math.min(3, Math.floor(p * 4))] + '… ' + Math.round(p * 100) + '%';
+      if (p < 1) requestAnimationFrame(tick); else { ld.classList.add('done'); setTimeout(function () { ld.remove(); }, 600); }
+    }
+    requestAnimationFrame(tick);
+  })();
+
+  // Parent postMessage integration for Sahej-Shala
+  window.addEventListener('message', function (ev) {
+    if (!ev.data) return;
+    if (ev.data.type === 'SET_TIME_OF_DAY') {
+      var todMap = { 'day': 12.5, 'sunset': 17.7, 'night': 20.5 };
+      if (todMap[ev.data.timeOfDay] !== undefined) {
+        setHour(todMap[ev.data.timeOfDay]);
+      }
+    }
+    if (ev.data.type === 'SET_STUDENT_COUNTS') {
+      window.STUDENT_COUNTS = ev.data.counts || {};
+      if (current) select(current);
+    }
+    if (ev.data.type === 'FOCUS_LOCATION' && ev.data.locationId) {
+      var reverseMap = {
+        'library': 'library',
+        'lhc': 'crc',
+        'banyan': 'wild',
+        'oat': 'oat',
+        'cafe': 'tiffany',
+        'park': 'lake',
+        'gc': 'gc'
+      };
+      var targetId = reverseMap[ev.data.locationId] || ev.data.locationId;
+      if (byId[targetId]) select(targetId);
+    }
+  });
+
+  // Signal parent that 3D canvas is ready
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'SAHEJ_3D_READY' }, '*');
+  }
+})();
+</script>
+</body>
+</html>

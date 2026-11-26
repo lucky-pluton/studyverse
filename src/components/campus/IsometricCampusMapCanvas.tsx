@@ -393,7 +393,7 @@ export const IsometricCampusMapCanvas: React.FC<IsometricCampusMapCanvasProps> =
              ===================================================================== */}
           <img
             src={campusRoundaboutMap}
-            alt="Studyverse Campus Map"
+            alt="Sahej-Shala Campus Map"
             className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
             style={{ imageRendering: '-webkit-optimize-contrast' }}
           />

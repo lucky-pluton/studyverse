@@ -99,7 +99,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-serif-title text-sm sm:text-base font-bold tracking-wider text-white">
-                  STUDYVERSE
+                  SAHEJ-SHALA
                 </span>
                 <span className="text-[10px] bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">
                   IIT Madras
@@ -163,7 +163,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
 
         {/* Bottom Footer Note */}
         <footer className="relative z-10 px-6 py-4 text-center text-[11px] text-white/60 drop-shadow-sm">
-          Studyverse — IIT Madras Virtual Campus Simulation • For quiet companions studying together everywhere
+          Sahej-Shala — IIT Madras Virtual Campus Simulation • For quiet companions studying together everywhere
         </footer>
       </div>
     );
@@ -193,7 +193,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
               🏛️
             </span>
             <span className="font-serif-title text-sm font-semibold tracking-wider text-[#35302b]">
-              STUDYVERSE
+              SAHEJ-SHALA
             </span>
           </div>
 
@@ -219,7 +219,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
             <div className="text-center space-y-2">
               <span className="text-xs font-semibold uppercase tracking-widest text-[#786b5e] inline-flex items-center gap-1.5 bg-[#f4ebe0] px-3 py-1 rounded-full">
                 <Sparkles className="w-3.5 h-3.5 text-[#b2895b]" />
-                Welcome to Studyverse • IIT Madras Campus
+                Welcome to Sahej-Shala • IIT Madras Campus
               </span>
               <h2 className="font-serif-title text-2xl sm:text-3xl font-bold text-[#2a2622]">
                 What should we call you?

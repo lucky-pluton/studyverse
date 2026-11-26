@@ -173,7 +173,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOi...your-anon-key...`;
 
             <p className="text-xs leading-relaxed text-[#595045]">
               {isSupabase
-                ? 'Your Studyverse instance is connected to Supabase Realtime. Students on different devices anywhere in the world share seats, avatars, and timers simultaneously.'
+                ? 'Your Sahej-Shala instance is connected to Supabase Realtime. Students on different devices anywhere in the world share seats, avatars, and timers simultaneously.'
                 : isWebRtc
                 ? 'Cross-device multiplayer is active via WebRTC peer-to-peer data channels coordinated over standard Port 443 WSS relays. Works across mobile phones, laptops, campus Wi-Fi, and incognito windows.'
                 : isCloudRelay

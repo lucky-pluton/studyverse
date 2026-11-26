@@ -204,7 +204,7 @@ export const SessionTimeDisplay: React.FC<{
   return (
     <div
       className={`inline-flex items-center gap-1.5 text-xs font-mono-timer bg-[#f4efe6] text-[#4f463f] px-2.5 py-1 rounded-full border border-[#ded5c7] shadow-inner ${className}`}
-      title="Total time spent in Studyverse this session"
+      title="Total time spent in Sahej-Shala this session"
     >
       <Clock className="w-3.5 h-3.5 text-[#8a7258]" />
       <span className="font-semibold text-xs">{displayTime}</span>

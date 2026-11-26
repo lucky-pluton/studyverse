@@ -1,4 +1,4 @@
-# 🏛️ STUDYVERSE — IIT Madras Virtual Campus
+# 🏛️ SAHEJ-SHALA — IIT Madras Virtual Campus
 
 [![Deploy to GitHub Pages](https://github.com/lucky-pluton/studyverse/actions/workflows/deploy.yml/badge.svg)](https://github.com/lucky-pluton/studyverse/actions/workflows/deploy.yml)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-2ea44f?style=flat&logo=github)](https://lucky-pluton.github.io/studyverse/)
@@ -10,7 +10,7 @@
 
 A tranquil, multiplayer virtual campus simulation inspired by the lush green grounds of **IIT Madras**, where online students study alongside other students in ambient, silent companionship.
 
-Studyverse recreates the feeling of being on a serene university campus: sitting in the iconic Central Library, preparing lecture revisions in the Lecture Hall Complex (LHC), studying quietly beneath the ancient Banyan Tree, or spending a peaceful afternoon at the Open Air Theatre (OAT).
+Sahej-Shala recreates the feeling of being on a serene university campus: sitting in the iconic Central Library, preparing lecture revisions in the Lecture Hall Complex (LHC), studying quietly beneath the ancient Banyan Tree, or spending a peaceful afternoon at the Open Air Theatre (OAT).
 
 This is **not** a video conferencing application, social media platform, or conventional productivity dashboard. It is an ambient virtual world designed around:
 - **Silent companionship & mutual accountability**

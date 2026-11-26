@@ -3,7 +3,8 @@ import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyve
 import { VERIFIED_IITM_UPCOMING_DESTINATIONS } from '../../constants/locations';
 import { CampusInfoPanel } from './CampusInfoPanel';
 import { IsometricCampusMapCanvas } from './IsometricCampusMapCanvas';
-import { Compass } from 'lucide-react';
+import { ThreeCampusView } from '../three/ThreeCampusView';
+import { Compass, Layers, Globe } from 'lucide-react';
 
 interface CampusMapProps {
   students: StudentPresence[];
@@ -20,19 +21,76 @@ export const CampusMap: React.FC<CampusMapProps> = ({
 }) => {
   const [comingSoonModal, setComingSoonModal] = useState<typeof VERIFIED_IITM_UPCOMING_DESTINATIONS[0] | null>(null);
   const [isQuickListOpen, setIsQuickListOpen] = useState(false);
+  // When entering the campus it should show 2D only; 3D can be seen when clicked
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+
+  const handleSetViewMode = (mode: '2d' | '3d') => {
+    setViewMode(mode);
+  };
 
   return (
-    <div className="relative w-full h-[calc(100dvh-5.5rem)] sm:h-[calc(100dvh-6rem)] overflow-hidden flex flex-col select-none">
+    <div className="relative w-full h-full overflow-hidden flex flex-col select-none">
       {/* =========================================================================
-          1. FULL-SCREEN ISOMETRIC CAMPUS MAP VIEWPORT (HERO ELEMENT)
+          VIEW MODE TOGGLE: [ 🗺️ 2D Map | 🌐 3D Campus ]
+         ========================================================================= */}
+      <div
+        className="fixed top-18 sm:top-20 left-3 sm:left-6 z-40 flex items-center bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-[#cbe1d5] shadow-lg hover:shadow-xl transition-all"
+        role="group"
+        aria-label="Campus View Mode"
+      >
+        <button
+          type="button"
+          data-testid="view-mode-2d"
+          onClick={() => handleSetViewMode('2d')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            viewMode === '2d'
+              ? 'bg-[#2d5a43] text-white shadow-xs'
+              : 'text-[#354f40] hover:bg-[#edf5f0]'
+          }`}
+          title="Switch to 2D Illustrated Map"
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>2D Map</span>
+        </button>
+        <button
+          type="button"
+          data-testid="view-mode-3d"
+          onClick={() => handleSetViewMode('3d')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            viewMode === '3d'
+              ? 'bg-[#2d5a43] text-white shadow-xs'
+              : 'text-[#354f40] hover:bg-[#edf5f0]'
+          }`}
+          title="Switch to Interactive 3D Campus"
+        >
+          <Globe className="w-3.5 h-3.5" />
+          <span>3D Campus</span>
+          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-400 text-amber-950 leading-none">
+            3D
+          </span>
+        </button>
+      </div>
+
+      {/* =========================================================================
+          1. FULL-SCREEN CAMPUS VIEWPORT (3D Interactive Model or 2D Canvas)
          ========================================================================= */}
       <div className="w-full h-full flex-1 relative overflow-hidden">
-        <IsometricCampusMapCanvas
-          students={students}
-          currentUser={currentUser}
-          onEnterLocation={onEnterLocation}
-          timeOfDay={timeOfDay}
-        />
+        {viewMode === '3d' ? (
+          <ThreeCampusView
+            students={students}
+            currentUser={currentUser}
+            onEnterLocation={onEnterLocation}
+            timeOfDay={timeOfDay}
+            onSwitchViewMode={handleSetViewMode}
+          />
+        ) : (
+          <IsometricCampusMapCanvas
+            students={students}
+            currentUser={currentUser}
+            onEnterLocation={onEnterLocation}
+            timeOfDay={timeOfDay}
+          />
+        )}
       </div>
 
       {/* =========================================================================
@@ -42,7 +100,7 @@ export const CampusMap: React.FC<CampusMapProps> = ({
         type="button"
         data-test-id="quick-list-toggle"
         onClick={() => setIsQuickListOpen((prev) => !prev)}
-        className="fixed right-3 sm:right-4 top-28 sm:top-32 z-40 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-2xl bg-white/95 hover:bg-white text-[#1f3529] backdrop-blur-md border border-[#cbe1d5] shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 group"
+        className="fixed right-3 sm:right-4 top-18 sm:top-20 z-40 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-2xl bg-white/95 hover:bg-white text-[#1f3529] backdrop-blur-md border border-[#cbe1d5] shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer hover:scale-105 active:scale-95 group"
         title={isQuickListOpen ? 'Close Campus Quick List' : 'Open Campus Census & Quick List'}
         aria-label="Toggle Campus Quick List"
       >
@@ -56,11 +114,11 @@ export const CampusMap: React.FC<CampusMapProps> = ({
       </button>
 
       {/* =========================================================================
-          4. FLOATING EXPANDABLE QUICK LIST SIDE DRAWER (Overlays without resizing campus)
+          3. FLOATING EXPANDABLE QUICK LIST SIDE DRAWER
          ========================================================================= */}
       <div
         data-test-id="quick-list-drawer"
-        className={`fixed top-28 sm:top-32 right-3 sm:right-4 bottom-4 w-96 max-w-[calc(100vw-1.5rem)] z-50 transition-all duration-300 ease-out transform ${
+        className={`fixed top-18 sm:top-20 right-3 sm:right-4 bottom-4 w-96 max-w-[calc(100vw-1.5rem)] z-50 transition-all duration-300 ease-out transform ${
           isQuickListOpen
             ? 'translate-x-0 opacity-100 pointer-events-auto'
             : 'translate-x-[115%] opacity-0 pointer-events-none'
@@ -71,7 +129,7 @@ export const CampusMap: React.FC<CampusMapProps> = ({
           onEnterLocation={onEnterLocation}
           onClose={() => setIsQuickListOpen(false)}
           defaultExpanded={true}
-          className="h-full max-h-[calc(100dvh-9rem)] overflow-y-auto backdrop-blur-lg bg-[#fffdfa]/95 border-2 border-[#d5e2d9] shadow-2xl rounded-3xl"
+          className="h-full max-h-[calc(100dvh-7rem)] overflow-y-auto backdrop-blur-lg bg-[#fffdfa]/95 border-2 border-[#d5e2d9] shadow-2xl rounded-3xl"
         />
       </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Volume2,
   VolumeX,
@@ -7,7 +7,6 @@ import {
   Sunset,
   Moon,
   LogOut,
-  MapPin,
   Wifi,
   TrendingUp,
   X,
@@ -15,6 +14,8 @@ import {
   Compass,
   Maximize,
   Minimize,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyverse';
 import { ALL_CAMPUS_NAV_ITEMS, type CampusNavigationItem } from '../../constants/locations';
@@ -44,6 +45,74 @@ interface NavbarProps {
   onEditAvatar?: () => void;
 }
 
+interface LocationOption {
+  id: LocationId;
+  name: string;
+  icon: string;
+  category: string;
+  tagline: string;
+  statKey: keyof NavbarProps['stats'];
+}
+
+const SEVEN_CAMPUS_LOCATIONS: LocationOption[] = [
+  {
+    id: 'library',
+    name: 'Central Library',
+    icon: '🏛️',
+    category: 'Academic',
+    tagline: 'Quiet reference stacks & desks',
+    statKey: 'libraryCount',
+  },
+  {
+    id: 'lhc',
+    name: 'Lecture Hall Complex',
+    icon: '🎓',
+    category: 'Academic',
+    tagline: 'Tiered amphitheatre desks',
+    statKey: 'lhcCount',
+  },
+  {
+    id: 'banyan',
+    name: 'Banyan Tree',
+    icon: '🌳',
+    category: 'Outdoor',
+    tagline: 'Ancient shady canopy grove',
+    statKey: 'banyanCount',
+  },
+  {
+    id: 'oat',
+    name: 'Open Air Theatre',
+    icon: '🎭',
+    category: 'Iconic Landmark',
+    tagline: 'Open amphitheatre tiers',
+    statKey: 'oatCount',
+  },
+  {
+    id: 'cafe',
+    name: 'Campus Café',
+    icon: '☕',
+    category: 'Cafeteria',
+    tagline: 'Coffee tables & casual focus',
+    statKey: 'cafeCount',
+  },
+  {
+    id: 'park',
+    name: 'Sangam Gardens',
+    icon: '🌿',
+    category: 'Outdoor',
+    tagline: 'Garden pavilion & flower benches',
+    statKey: 'parkCount',
+  },
+  {
+    id: 'gc',
+    name: 'Gajendra Circle',
+    icon: '🐘',
+    category: 'Iconic Landmark',
+    tagline: 'Elephant statue plaza benches',
+    statKey: 'gcCount',
+  },
+];
+
 export const Navbar: React.FC<NavbarProps> = ({
   currentLocation,
   onNavigate,
@@ -62,12 +131,39 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [showConnectionModal, setShowConnectionModal] = useState(false);
   const [selectedUpcomingItem, setSelectedUpcomingItem] = useState<CampusNavigationItem | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(typeof document !== 'undefined' ? !!document.fullscreenElement : false);
+  const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', handleFsChange);
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
+
+  // Close dropdown on click outside or Escape key
+  useEffect(() => {
+    if (!isLocationDropdownOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsLocationDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsLocationDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isLocationDropdownOpen]);
 
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -99,44 +195,217 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const isAtCampus = currentLocation === 'campus' || currentLocation === 'city';
+  const activeStudyLoc = SEVEN_CAMPUS_LOCATIONS.find((loc) => loc.id === currentLocation);
+
+  const currentDisplay = isAtCampus
+    ? {
+        name: 'Campus Map',
+        icon: '🗺️',
+        count: stats.totalOnline,
+      }
+    : {
+        name: activeStudyLoc?.name || 'Central Library',
+        icon: activeStudyLoc?.icon || '🏛️',
+        count: activeStudyLoc ? stats[activeStudyLoc.statKey] : 0,
+      };
 
   return (
     <>
       <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#faf7f2]/95 border-b border-[#dce7e1] shadow-2xs transition-colors">
-        {/* ROW 1: BRAND LOGO + GLOBAL AUDIO / DND / STATS / TIME / USER PROFILE */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
-          {/* Logo & Campus Title */}
-          <div className="flex items-center gap-3">
+        {/* ROW 1: BRAND LOGO + COMPACT LOCATION SELECTOR + ACTIONS */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+          {/* Left: Brand Logo & Compact Location Dropdown */}
+          <div className="flex items-center gap-1.5 sm:gap-3.5 min-w-0">
+            {/* Logo & Campus Title Button */}
             <button
               onClick={() => onNavigate('campus')}
-              className="group flex items-center gap-2.5 text-left focus:outline-hidden cursor-pointer"
+              className="group flex items-center gap-2 sm:gap-2.5 text-left focus:outline-hidden cursor-pointer shrink-0"
               title="Return to Campus Map Overview"
             >
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#2d5a43] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#2d5a43] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform shrink-0">
                 <span className="font-serif-title text-sm sm:text-base font-bold">🏛️</span>
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <div className="flex items-center gap-1.5">
                   <span className="font-serif-title font-bold text-sm sm:text-base tracking-wide text-[#1b3326] group-hover:text-[#2d5a43] transition-colors">
-                    STUDYVERSE
+                    SAHEJ-SHALA
                   </span>
-                  <span className="text-[10px] bg-[#dbe8e0] text-[#1b432e] font-semibold px-1.5 py-0.2 rounded-md">
+                  <span className="hidden md:inline-block text-[10px] bg-[#dbe8e0] text-[#1b432e] font-semibold px-1.5 py-0.2 rounded-md">
                     IIT MADRAS
                   </span>
                 </div>
-                <span className="hidden sm:block text-[9px] uppercase font-bold tracking-widest text-[#698072]">
+                <span className="hidden md:block text-[9px] uppercase font-bold tracking-widest text-[#698072]">
                   Virtual Campus Simulation
                 </span>
               </div>
             </button>
+
+            {/* Subtle vertical separator */}
+            <div className="hidden sm:block h-6 w-[1px] bg-[#dbe7e0] shrink-0" />
+
+            {/* Compact Location Dropdown Selector */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                data-testid="location-dropdown-trigger"
+                onClick={() => setIsLocationDropdownOpen((prev) => !prev)}
+                aria-expanded={isLocationDropdownOpen}
+                aria-haspopup="listbox"
+                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs sm:text-sm font-medium transition-all cursor-pointer select-none shrink-0 ${
+                  isLocationDropdownOpen
+                    ? 'bg-[#e5eee8] border-[#2d5a43] text-[#1b3e2b] shadow-xs ring-1 ring-[#2d5a43]/30'
+                    : 'bg-white/90 hover:bg-white border-[#d8e3dc] text-[#2c4033] hover:border-[#b8cfc2] shadow-2xs'
+                }`}
+                title="Click to switch campus location"
+              >
+                <span className="text-sm sm:text-base shrink-0 leading-none">{currentDisplay.icon}</span>
+                <span className="font-serif-title font-semibold text-[#1c3627] truncate max-w-[95px] xs:max-w-[130px] sm:max-w-[200px]">
+                  {currentDisplay.name}
+                </span>
+                {currentDisplay.count > 0 && (
+                  <span className="hidden xs:inline-flex items-center justify-center text-[10px] px-1.5 py-0.2 rounded-full font-bold bg-emerald-100 text-emerald-800 leading-none shrink-0">
+                    {currentDisplay.count}
+                  </span>
+                )}
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#5f7568] transition-transform duration-200 shrink-0 ${
+                    isLocationDropdownOpen ? 'rotate-180 text-[#2d5a43]' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isLocationDropdownOpen && (
+                <div
+                  role="listbox"
+                  aria-label="Campus Destinations"
+                  className="absolute left-0 top-full mt-2 w-[calc(100vw-24px)] xs:w-72 sm:w-80 max-w-xs sm:max-w-none bg-[#fffdfa] border border-[#d6e3db] rounded-2xl shadow-xl z-50 overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-150"
+                >
+                  {/* Menu Header */}
+                  <div className="px-3.5 py-1.5 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-[#637b6d] border-b border-[#edf3ef]">
+                    <span>Campus Destinations</span>
+                    <span className="text-[9.5px] font-medium normal-case text-[#7b9184]">7 locations</span>
+                  </div>
+
+                  {/* Campus Map Option */}
+                  <div className="p-1.5 pb-1">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={isAtCampus}
+                      onClick={() => {
+                        onNavigate('campus');
+                        setIsLocationDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs rounded-xl transition-colors cursor-pointer ${
+                        isAtCampus
+                          ? 'bg-[#e5eee8] font-semibold text-[#1b3e2b]'
+                          : 'text-[#2e4236] hover:bg-[#edf4f0]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-base shrink-0">🗺️</span>
+                        <div className="truncate">
+                          <div className="font-serif-title text-xs font-semibold text-[#1b3627]">Campus Map</div>
+                          <div className="text-[10px] text-[#6b8275] truncate">Interactive aerial overview of IIT Madras</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {isAtCampus && <Check className="w-4 h-4 text-[#2d5a43] shrink-0" />}
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="border-t border-[#edf3ef]" />
+
+                  {/* Scrollable list of 7 Study Locations */}
+                  <div className="p-1.5 max-h-[290px] overflow-y-auto space-y-0.5">
+                    {SEVEN_CAMPUS_LOCATIONS.map((loc) => {
+                      const isActive = currentLocation === loc.id;
+                      const count = stats[loc.statKey] || 0;
+                      return (
+                        <button
+                          key={loc.id}
+                          type="button"
+                          role="option"
+                          aria-selected={isActive}
+                          data-nav-id={loc.id}
+                          onClick={() => {
+                            onNavigate(loc.id);
+                            setIsLocationDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-left text-xs rounded-xl transition-colors cursor-pointer group ${
+                            isActive
+                              ? 'bg-[#e5eee8] font-semibold text-[#1b3e2b]'
+                              : 'text-[#2c4034] hover:bg-[#edf4f0]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-base shrink-0 group-hover:scale-110 transition-transform">
+                              {loc.icon}
+                            </span>
+                            <div className="truncate">
+                              <div className="font-serif-title text-xs text-[#1b3627]">
+                                <span className={isActive ? 'font-bold' : 'font-medium'}>{loc.name}</span>
+                              </div>
+                              <div className="text-[10px] text-[#6b8275] truncate">
+                                {loc.category} • {loc.tagline}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            <span
+                              className={`text-[9.5px] px-1.5 py-0.5 rounded-full font-bold ${
+                                isActive
+                                  ? 'bg-white text-[#2d5a43] shadow-2xs'
+                                  : count > 0
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-[#edf3ee] text-[#718579]'
+                              }`}
+                            >
+                              {count} {count === 1 ? 'student' : 'students'}
+                            </span>
+                            {isActive && <Check className="w-4 h-4 text-[#2d5a43] shrink-0" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Upcoming Zones Section in Dropdown */}
+                  <div className="border-t border-[#edf3ef] px-3.5 py-2 bg-[#fbf9f5] flex items-center justify-between text-[10.5px] text-[#708477]">
+                    <span className="font-semibold text-[9.5px] uppercase tracking-wider text-[#869b8f]">
+                      Upcoming Zones
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {ALL_CAMPUS_NAV_ITEMS.filter((i) => !i.isAvailable).map((upcoming) => (
+                        <button
+                          key={upcoming.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedUpcomingItem(upcoming);
+                            setIsLocationDropdownOpen(false);
+                          }}
+                          className="hover:bg-[#eae3d8] px-1.5 py-0.5 rounded-md transition-colors text-xs cursor-pointer flex items-center gap-1"
+                          title={`${upcoming.name} (${upcoming.statusBadge})`}
+                        >
+                          <span>{upcoming.icon}</span>
+                          <span className="text-[10px] text-[#6b5847] hidden sm:inline">{upcoming.shortName}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right Controls: Ambient Audio, Day/Night Atmosphere, Presence Pill, Profile */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Live Online Count Badge */}
             <button
               onClick={() => setShowConnectionModal(true)}
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-[#eaf3ee] hover:bg-[#dcefe4] border border-[#c5ddd0] text-xs font-medium text-[#204431] transition-colors cursor-pointer"
+              className="hidden xs:flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-[#eaf3ee] hover:bg-[#dcefe4] border border-[#c5ddd0] text-xs font-medium text-[#204431] transition-colors cursor-pointer shrink-0"
               title="Click to view Multiplayer Sync Details"
             >
               <span className="relative flex h-2 w-2">
@@ -285,80 +554,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
         </div>
-
-        {/* ROW 2: COMPACT CAMPUS NAVIGATION STRIP (Positioned gracefully above the campus) */}
-        <div className="border-t border-[#e2ece5]/80 bg-[#faf7f2]/85 backdrop-blur-md px-3 sm:px-6 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs shadow-2xs">
-          {/* Campus Map Button */}
-          <button
-            onClick={() => onNavigate('campus')}
-            className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
-              isAtCampus
-                ? 'bg-[#2d5a43] text-white shadow-xs'
-                : 'bg-white/80 hover:bg-white text-[#4e6658] hover:text-[#1b3326] border border-[#dce7e1]'
-            }`}
-            title="Full Campus Map overview"
-          >
-            <MapPin className="w-3.5 h-3.5" />
-            <span>Campus Map</span>
-          </button>
-
-          <div className="h-4 w-[1px] bg-[#dbe7e0] shrink-0 mx-0.5" />
-
-          {/* All Campus Locations */}
-          {ALL_CAMPUS_NAV_ITEMS.map((item) => {
-            if (item.isAvailable && item.locationId) {
-              const count = item.statKey ? (stats as any)[item.statKey] || 0 : 0;
-              const isActive = currentLocation === item.locationId;
-
-              return (
-                <button
-                  key={`nav-${item.id}`}
-                  data-nav-id={item.locationId}
-                  onClick={() => onNavigate(item.locationId!)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
-                    isActive
-                      ? 'text-white shadow-xs font-semibold'
-                      : 'bg-white/85 hover:bg-white text-[#3f5247] hover:text-[#1b3326] border border-[#dce7e1]'
-                  }`}
-                  style={isActive ? { backgroundColor: item.themeColor } : undefined}
-                  title={`Enter ${item.name} (${count} studying)`}
-                >
-                  <span className="text-xs">{item.icon}</span>
-                  <span className="font-serif-title">{item.shortName}</span>
-                  <span
-                    className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-bold ${
-                      isActive
-                        ? 'bg-white/25 text-white'
-                        : count > 0
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-[#edf3ee] text-[#718579]'
-                    }`}
-                  >
-                    {count}
-                  </span>
-                </button>
-              );
-            } else {
-              // Upcoming / Preparing Campus Locations (Interactive with status info)
-              return (
-                <button
-                  key={`nav-upcoming-${item.id}`}
-                  onClick={() => setSelectedUpcomingItem(item)}
-                  className="px-2.5 py-1 rounded-full text-xs flex items-center gap-1.5 shrink-0 bg-[#f5ede4]/85 hover:bg-[#faefe3] border border-[#e5dcce] text-[#716152] cursor-pointer opacity-90 select-none transition-all hover:scale-105 active:scale-95 group shadow-2xs"
-                  title={`Click to view status of ${item.name}`}
-                >
-                  <span className="text-xs group-hover:scale-110 transition-transform">{item.icon}</span>
-                  <span className="font-serif-title font-medium text-[#5a4c3f] group-hover:text-[#1b3326] transition-colors">
-                    {item.shortName}
-                  </span>
-                  <span className="text-[9px] px-1.5 py-0.2 rounded-full font-semibold uppercase tracking-wider bg-[#eae0d2] group-hover:bg-[#dfd3c2] text-[#554739] transition-colors">
-                    {item.statusBadge}
-                  </span>
-                </button>
-              );
-            }
-          })}
-        </div>
       </header>
 
       {/* Multiplayer info modal */}
@@ -406,7 +601,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             <p className="text-xs text-[#526a5c] leading-relaxed">
-              Studyverse currently features 7 fully active, interactive study environments across IIT Madras. While this destination prepares for term, you can join your peers right now at:
+              Sahej-Shala currently features 7 fully active, interactive study environments across IIT Madras. While this destination prepares for term, you can join your peers right now at:
             </p>
 
             <div className="grid grid-cols-2 gap-2 pt-1">

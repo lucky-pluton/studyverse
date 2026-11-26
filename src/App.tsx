@@ -27,6 +27,8 @@ export function App() {
         urlParams.get('new_student') === 'true' || urlParams.get('companion') === 'true';
       const isDndStored = localStorage.getItem('studyverse_dnd_enabled') === 'true';
       localStorage.removeItem('studyverse_view_mode');
+      localStorage.removeItem('sahej_view_mode');
+      localStorage.removeItem('sahej_view_mode');
 
       if (isNewStudent) {
         sessionStorage.removeItem('studyverse_session');
