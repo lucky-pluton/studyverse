@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { LocationDefinition, StudentPresence, TimeOfDay } from '../../types/studyverse';
 import { SeatSpot } from './SeatSpot';
-import { ZoomIn, ZoomOut, RotateCcw, Maximize, Minimize, MessageSquare, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Maximize, Minimize, MessageSquare, X, Box } from 'lucide-react';
 
 import envLibrary from '../../assets/environments/env_library.jpg';
 import envLhc from '../../assets/environments/env_lhc.jpg';
@@ -42,6 +42,8 @@ interface UnifiedLocationEnvironmentProps {
   isChatOpen?: boolean;
   onToggleDnd?: () => void;
   isDnd?: boolean;
+  /** switches this room to its 3D scene */
+  onSwitchView?: () => void;
 }
 
 export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProps> = ({
@@ -52,6 +54,7 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
   timeOfDay,
   onToggleChat,
   isChatOpen,
+  onSwitchView,
 }) => {
   const [roomZoom, setRoomZoom] = useState<number>(1);
   const [roomPan, setRoomPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -274,6 +277,22 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
         </div>
 
         <div className="h-3.5 w-[1px] bg-slate-200 mx-0.5" />
+
+        {/* Switch to the 3D room */}
+        {onSwitchView && (
+          <>
+            <button
+              onClick={onSwitchView}
+              data-testid="room-view-3d"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold text-[#2d5a43] hover:bg-emerald-50 transition-colors cursor-pointer"
+              title="Show this room in 3D"
+            >
+              <Box className="w-3.5 h-3.5" />
+              <span>3D</span>
+            </button>
+            <div className="h-3.5 w-[1px] bg-slate-200 mx-0.5" />
+          </>
+        )}
 
         {/* Fullscreen Toggle Button */}
         <button

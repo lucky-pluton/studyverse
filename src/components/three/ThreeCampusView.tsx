@@ -95,7 +95,7 @@ export const ThreeCampusView: React.FC<ThreeCampusViewProps> = ({
     >
       <iframe
         ref={iframeRef}
-        src="/campus3d.html"
+        src={`${import.meta.env.BASE_URL}campus3d.html`}
         title="IIT Madras Interactive 3D Campus"
         className="w-full h-full border-0 select-none block"
         allow="accelerometer; autoplay; encrypted-media; gyroscope"

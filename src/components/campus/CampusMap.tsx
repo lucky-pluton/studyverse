@@ -11,6 +11,9 @@ interface CampusMapProps {
   currentUser: StudentPresence;
   onEnterLocation: (loc: LocationId) => void;
   timeOfDay: TimeOfDay;
+  /** shared 2D/3D choice; when omitted the map keeps its own */
+  viewMode?: '2d' | '3d';
+  onViewModeChange?: (mode: '2d' | '3d') => void;
 }
 
 export const CampusMap: React.FC<CampusMapProps> = ({
@@ -18,14 +21,18 @@ export const CampusMap: React.FC<CampusMapProps> = ({
   currentUser,
   onEnterLocation,
   timeOfDay,
+  viewMode: viewModeProp,
+  onViewModeChange,
 }) => {
   const [comingSoonModal, setComingSoonModal] = useState<typeof VERIFIED_IITM_UPCOMING_DESTINATIONS[0] | null>(null);
   const [isQuickListOpen, setIsQuickListOpen] = useState(false);
   // When entering the campus it should show 2D only; 3D can be seen when clicked
-  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+  const [ownViewMode, setOwnViewMode] = useState<'2d' | '3d'>('2d');
+  const viewMode = viewModeProp ?? ownViewMode;
 
   const handleSetViewMode = (mode: '2d' | '3d') => {
-    setViewMode(mode);
+    setOwnViewMode(mode);
+    onViewModeChange?.(mode);
   };
 
   return (
