@@ -5,6 +5,7 @@ import { SkyEnv } from './sky';
 import { buildBuildings, buildDeer, buildGround, buildLamps, buildRoads, buildTrees, type Buildings, type Trees, type Lamps, type Deer } from './world';
 import { buildLandmarks, CATEGORIES, CATEGORY_COLOR, CATEGORY_LABEL, type Landmarks, type Place } from './landmarks';
 import { SATELLITE, applySatelliteUVs, loadSatellite, pickZoom, type Satellite } from './satellite';
+import { MAIN_GATE, mainGateSign } from './gate';
 import { RoadGraph, RouteView, Traffic } from './routes';
 import { LabelLayer, type LabelMode } from './labels';
 import { CameraRig } from './controls';
@@ -110,7 +111,9 @@ async function init(): Promise<void> {
 
   progress(0.5, 'Laying out the ground and roads…');
   await nextFrame();
-  const ground = buildGround(data);
+  // keep the Main Gate plaza free of the boundary wall
+  const gateSign = mainGateSign(data);
+  const ground = buildGround(data, gateSign ? [{ ...gateSign, r: MAIN_GATE.clearRadius }] : []);
   groundGroup = ground.group;
   scene.add(ground.group);
   roadsGroup = buildRoads(data);
