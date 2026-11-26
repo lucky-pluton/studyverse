@@ -131,6 +131,10 @@ export class RoomStage {
     const b = this.room.bounds, p = this.camera.position;
     p.set(THREE.MathUtils.clamp(p.x, b.x[0], b.x[1]), THREE.MathUtils.clamp(p.y, b.y[0], b.y[1]), THREE.MathUtils.clamp(p.z, b.z[0], b.z[1]));
     this.sky.follow(this.camera, this.controls.target, 30, 26);
+    // room-scale haze: the forest fades into the horizon instead of ending at a hard edge
+    this.sky.fog.near = 70;
+    this.sky.fog.far = 430;
+    this.room.update?.(performance.now() / 1000);
     this.renderer.toneMappingExposure = this.sky.exposure * (this.room.indoor ? 1.05 : 1);
     this.onFrame?.();
     this.renderer.render(this.scene, this.camera);

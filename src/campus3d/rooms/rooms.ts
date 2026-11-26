@@ -4,8 +4,9 @@
  * seat choice stay shared with the 2D rooms. Rooms open toward +z, where the camera starts.
  */
 import * as THREE from 'three';
-import { C, add, backdropBuilding, bench, bookStack, bookshelf, box, chair, cyl, deskLamp, flowers, ground, hedge, mat, plant, roundTable, stool, table, tiledFloor, tree, windowWall } from './kit';
+import { C, add, backdropBuilding, bench, bookStack, bookshelf, box, chair, cyl, deskLamp, flowers, hedge, mat, plant, roundTable, stool, table, tiledFloor, tree, windowWall } from './kit';
 import { annularSector, buildBanyan, elephant, textPlane } from '../landmarks';
+import { buildSurroundings } from './surroundings';
 
 export interface RoomBuild {
   group: THREE.Group;
@@ -20,6 +21,8 @@ export interface RoomBuild {
   glow: THREE.MeshStandardMaterial[];
   /** interior lights, brighter at night */
   lights: THREE.PointLight[];
+  /** per-frame animation of the surroundings (clouds, deer) */
+  update?: (t: number) => void;
 }
 
 function newRoom(indoor: boolean): RoomBuild {
@@ -61,6 +64,8 @@ function library(): RoomBuild {
   tiledFloor(g, W, D + 4, '#f2ebe0', '#e2d8c8', 1.4, 0, 2);
   // back window wall and outdoor view
   windowWall(g, 0, -D / 2, 0, W, H, { x0: -6.2, x1: 6.2, y0: 0.5, y1: 5.3, cols: 6, rows: 3 });
+  // glazed entrance wall behind the camera, so turning round shows the campus through windows
+  windowWall(g, 0, 10.88, Math.PI, W, H, { x0: -7.5, x1: 7.5, y0: 0.3, y1: 5.3, cols: 6, rows: 3 });
   box(g, W, 0.3, D + 4, C.white, 0, H, 2); // ceiling
   for (const sx of [-1, 1]) {
     box(g, 0.3, H, D + 4, C.wall, sx * (W / 2), 0, 2); // side walls
@@ -71,11 +76,12 @@ function library(): RoomBuild {
     bookshelf(g, sx * (W / 2 - 0.4), -1.2, -sx * Math.PI / 2, 9, 3.1);
     plant(g, sx * 5.4, -D / 2 + 1.3, 1.5);
   }
-  const outside = new THREE.Group();
-  g.add(outside);
-  ground(outside, 120, 0x9cc07e, -0.05).position.z = -40;
-  outdoorTrees(outside, [[-8, -12, 1.6, 1], [-3, -15, 1.3], [3, -13, 1.5, 4], [8, -12, 1.6, 1], [-12, -18, 1.4], [12, -18, 1.4, 4], [0, -22, 1.2]]);
-  backdropBuilding(outside, -2, -32, 26, 12, 10);
+  // the campus outside the window wall: lawn, layered trees and a teaching block beyond
+  // through the windows: an open lawn, a few framing trees, a teaching block and sky beyond
+  r.update = buildSurroundings(g, { clear: [-9.5, -7.5, 9.5, 11.5], margin: 9, nearMin: 42, nearCount: 70, seed: 11 }).update;
+  outdoorTrees(g, [[-13, -27, 1.2, 1], [12, -29, 1.1, 1], [-4, -44, 1.0], [6, -47, 1.0, 4]]);
+  backdropBuilding(g, -3, -66, 34, 12, 10);
+  flowers(g, Array.from({ length: 50 }, (_, i) => [-10 + i * 0.4, -10.5 + Math.sin(i * 1.3) * 0.3] as [number, number]));
   // low bookshelf with plants along the windows
   bookshelf(g, 0, -D / 2 + 1.2, 0, 7, 1.3);
   for (const x of [-2.8, 2.8]) plant(g, x, -D / 2 + 1.25, 0.6, 1.32);
@@ -108,7 +114,7 @@ function library(): RoomBuild {
   pointLight(r, -4, 4.5, 1);
   pointLight(r, 4, 4.5, 1);
   r.view = { pos: [0, 2.6, 9.6], target: [0, 1.0, -1.5] };
-  r.bounds = { x: [-8.4, 8.4], y: [0.9, H - 0.4], z: [-6.2, 11] };
+  r.bounds = { x: [-8.4, 8.4], y: [0.9, H - 0.4], z: [-6.2, 10.55] };
   r.maxDistance = 13;
   return r;
 }
@@ -124,10 +130,9 @@ function lhc(): RoomBuild {
   box(g, W, 0.3, D + 4, C.white, 0, H, 1);
   box(g, W, H, 0.3, C.wall, 0, 0, -D / 2);
   for (const sx of [-1, 1]) windowWall(g, sx * (W / 2), 0, -sx * Math.PI / 2, D + 4, H, { x0: -4, x1: 6, y0: 1.2, y1: 5.2, cols: 3, rows: 2 }, C.wall);
-  const outside = new THREE.Group();
-  g.add(outside);
-  ground(outside, 140, 0x9cc07e, -0.05);
-  outdoorTrees(outside, [[-16, -4, 1.6, 1], [-17, 4, 1.4], [16, -3, 1.5, 4], [17, 5, 1.5, 1]]);
+  windowWall(g, 0, 10.9, Math.PI, W, H, { x0: -6, x1: 6, y0: 1.6, y1: 5.6, cols: 4, rows: 2 }, C.wall);
+  r.update = buildSurroundings(g, { clear: [-10.5, -10, 10.5, 13], margin: 8, nearMin: 40, nearCount: 80, seed: 21 }).update;
+  outdoorTrees(g, [[-24, -6, 1.2, 1], [-27, 8, 1.1], [24, -5, 1.2, 4], [27, 9, 1.1, 1]]);
   // stage, chalkboard, podium
   box(g, 14, 0.5, 4, 0xe7c48f, 0, 0, -D / 2 + 2.2);
   box(g, 15, 0.12, 4.4, 0xd4ad74, 0, 0.5, -D / 2 + 2.2);
@@ -171,7 +176,7 @@ function lhc(): RoomBuild {
   pointLight(r, -5, 5.5, -1);
   pointLight(r, 5, 5.5, -1);
   r.view = { pos: [0, 3.9, 9.8], target: [0, 1.3, -4.2] };
-  r.bounds = { x: [-9.4, 9.4], y: [1.2, H - 0.4], z: [-7.5, 12] };
+  r.bounds = { x: [-9.4, 9.4], y: [1.2, H - 0.4], z: [-7.5, 10.55] };
   r.maxDistance = 15;
   return r;
 }
@@ -218,12 +223,11 @@ function cafe(): RoomBuild {
   box(g, W, 0.3, D + 4, C.white, 0, H, 2);
   box(g, W, H, 0.3, 0xf6e6c8, 0, 0, -D / 2);
   for (const sx of [-1, 1]) windowWall(g, sx * (W / 2), 1, -sx * Math.PI / 2, D + 6, H, { x0: -6, x1: 7.2, y0: 0.4, y1: 5.4, cols: 4, rows: 2 }, 0xf6e6c8);
-  const outside = new THREE.Group();
-  g.add(outside);
-  ground(outside, 140, 0x9cc07e, -0.05);
-  outdoorTrees(outside, [[-15, -3, 1.5, 1], [-14, 6, 1.3], [15, -2, 1.5], [14, 7, 1.4, 1]]);
-  backdropBuilding(outside, -24, 0, 6, 9, 20);
-  backdropBuilding(outside, 24, 2, 6, 10, 20);
+  windowWall(g, 0, 10.4, Math.PI, W, H, { x0: -7, x1: 7, y0: 0.4, y1: 5.4, cols: 5, rows: 2 }, 0xf6e6c8);
+  r.update = buildSurroundings(g, { clear: [-9.5, -7, 9.5, 12], margin: 8, nearMin: 38, nearCount: 80, seed: 31 }).update;
+  outdoorTrees(g, [[-22, -4, 1.2, 1], [-24, 8, 1.1], [22, -3, 1.2], [24, 9, 1.1, 1]]);
+  backdropBuilding(g, -48, 2, 10, 11, 26);
+  backdropBuilding(g, 48, 4, 10, 12, 26);
   // counter, machines and the menu board
   box(g, 12, 1.05, 1.0, 0xd8a868, 0, 0, -D / 2 + 1.2);
   box(g, 12.2, 0.07, 1.1, 0xe9c48c, 0, 1.05, -D / 2 + 1.2);
@@ -267,7 +271,7 @@ function cafe(): RoomBuild {
   pointLight(r, -3.5, 4.2, 0);
   pointLight(r, 3.5, 4.2, 0);
   r.view = { pos: [0, 2.7, 9.2], target: [0, 1.0, -1.2] };
-  r.bounds = { x: [-8.4, 8.4], y: [0.9, H - 0.4], z: [-5.6, 11] };
+  r.bounds = { x: [-8.4, 8.4], y: [0.9, H - 0.4], z: [-5.6, 10.05] };
   r.maxDistance = 13;
   return r;
 }
@@ -278,7 +282,7 @@ function cafe(): RoomBuild {
 function banyan(): RoomBuild {
   const r = newRoom(false);
   const g = r.group;
-  ground(g, 160, 0x8fbf6a);
+  r.update = buildSurroundings(g, { clear: [-12, -18, 12, 8], margin: 6, deer: true, seed: 41 }).update;
   tiledFloor(g, 22, 15, '#e9ded4', '#d9ccc0', 1.5, 0, 1);
   // pergola: two front columns, beams and slats overhead
   for (const sx of [-1, 1]) {
@@ -332,7 +336,7 @@ function banyan(): RoomBuild {
 function oat(): RoomBuild {
   const r = newRoom(false);
   const g = r.group;
-  ground(g, 180, 0x8fbf6a);
+  r.update = buildSurroundings(g, { clear: [-18, -26, 18, 10], margin: 6, deer: true, seed: 51 }).update;
   const floor = new THREE.Mesh(new THREE.CircleGeometry(7.6, 64), new THREE.MeshStandardMaterial({ color: 0xeadfcd, roughness: 0.9 }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = 0.02;
@@ -427,7 +431,7 @@ function oat(): RoomBuild {
 function park(): RoomBuild {
   const r = newRoom(false);
   const g = r.group;
-  ground(g, 160, 0x8fbf6a);
+  r.update = buildSurroundings(g, { clear: [-16, -10, 16, 12], margin: 6, deer: true, seed: 61 }).update;
   tiledFloor(g, 30, 18, '#ece3d6', '#ddd1c2', 1.6, 0, 2);
   // octagonal gazebo
   const gz = new THREE.Group();
@@ -492,7 +496,7 @@ function park(): RoomBuild {
 function gc(): RoomBuild {
   const r = newRoom(false);
   const g = r.group;
-  ground(g, 180, 0x8fbf6a);
+  r.update = buildSurroundings(g, { clear: [-14, -14, 14, 14], margin: 6, deer: true, seed: 71 }).update;
   const plaza = new THREE.Mesh(new THREE.CircleGeometry(13, 64), new THREE.MeshStandardMaterial({ color: 0xeadfcf, roughness: 0.9 }));
   plaza.rotation.x = -Math.PI / 2;
   plaza.position.y = 0.02;
