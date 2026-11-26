@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import type { Place } from './landmarks';
+import { CATEGORY_COLOR } from './landmarks';
+
+/** off: only study spots; key: landmarks and named places; all: every building on campus too */
+export type LabelMode = 'off' | 'key' | 'all';
 
 interface Item {
   place: Place;
@@ -11,7 +15,7 @@ interface Item {
   cnt?: HTMLElement;
 }
 
-const PRI: Record<Place['kind'], number> = { study: 100, major: 80, soon: 70, district: 60, hostel: 50, area: 40, building: 35, road: 30, poi: 15 };
+const PRI: Record<Place['kind'], number> = { study: 100, major: 80, soon: 70, district: 60, hostel: 50, area: 40, building: 35, road: 30, minor: 20, poi: 15 };
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -21,7 +25,8 @@ export class LabelLayer {
   private items: Item[] = [];
   private v = new THREE.Vector3();
   private selected: string | null = null;
-  enabled = true;
+  mode: LabelMode = 'all';
+  get enabled(): boolean { return this.mode !== 'off'; }
 
   constructor(root: HTMLElement, places: Place[], onClick: (p: Place) => void) {
     for (const p of places) {
@@ -39,6 +44,7 @@ export class LabelLayer {
         el.textContent = p.name;
       } else {
         el.innerHTML = `<i class="dot" aria-hidden="true"></i><span class="nm">${esc(p.name)}</span>`;
+        if (p.cat && CATEGORY_COLOR[p.cat]) (el.querySelector('.dot') as HTMLElement).style.setProperty('--c', CATEGORY_COLOR[p.cat]);
       }
       if (interactive) {
         (el as HTMLButtonElement).type = 'button';
@@ -77,7 +83,8 @@ export class LabelLayer {
       case 'hostel': return viewDist < 1300 && near < 1200;
       case 'road': return viewDist < 850 && viewDist > 120 && near < 800;
       case 'area': return viewDist < 1100 && near < 900;
-      case 'building': return p.outside ? viewDist < 420 && near < 420 : viewDist < 640 && near < 600;
+      case 'building': return p.outside ? viewDist < 420 && near < 420 : this.mode === 'all' ? viewDist < 900 && near < 800 : viewDist < 640 && near < 600;
+      case 'minor': return this.mode === 'all' && viewDist < 560 && near < 480;
       case 'poi': return viewDist < 300 && near < 280;
     }
   }

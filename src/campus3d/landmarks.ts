@@ -3,7 +3,25 @@ import type { CampusData, NamedRec } from './data';
 import { fromLatLon, ringArea, ringBox, ringCentroid } from './data';
 import { LOCATIONS, VERIFIED_IITM_UPCOMING_DESTINATIONS } from '../constants/locations';
 
-export type PlaceKind = 'study' | 'soon' | 'major' | 'hostel' | 'building' | 'area' | 'poi' | 'district' | 'road';
+export type PlaceKind = 'study' | 'soon' | 'major' | 'hostel' | 'building' | 'minor' | 'area' | 'poi' | 'district' | 'road';
+
+/** Directory tabs, in order. 'all' lists every place a visitor can pick. */
+export const CATEGORIES: { id: string; label: string; color: string }[] = [
+  { id: 'all', label: 'All', color: '#1f2d26' },
+  { id: 'study', label: 'Study spots', color: '#10b981' },
+  { id: 'aca', label: 'Academic', color: '#3b82f6' },
+  { id: 'hos', label: 'Hostels', color: '#8b6bd1' },
+  { id: 'food', label: 'Food', color: '#e0742f' },
+  { id: 'spo', label: 'Sports', color: '#16a34a' },
+  { id: 'svc', label: 'Services', color: '#0ea5a4' },
+  { id: 'res', label: 'Residences', color: '#c08a3e' },
+  { id: 'lmk', label: 'Landmarks', color: '#d14d8f' },
+  { id: 'utl', label: 'Utilities', color: '#8a97a3' },
+  { id: 'oth', label: 'Other', color: '#64748b' },
+  { id: 'out', label: 'Outside campus', color: '#9aa3a0' },
+];
+export const CATEGORY_COLOR: Record<string, string> = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.color]));
+export const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.label]));
 
 export interface Place {
   id: string;
@@ -24,6 +42,8 @@ export interface Place {
   floorsFromMap?: boolean;
   outside?: boolean;
   badge?: string;
+  /** directory category id (see CATEGORIES) */
+  cat?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -282,44 +302,39 @@ export function annularSector(rIn: number, rOut: number, a0: number, a1: number,
   return g;
 }
 
+/**
+ * The OAT, calibrated against satellite imagery: a round bowl (the mapped outline, about 39 m in
+ * radius) of concentric stone tiers around a central floor, with the stage on the south-east rim.
+ */
+const OAT_STAGE_DIR = { x: 0.75, z: 0.65 }; // from the bowl centre toward the stage (east, south)
 function buildOAT(ring: number[]): { group: THREE.Group; cx: number; cz: number; r: number } {
   const c = ringCentroid(ring);
-  // principal axis of the outline
-  let sxx = 0, szz = 0, sxz = 0;
+  let R = 0;
   const n = ring.length / 2;
-  for (let i = 0; i < n; i++) {
-    const dx = ring[i * 2] - c.x, dz = ring[i * 2 + 1] - c.z;
-    sxx += dx * dx; szz += dz * dz; sxz += dx * dz;
-  }
-  const ang = 0.5 * Math.atan2(2 * sxz, sxx - szz);
-  const ax = Math.cos(ang), az = Math.sin(ang);
-  let maxA = 0, maxB = 0;
-  for (let i = 0; i < n; i++) {
-    const dx = ring[i * 2] - c.x, dz = ring[i * 2 + 1] - c.z;
-    maxA = Math.max(maxA, Math.abs(dx * ax + dz * az));
-    maxB = Math.max(maxB, Math.abs(-dx * az + dz * ax));
-  }
-  const R = Math.max(18, Math.min(maxA, maxB * 1.6));
+  for (let i = 0; i < n; i++) R += Math.hypot(ring[i * 2] - c.x, ring[i * 2 + 1] - c.z);
+  R = Math.max(18, R / n);
   const g = new THREE.Group();
   g.position.set(c.x, 0, c.z);
-  // the bowl opens along the long axis; local +x points from the stage into the seats
-  g.rotation.y = -ang;
-  const floor = add(g, new THREE.CircleGeometry(R * 1.02, 48), mat(0xc4a67e, 0.95), 0, 0.2, 0, false);
+  // local +x points from the stage into the seats: rotation.y = atan2(-dz, dx) for that direction
+  g.rotation.y = Math.atan2(OAT_STAGE_DIR.z, -OAT_STAGE_DIR.x);
+  const floor = add(g, new THREE.CircleGeometry(R * 1.01, 64), mat(0xc4a67e, 0.95), 0, 0.15, 0, false);
   floor.rotation.x = -Math.PI / 2;
-  // stepped stone tiers: each is an annular sector, taller the further it is from the stage
-  const tiers = 9, step = (R * 0.7) / tiers;
+  const centre = add(g, new THREE.CircleGeometry(R * 0.34, 48), mat(0xd9cdb6, 0.9), 0, 0.22, 0, false);
+  centre.rotation.x = -Math.PI / 2;
+  // concentric stepped tiers wrapping round, leaving a gap on the stage side
+  const tiers = 10, step = (R * 0.62) / tiers, half = Math.PI * 0.8;
   for (let i = 0; i < tiers; i++) {
-    const r0 = R * 0.28 + i * step;
-    const m = new THREE.Mesh(annularSector(r0, r0 + step, -Math.PI * 0.42, Math.PI * 0.42, 0.5 + i * 0.55), mat(i % 2 ? 0xcdc5b2 : 0xbab29e, 0.95));
-    m.position.set(-R * 0.3, 0, 0);
+    const r0 = R * 0.36 + i * step;
+    const m = new THREE.Mesh(annularSector(r0, r0 + step, -half, half, 0.4 + i * 0.42), mat(i % 2 ? 0xcdc5b2 : 0xbab29e, 0.95));
     m.castShadow = true;
     m.receiveShadow = true;
     g.add(m);
   }
-  // stage and its canopy
-  box(g, 7, 1.4, R * 0.7, 0x8c7d68, -R * 0.42, 0, 0);
-  box(g, 1, 7, R * 0.72, 0x6b5d4a, -R * 0.5, 0, 0);
-  box(g, 8, 0.6, R * 0.78, 0xa8402a, -R * 0.44, 7.2, 0);
+  // stage block and roof on the rim, facing the bowl
+  const sx = -R * 0.72;
+  box(g, R * 0.22, 1.4, R * 0.5, 0x8c7d68, sx, 0, 0);
+  box(g, 1, 7, R * 0.52, 0x6b5d4a, sx - R * 0.1, 0, 0);
+  box(g, R * 0.26, 0.6, R * 0.58, 0xa8402a, sx, 7.2, 0);
   return { group: g, cx: c.x, cz: c.z, r: R };
 }
 
@@ -636,6 +651,21 @@ export function buildLandmarks(data: CampusData, inCampus: (x: number, z: number
       building: n.b, floors: i.floors, floorsFromMap: i.fromMap, outside: !!n.out,
     });
   }
+  /* --- every other campus building, with the descriptive label from the map data --- */
+  const KIND_TEXT: Record<string, string> = {
+    aca: 'an academic or lab building', hos: 'a block in the hostel zone', food: 'a place to eat', spo: 'a sports building', svc: 'a service building',
+    res: 'staff housing', lmk: 'a landmark building', utl: 'a utility building such as a pump house, store or shed', oth: 'a campus building',
+  };
+  data.buildings.forEach((b, i) => {
+    if (!b.c || !b.g || byBuilding.has(i)) return;
+    const c = ringCentroid(b.p), bx = buildingBoxes[i];
+    addPlace({
+      id: 'b-' + i, name: b.g, tag: CATEGORY_LABEL[b.t || 'oth'] || 'Campus building', kind: 'minor', x: c.x, z: c.z, h: b.h, building: i,
+      radius: Math.max(16, Math.hypot(bx[2] - bx[0], bx[3] - bx[1]) / 2), floors: b.f, floorsFromMap: !!b.l,
+      text: `This building has no name on the map yet. From its map tags and surroundings it is ${KIND_TEXT[b.t || 'oth'] || 'a campus building'}; the label says what it is and where it stands.`,
+    });
+  });
+
   const stadium = data.pois.find((p) => /Stadium/.test(p.n));
   if (stadium) addPlace({ id: 'stadium', name: 'Manohar C Watsa Stadium', tag: 'Sport', kind: 'major', x: stadium.x, z: stadium.z, h: 4, radius: 90, text: 'The Manohar C Watsa Stadium, the main campus stadium with an athletics track. The campus also has grounds for cricket, football and hockey.' });
   addPlace({ id: 'gc-name', name: 'Gajendra Circle', tag: 'Landmark', kind: 'poi', x: 0, z: 0, h: 9, radius: 22, text: '' });
@@ -665,6 +695,20 @@ export function buildLandmarks(data: CampusData, inCampus: (x: number, z: number
   for (const [name, r] of roadNames) if (r.len > 120) addPlace({ id: 'r-' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name, tag: 'Road', kind: 'road', x: r.x, z: r.z, h: 0.5, radius: 120, text: `${name}.` });
 
   const excluded = (x: number, z: number): boolean => clear.some((c) => (x - c.x) * (x - c.x) + (z - c.z) * (z - c.z) < c.r * c.r);
+
+  // directory category for each place
+  const areaCat = (name: string): string => {
+    const rec = data.named.find((q) => q.n === name);
+    return rec && (rec.a === 'pitch' || rec.a === 'track' || rec.a === 'stadium') ? 'spo' : 'lmk';
+  };
+  for (const p of places) {
+    if (p.kind === 'study' || p.kind === 'soon') p.cat = 'study';
+    else if (p.kind === 'district' || p.kind === 'road' || p.kind === 'poi') p.cat = undefined;
+    else if (p.building !== undefined) p.cat = data.buildings[p.building].t || (p.outside ? 'out' : 'oth');
+    else if (p.id === 'stadium') p.cat = 'spo';
+    else if (p.kind === 'area') p.cat = areaCat(p.name);
+    else p.cat = 'lmk'; // gates and other mapped landmarks
+  }
 
   return {
     group, places, byId, byBuilding, markers, pickTargets, glow, emblem, excluded,

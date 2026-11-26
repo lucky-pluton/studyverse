@@ -32,6 +32,7 @@
       <!-- top right: tools -->
       <nav class="glass toolbar" aria-label="Map tools">
         <button id="btnCompass" class="btn compass" type="button" title="Face north" aria-label="Face north"><span id="needle" class="needle"></span></button>
+        <button id="btnDir" class="btn" type="button" aria-pressed="false" aria-controls="dirPanel">Buildings</button>
         <button id="btnLabels" class="btn" type="button" aria-pressed="true">Labels</button>
         <button id="btnTour" class="btn" type="button" aria-pressed="false">Tour</button>
         <button id="btnRoute" class="btn" type="button" aria-pressed="false">Route</button>
@@ -42,7 +43,22 @@
 
       <div class="glass panel" id="layersPanel" hidden>
         <div class="ptitle">Layers</div>
+        <span class="plabel" id="mapStyleLabel">Ground</span>
+        <div class="seg" role="group" aria-labelledby="mapStyleLabel">
+          <button id="tSat" class="chip" type="button" aria-pressed="true">Satellite</button>
+          <button id="tMap" class="chip" type="button" aria-pressed="false">Map</button>
+        </div>
+        <p class="pnote" id="satNote"></p>
+        <span class="plabel" id="labelModeLabel">Labels</span>
+        <div class="seg" role="group" aria-labelledby="labelModeLabel">
+          <button class="chip" type="button" data-labels="off" aria-pressed="false">Off</button>
+          <button class="chip" type="button" data-labels="key" aria-pressed="false">Key places</button>
+          <button class="chip" type="button" data-labels="all" aria-pressed="true">Every building</button>
+        </div>
+        <span class="plabel">Show</span>
         <div class="tgl">
+          <button id="tRoads" class="chip" type="button" aria-pressed="false">Road lines</button>
+          <button id="tTrees" class="chip" type="button" aria-pressed="true">Trees</button>
           <button id="tTraffic" class="chip" type="button" aria-pressed="true">Traffic</button>
           <button id="tLamps" class="chip" type="button" aria-pressed="true">Street lamps</button>
           <button id="tDeer" class="chip" type="button" aria-pressed="true">Deer</button>
@@ -75,7 +91,8 @@
           <li><b>Click</b> a building</li>
           <li><b>Ctrl K</b> search</li>
         </ul>
-        <p class="pnote">Buildings, roads, water and green areas come from OpenStreetMap (&copy; OpenStreetMap contributors, ODbL). Heights use the mapped floor count where there is one; the rest are estimated from building type and size. Trees, deer and traffic are illustrative.</p>
+        <p class="pnote">Buildings, roads, water and green areas come from OpenStreetMap (&copy; OpenStreetMap contributors, ODbL). Heights use the mapped floor count where there is one; the rest are estimated from building type and size. Unnamed buildings are labelled by what their map tags say they are and the nearest named place or road. Trees, deer and traffic are illustrative.</p>
+        <p class="pnote">Satellite view: imagery from Esri World Imagery (Esri, Maxar, Earthstar Geographics), loaded in your browser while you view the page and draped over the ground and roofs. It was also used as a reference to place the Open Air Theatre and Gajendra Circle.</p>
         <p class="pnote" id="aboutStats"></p>
       </div>
 
@@ -93,6 +110,17 @@
         <div id="rInfo" class="rinfo" aria-live="polite"></div>
       </div>
 
+      <!-- building directory with category tabs -->
+      <section class="glass dir" id="dirPanel" hidden aria-label="Building directory">
+        <div class="dir-head">
+          <div class="ptitle">Campus buildings <span id="dirCount" class="dir-count"></span></div>
+          <button id="dirClose" class="btn close-sm" type="button" aria-label="Close the building directory">&times;</button>
+        </div>
+        <div class="dir-tabs" id="dirTabs" role="tablist" aria-label="Building categories"></div>
+        <input id="dirFilter" class="dir-filter" type="search" placeholder="Filter this tab" autocomplete="off" aria-label="Filter buildings in this tab" />
+        <div class="dir-list" id="dirList" role="tabpanel" aria-labelledby=""></div>
+      </section>
+
       <!-- info card for the selected place -->
       <article class="glass info" id="info" hidden aria-live="polite"></article>
 
@@ -101,6 +129,7 @@
         <div class="where" id="where">Gajendra Circle</div>
         <div class="coords" id="coords">12.9916&deg; N 80.2337&deg; E</div>
         <div class="credit">Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
+        <div class="credit" id="satCredit"></div>
       </div>
 
       <!-- bottom: study spots and time of day -->

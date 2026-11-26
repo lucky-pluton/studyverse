@@ -114,7 +114,8 @@ export const CampusMap: React.FC<CampusMapProps> = ({
         <div className="w-5 h-5 rounded-lg bg-[#2d5a43] text-white flex items-center justify-center text-[10px] shadow-xs group-hover:bg-[#234735] transition-colors">
           <Compass className="w-3.5 h-3.5" />
         </div>
-        <span className="font-serif-title font-bold text-xs">Quick List</span>
+        {/* icon and count only on phones, so the button clears the 2D/3D toggle */}
+        <span className="font-serif-title font-bold text-xs hidden sm:inline">Quick List</span>
         <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
           {students.length}
         </span>

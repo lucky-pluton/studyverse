@@ -3,9 +3,10 @@ import * as THREE from 'three';
 import { loadCampus, pointInRing, ringBox, ringCentroid, toLatLon, type CampusData } from './data';
 import { SkyEnv } from './sky';
 import { buildBuildings, buildDeer, buildGround, buildLamps, buildRoads, buildTrees, type Buildings, type Trees, type Lamps, type Deer } from './world';
-import { buildLandmarks, type Landmarks, type Place } from './landmarks';
+import { buildLandmarks, CATEGORIES, CATEGORY_COLOR, CATEGORY_LABEL, type Landmarks, type Place } from './landmarks';
+import { SATELLITE, applySatelliteUVs, loadSatellite, pickZoom, type Satellite } from './satellite';
 import { RoadGraph, RouteView, Traffic } from './routes';
-import { LabelLayer } from './labels';
+import { LabelLayer, type LabelMode } from './labels';
 import { CameraRig } from './controls';
 
 /* ------------------------------------------------------------------ */
@@ -77,6 +78,15 @@ let current: Place | null = null;
 let hour = 15.5;
 let ready = false;
 let inCampus: (x: number, z: number) => boolean = () => false;
+let groundGroup: THREE.Group;
+let roadsGroup: THREE.Group;
+let sat: Satellite | null = null;
+let satOn = true;
+let roadLines = false;
+let roofMapMat: THREE.Material | null = null;
+let roofSatMat: THREE.MeshStandardMaterial | null = null;
+let labelMode: LabelMode = 'all';
+let treeDensity = 1;
 const highlight = new THREE.Group();
 scene.add(highlight);
 
@@ -101,8 +111,10 @@ async function init(): Promise<void> {
   progress(0.5, 'Laying out the ground and roads…');
   await nextFrame();
   const ground = buildGround(data);
+  groundGroup = ground.group;
   scene.add(ground.group);
-  scene.add(buildRoads(data));
+  roadsGroup = buildRoads(data);
+  scene.add(roadsGroup);
   lap('ground+roads');
 
   progress(0.62, `Raising ${data.buildings.length.toLocaleString('en-IN')} buildings from their footprints…`);
@@ -164,6 +176,58 @@ async function init(): Promise<void> {
   rig.flyTo({ x: 120, z: 170, dist: 1500, polar: 0.92, azimuth: 2.75, duration: 3.2 });
   setTimeout(hideHint, 9000);
   post({ type: 'SAHEJ_3D_READY' });
+  startSatellite();
+}
+
+/* ------------------------------------------------------------------ */
+/* satellite imagery                                                   */
+/* ------------------------------------------------------------------ */
+
+function startSatellite(): void {
+  const budget = autoLevel === 'high' ? 11e6 : autoLevel === 'med' ? 4e6 : 1.2e6;
+  const zoom = pickZoom(data, renderer.capabilities.maxTextureSize, budget);
+  const credit = $('satCredit');
+  credit.textContent = 'Loading satellite imagery…';
+  sat = loadSatellite(data, zoom, (f) => { if (f < 1) credit.textContent = `Loading satellite imagery… ${Math.round(f * 100)}%`; }, renderer.capabilities.getMaxAnisotropy());
+  sat.ground.renderOrder = -1;
+  scene.add(sat.ground);
+  const roofs = buildings.pickables.find((m) => m.name === 'b-roofs');
+  if (roofs) {
+    applySatelliteUVs(roofs.geometry, sat);
+    roofMapMat = roofs.material as THREE.Material;
+    roofSatMat = new THREE.MeshStandardMaterial({ map: sat.texture, roughness: 0.92 });
+  }
+  applyGroundStyle();
+  sat.done.then((share) => {
+    if (share < 0.3) {
+      credit.textContent = '';
+      $('satNote').textContent = 'Satellite imagery could not be loaded, so the map style is shown. Check your connection and reload to try again.';
+      satOn = false;
+      applyGroundStyle();
+      return;
+    }
+    credit.textContent = SATELLITE.attribution;
+    $('satNote').textContent = share < 1 ? 'Some imagery tiles did not load; those patches stay plain.' : '';
+  });
+}
+
+/** Satellite: real imagery on the ground and roofs. Map: the drawn ground, water and roads. */
+function applyGroundStyle(): void {
+  const useSat = satOn && !!sat;
+  if (sat) sat.ground.visible = useSat;
+  for (const o of groundGroup.children) {
+    if (o.name === 'campus-lawn' || o.name === 'water' || o.name === 'pitch-lines' || o.name.startsWith('area-')) o.visible = !useSat;
+  }
+  roadsGroup.visible = !useSat || roadLines;
+  const roofs = buildings.pickables.find((m) => m.name === 'b-roofs');
+  if (roofs && roofMapMat && roofSatMat) roofs.material = useSat ? roofSatMat : roofMapMat;
+  // the imagery already shows the real canopy, so the 3D trees are darker and sparser over it
+  trees.setTint(useSat ? 0.66 : 1);
+  trees.setDensity(treeDensity * (useSat ? 0.55 : 1));
+  $('tSat').setAttribute('aria-pressed', String(useSat));
+  $('tMap').setAttribute('aria-pressed', String(!useSat));
+  $('tRoads').setAttribute('aria-pressed', String(roadsGroup.visible));
+  $('satCredit').hidden = !useSat;
 }
 
 /* walking-mode collision against building footprints */
@@ -254,11 +318,13 @@ function select(p: Place, fly = true): void {
   setHighlight(p);
   renderInfo();
   document.querySelectorAll<HTMLButtonElement>('.spot').forEach((s) => s.setAttribute('aria-pressed', String(s.dataset.id === p.id)));
+  markDirectory(p.id);
   if (fly) flyToPlace(p);
 }
 
 function clearSelection(): void {
   current = null;
+  markDirectory(null);
   labels.setSelected(null);
   setHighlight(null);
   $('info').hidden = true;
@@ -271,6 +337,7 @@ function renderInfo(): void {
   if (!p) { info.hidden = true; return; }
   closePanels();
   const facts: string[] = [];
+  if (p.cat && p.cat !== 'study') facts.push(CATEGORY_LABEL[p.cat] || p.cat);
   if (p.floors) facts.push(`${p.floors} floor${p.floors === 1 ? '' : 's'} ${p.floorsFromMap ? '(mapped)' : '(estimated)'}`);
   if (p.building !== undefined) facts.push(`about ${Math.round(data.buildings[p.building].h)} m tall`);
   if (p.kind !== 'district' && p.kind !== 'road' && p.id !== 'gate') {
@@ -359,7 +426,7 @@ function toggle(id: string, fn: (on: boolean) => void): void {
   });
 }
 
-const ORDER: Record<string, number> = { study: 0, major: 1, soon: 2, hostel: 3, area: 4, building: 5, poi: 6, road: 7, district: 8 };
+const ORDER: Record<string, number> = { study: 0, major: 1, soon: 2, hostel: 3, area: 4, building: 5, minor: 6, poi: 7, road: 8, district: 9 };
 
 function setupUi(): void {
   const onCampus = data.buildings.filter((b) => b.c).length;
@@ -386,7 +453,24 @@ function setupUi(): void {
   // toolbar
   $('btn2d').addEventListener('click', () => post({ type: 'SAHEJ_SWITCH_VIEW', view: '2d' }));
   $('btnCompass').addEventListener('click', () => rig.faceNorth());
-  toggle('btnLabels', (on) => { labels.enabled = on; });
+  let lastLabelMode: LabelMode = 'all';
+  const setLabelMode = (m: LabelMode): void => {
+    labelMode = m;
+    labels.mode = m;
+    if (m !== 'off') lastLabelMode = m;
+    $('btnLabels').setAttribute('aria-pressed', String(m !== 'off'));
+    document.querySelectorAll<HTMLButtonElement>('[data-labels]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.labels === m)));
+  };
+  $('btnLabels').addEventListener('click', () => setLabelMode(labelMode === 'off' ? lastLabelMode : 'off'));
+  document.querySelectorAll<HTMLButtonElement>('[data-labels]').forEach((b) => b.addEventListener('click', () => setLabelMode(b.dataset.labels as LabelMode)));
+  setLabelMode('all');
+  $('tSat').addEventListener('click', () => { satOn = true; applyGroundStyle(); });
+  $('tMap').addEventListener('click', () => { satOn = false; applyGroundStyle(); });
+  // road lines always show in the map style; over satellite imagery they are optional
+  $('tRoads').addEventListener('click', () => { if (satOn && sat) { roadLines = !roadLines; applyGroundStyle(); } });
+  toggle('tTrees', (on) => { trees.group.visible = on; });
+  $('btnDir').addEventListener('click', () => toggleDirectory());
+  $('dirClose').addEventListener('click', () => toggleDirectory(false));
   $('btnLayers').addEventListener('click', () => togglePanel('layersPanel'));
   $('btnAbout').addEventListener('click', () => togglePanel('aboutPanel'));
   $('btnRoute').addEventListener('click', () => {
@@ -453,6 +537,7 @@ function setupUi(): void {
   $('rClear').addEventListener('click', () => { route.clear(); $('rInfo').textContent = ''; });
 
   setupSearch();
+  setupDirectory();
   setupPointer();
   setupKeys();
 }
@@ -681,7 +766,8 @@ function applyDetail(level: 'low' | 'med' | 'high'): void {
     sky.sun.shadow.map?.dispose();
     sky.sun.shadow.map = null;
   }
-  trees.setDensity(cfg.tr);
+  treeDensity = cfg.tr;
+  trees.setDensity(cfg.tr * (satOn && sat ? 0.55 : 1));
   resize();
 }
 
@@ -718,6 +804,115 @@ function tourStop(): void {
   $('tourbar').hidden = true;
   $('btnTour').setAttribute('aria-pressed', 'false');
   rig.controls.autoRotate = $('tSpin').getAttribute('aria-pressed') === 'true';
+}
+
+/* ------------------------------------------------------------------ */
+/* building directory with category tabs                               */
+/* ------------------------------------------------------------------ */
+
+let dirTab = 'all';
+let dirPlaces: Place[] = [];
+const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+
+function setupDirectory(): void {
+  dirPlaces = marks.places
+    .filter((p) => p.cat && p.kind !== 'poi' && p.kind !== 'road' && p.kind !== 'district')
+    .sort((a, b) => (a.cat === 'study' ? 0 : 1) - (b.cat === 'study' ? 0 : 1) || collator.compare(a.name, b.name));
+  const onCampus = dirPlaces.filter((p) => p.cat !== 'out').length;
+  $('dirCount').textContent = `· ${onCampus} places on campus`;
+  const tabs = $('dirTabs');
+  for (const c of CATEGORIES) {
+    const n = c.id === 'all' ? dirPlaces.length : dirPlaces.filter((p) => p.cat === c.id).length;
+    if (!n) continue;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'dir-tab';
+    b.id = 'dirtab-' + c.id;
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(c.id === dirTab));
+    b.setAttribute('aria-controls', 'dirList');
+    b.tabIndex = c.id === dirTab ? 0 : -1;
+    b.dataset.tab = c.id;
+    b.style.setProperty('--c', c.color);
+    b.innerHTML = `${c.id === 'all' ? '' : '<i aria-hidden="true"></i>'}${esc(c.label)} <b>${n}</b>`;
+    b.addEventListener('click', () => setDirTab(c.id));
+    tabs.appendChild(b);
+  }
+  tabs.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const all = [...tabs.querySelectorAll<HTMLButtonElement>('.dir-tab')];
+    const i = all.findIndex((b) => b.dataset.tab === dirTab);
+    const next = all[(i + (e.key === 'ArrowRight' ? 1 : all.length - 1)) % all.length];
+    setDirTab(next.dataset.tab!);
+    next.focus();
+    e.preventDefault();
+  });
+  $('dirList').setAttribute('aria-labelledby', 'dirtab-' + dirTab);
+  ($('dirFilter') as HTMLInputElement).addEventListener('input', renderDirectory);
+  renderDirectory();
+}
+
+function setDirTab(id: string): void {
+  dirTab = id;
+  document.querySelectorAll<HTMLButtonElement>('.dir-tab').forEach((b) => {
+    const on = b.dataset.tab === id;
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1;
+  });
+  $('dirList').setAttribute('aria-labelledby', 'dirtab-' + id);
+  renderDirectory();
+}
+
+function renderDirectory(): void {
+  const list = $('dirList');
+  const q = ($('dirFilter') as HTMLInputElement).value.trim().toLowerCase();
+  const items = dirPlaces.filter((p) => (dirTab === 'all' || p.cat === dirTab) && (!q || (p.name + ' ' + p.tag).toLowerCase().includes(q)));
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<div class="dir-empty">No buildings match in this tab.</div>';
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const p of items) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'dir-item';
+    b.dataset.id = p.id;
+    if (current && current.id === p.id) b.setAttribute('aria-current', 'true');
+    b.style.setProperty('--c', CATEGORY_COLOR[p.cat || 'oth'] || '#64748b');
+    const bits = [p.cat === 'study' ? (p.kind === 'soon' ? 'Study spot, opening soon' : 'Study spot') : CATEGORY_LABEL[p.cat || 'oth']];
+    if (p.floors) bits.push(`${p.floors} floor${p.floors === 1 ? '' : 's'}`);
+    b.innerHTML = `<i aria-hidden="true"></i><span>${p.icon ? p.icon + ' ' : ''}${esc(p.name)}<small>${esc(bits.join(' · '))}</small></span>`;
+    b.addEventListener('click', () => {
+      select(p);
+      if (window.innerWidth < 820) toggleDirectory(false);
+    });
+    frag.appendChild(b);
+  }
+  list.appendChild(frag);
+}
+
+function markDirectory(id: string | null): void {
+  document.querySelectorAll<HTMLButtonElement>('.dir-item').forEach((b) => {
+    const on = b.dataset.id === id;
+    if (on) b.setAttribute('aria-current', 'true');
+    else b.removeAttribute('aria-current');
+    if (on && !$('dirPanel').hidden) b.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function toggleDirectory(open?: boolean): void {
+  const panel = $('dirPanel');
+  const show = open ?? panel.hidden === true;
+  panel.hidden = !show;
+  app.classList.toggle('dir-open', show);
+  $('btnDir').setAttribute('aria-pressed', String(show));
+  if (show) {
+    const bottom = Math.round((document.querySelector('.card-title') as HTMLElement).getBoundingClientRect().bottom);
+    panel.style.top = bottom + 10 + 'px';
+    panel.style.maxHeight = `calc(100vh - ${bottom + 130}px)`;
+    markDirectory(current ? current.id : null);
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -772,7 +967,7 @@ function frame(now: number): void {
   }
   ($('needle') as HTMLElement).style.transform = `rotate(${(-rig.azimuth * 180) / Math.PI}deg)`;
 
-  if (labels.enabled || current) labels.update(camera, stage.clientWidth, stage.clientHeight, viewDist, rig.walking ? camera.position : rig.target);
+  if (labels.mode !== 'off' || current) labels.update(camera, stage.clientWidth, stage.clientHeight, viewDist, rig.walking ? camera.position : rig.target);
   if (frameNo % 8 === 0) updateReadout();
 
   // auto detail: step down once or twice if the frame rate is low

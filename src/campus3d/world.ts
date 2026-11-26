@@ -250,6 +250,7 @@ export function buildGround(data: CampusData): Ground {
   const campusGb = new GeoBuilder();
   addFlat(campusGb, data.campus, undefined, 0.03, 30, white);
   const campus = new THREE.Mesh(campusGb.build(), decalMaterial(0x9db87b, 2, fine));
+  campus.name = 'campus-lawn';
   campus.receiveShadow = true;
   group.add(campus);
 
@@ -278,7 +279,9 @@ export function buildGround(data: CampusData): Ground {
   if (lines.length) {
     const lg = new THREE.BufferGeometry();
     lg.setAttribute('position', new THREE.Float32BufferAttribute(lines, 3));
-    group.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xf4f4ee, transparent: true, opacity: 0.85 })));
+    const pitchLines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0xf4f4ee, transparent: true, opacity: 0.85 }));
+    pitchLines.name = 'pitch-lines';
+    group.add(pitchLines);
   }
 
   // water
@@ -638,6 +641,8 @@ export interface Trees {
   shadowCasters: THREE.InstancedMesh[];
   totals: Map<THREE.InstancedMesh, number>;
   setDensity(f: number): void;
+  /** darkens the crowns (1 = normal) */
+  setTint(f: number): void;
 }
 
 export function buildTrees(data: CampusData, excluded: (x: number, z: number) => boolean): Trees {
@@ -699,6 +704,10 @@ export function buildTrees(data: CampusData, excluded: (x: number, z: number) =>
     group, meshes, shadowCasters, totals,
     setDensity(f: number) {
       for (const m of meshes) m.count = Math.max(0, Math.floor((totals.get(m) || 0) * f));
+    },
+    setTint(f: number) {
+      crownMat.color.setScalar(f);
+      palmMat.color.setScalar(f);
     },
   };
 }

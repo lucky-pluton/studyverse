@@ -16,6 +16,12 @@ export interface BuildingRec {
   /** 1 when the floor count comes from the map rather than an estimate. */
   l?: 1;
   n?: string;
+  /** directory category: aca, hos, food, spo, svc, res, lmk, utl, oth or out */
+  t?: string;
+  /** descriptive label for an unnamed campus building, e.g. "Staff quarters near E-4" */
+  g?: string;
+  /** house number or reference from the map */
+  r?: string;
 }
 
 export interface AreaRec {

@@ -186,6 +186,9 @@ for (const e of E) {
     if (inside) b.c = 1;
     if (parseInt(e.tags['building:levels'], 10) > 0) b.l = 1; // floor count comes from the map
     const name = e.tags.name || e.tags['name:en'];
+    b.t = categoryOf(e.tags, name || '', kind, inside);
+    const ref = e.tags['addr:housenumber'] || e.tags.ref;
+    if (!name && ref && inside && ref.length < 16) b.r = String(ref);
     if (name) {
       b.n = name.split(';')[0].trim();
       const rec = { n: b.n, x: r1(c[0]), z: r1(c[1]), t: tagOf(e.tags), b: buildings.length };
@@ -196,6 +199,27 @@ for (const e of E) {
     buildings.push(b);
   }
 }
+/**
+ * Directory category for a building, used by the 3D page's tabs:
+ * aca academic, hos hostels, food, spo sport, svc services, res residences, lmk landmarks,
+ * utl utilities, oth other campus buildings, out outside the campus wall.
+ */
+function categoryOf(t, name, kind, inside) {
+  if (!inside) return 'out';
+  const n = name.toLowerCase(), a = t.amenity || '', b = t.building || '';
+  if (a === 'place_of_worship' || b === 'temple' || t.tourism === 'museum' || t.historic || /temple|heritage|museum/.test(n)) return 'lmk';
+  if (/^(restaurant|cafe|food_court|fast_food|canteen|ice_cream)$/.test(a) || /\bmess\b|canteen|caf[eé]|food|dining|juice|bakery|coffee/.test(n)) return 'food';
+  if (a === 'student_accommodation' || b === 'dormitory' || t.tourism === 'hostel' || kind === 1) return 'hos';
+  if (/^(sports_centre|stadium|swimming_pool|fitness_centre|pitch)$/.test(t.leisure || '') || /sports|gym|swimming|stadium|pavilion|court/.test(n)) return 'spo';
+  if (/sump|pump|sub-?station|transformer|tank|generator|ozone|garage|parking|shed|store room|laundry/.test(n) || kind === 7) return 'utl';
+  if (/^(bank|atm|post_office|hospital|clinic|doctors|police|fire_station|townhall)$/.test(a) || b === 'hospital' || b === 'office' || t.tourism === 'guest_house' || t.shop ||
+    /bank|post|hospital|guest house|office|shopping|store|mart|parlour|maintenance|exchange|club|security|admin/.test(n)) return 'svc';
+  if (b === 'university' || b === 'college' || b === 'school' || /^(university|college|school|library|theatre|conference_centre)$/.test(a) ||
+    /department|dept|\blab\b|laborator|block|centre|center|lecture|library|academic|workshop|engineering|science|research|auditorium|school|complex|gate office|innovation/.test(n)) return 'aca';
+  if (kind === 2 || /^(house|residential|apartments|detached|semidetached_house|bungalow)$/.test(b) || /quarter|^[a-z]{1,3}\d|^[a-z]\d?-\s?\d|&/.test(n)) return 'res';
+  return 'oth';
+}
+
 function tagOf(t) {
   if (t.amenity === 'student_accommodation' || t.building === 'dormitory' || t.tourism === 'hostel') return 'Hostel';
   if (t.amenity === 'library') return 'Library';
@@ -303,6 +327,59 @@ for (const e of E) {
   const p = proj(e); if (!inCampus(p[0], p[1]) && !/gate/i.test(e.tags.name)) continue;
   pois.push({ n: e.tags.name.split(';')[0], x: r1(p[0]), z: r1(p[1]), t: tagOf(e.tags) || (e.tags.barrier === 'gate' ? 'Gate' : e.tags.highway === 'bus_stop' ? 'Bus stop' : e.tags.amenity ? e.tags.amenity.replace(/_/g, ' ') : '') });
 }
+
+/* ---------------- labels for every campus building ---------------- */
+// Named buildings keep their map name. Every other campus building gets a descriptive label from
+// its category and its nearest named neighbour or road, e.g. "Staff quarters near E-4".
+const KIND_LABEL = { aca: 'Academic building', hos: 'Hostel block', food: 'Dining hall', spo: 'Sports building', svc: 'Service building', res: 'Staff quarters', lmk: 'Temple building', utl: 'Utility building', oth: 'Campus building' };
+const refs = [
+  ...named.filter((q) => !q.out && !/^(quarter|building|block)$/i.test(q.n)).map((q) => ({ n: q.n, x: q.x, z: q.z, b: q.b })),
+  ...pois.filter((q) => q.t && q.t !== 'Bus stop').map((q) => ({ n: q.n, x: q.x, z: q.z, b: undefined })),
+];
+const namedRoads = [];
+for (const r of roads) {
+  if (!r.n || r.c > 4) continue;
+  for (let i = 0; i < r.v.length - 1; i++) namedRoads.push([rv[r.v[i] * 2], rv[r.v[i] * 2 + 1], rv[r.v[i + 1] * 2], rv[r.v[i + 1] * 2 + 1], r.n]);
+}
+const centroids = buildings.map((b) => centroid(b.p.reduce((acc, v, i) => (i % 2 ? acc[acc.length - 1].push(v) : acc.push([v]), acc), [])));
+// unnamed generic buildings take the category of a named neighbour within 70 m (quarters next to quarters)
+buildings.forEach((b, i) => {
+  if (!b.c || b.n || b.t !== 'oth') return;
+  const [cx, cz] = centroids[i];
+  let best = 70 * 70, cat = null;
+  for (const q of named) {
+    if (q.b === undefined || q.out) continue;
+    const t = buildings[q.b].t;
+    if (t !== 'res' && t !== 'aca' && t !== 'hos') continue;
+    const d = (q.x - cx) ** 2 + (q.z - cz) ** 2;
+    if (d < best) { best = d; cat = t; }
+  }
+  if (cat) b.t = cat;
+});
+const labelCount = new Map();
+buildings.forEach((b, i) => {
+  if (!b.c || b.n) return;
+  const [cx, cz] = centroids[i];
+  let where = '';
+  let best = 190 * 190;
+  for (const q of refs) {
+    if (q.b === i) continue;
+    const d = (q.x - cx) ** 2 + (q.z - cz) ** 2;
+    if (d < best) { best = d; where = 'near ' + q.n; }
+  }
+  if (!where) {
+    let bd = 140 * 140;
+    for (const s of namedRoads) { const d = segDist2(cx, cz, s[0], s[1], s[2], s[3]); if (d < bd) { bd = d; where = 'on ' + s[4]; } }
+  }
+  const base = (b.r ? `${KIND_LABEL[b.t] || 'Campus building'} ${b.r}` : KIND_LABEL[b.t] || 'Campus building') + (where ? ' ' + where : '');
+  const k = (labelCount.get(base) || 0) + 1;
+  labelCount.set(base, k);
+  b.g = k > 1 ? `${base} (${k})` : base;
+});
+// the first of a repeated label gets "(1)" so the directory reads clearly
+const firstOf = new Map();
+buildings.forEach((b) => { if (b.g && !/\(\d+\)$/.test(b.g) && labelCount.get(b.g) > 1 && !firstOf.has(b.g)) { firstOf.set(b.g, true); b.g += ' (1)'; } });
+
 
 /* ---------------- tree and deer placement ---------------- */
 function boxHit(box, x, z, m) { return x >= box[0] - m && x <= box[2] + m && z >= box[1] - m && z <= box[3] + m; }
