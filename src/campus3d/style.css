@@ -209,6 +209,29 @@ select, input[type='file'] { font: 400 13px var(--font); color: var(--ink); back
 .spot:hover { border-color: var(--line); }
 .spot[aria-pressed='true'] { background: var(--accent); color: var(--accent-ink); }
 .spot .n { font-size: 10.5px; font-weight: 700; color: #fff; background: var(--live); border-radius: 999px; padding: 2px 6px; }
+.spot .d { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+.spot[aria-pressed='true'] .d { box-shadow: 0 0 0 2px var(--accent-ink); }
+.spot .soon { font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
+.spot[aria-pressed='true'] .soon { color: inherit; }
+/* category tabs above the place chips */
+.dock-tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.dock-tabs::-webkit-scrollbar { display: none; }
+.dock-tab {
+  flex: none; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; white-space: nowrap;
+  font: 600 11.5px/1 var(--font); color: var(--muted); background: transparent; border: 0; border-radius: 8px; padding: 6px 8px;
+}
+.dock-tab i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
+.dock-tab b { font-weight: 500; opacity: 0.75; font-variant-numeric: tabular-nums; }
+.dock-tab:hover { color: var(--ink); background: var(--hover); }
+.dock-tab[aria-selected='true'] { color: var(--ink); background: var(--hover); box-shadow: inset 0 -2px 0 var(--c); }
+.dock-tab:focus-visible, .dock-arrow:focus-visible, .spot:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.dock-row { display: flex; align-items: center; gap: 5px; }
+.dock-row .spots { flex: 1; min-width: 0; scroll-behavior: smooth; }
+.dock-arrow {
+  flex: none; width: 26px; height: 26px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--line); background: var(--glass-strong); color: var(--ink); font: 600 16px/1 var(--font);
+}
+.dock-arrow:disabled { opacity: 0.3; cursor: default; }
 .timebar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .clock { font: 600 12.5px var(--font); font-variant-numeric: tabular-nums; min-width: 66px; }
 #tod { flex: 1; min-width: 120px; accent-color: var(--gold); }
@@ -302,4 +325,12 @@ select, input[type='file'] { font: 400 13px var(--font); color: var(--ink); back
 }
 @media (prefers-reduced-motion: reduce) {
   .loader, .hint, .ld-bar i { transition: none; }
+}
+
+/* inside the app, keep the bottom bar clear of the app's Study Timers button (bottom-left) */
+@media (max-width: 1240px) {
+  .app.embed .dock { left: auto; right: max(14px, env(safe-area-inset-right)); transform: none; width: min(760px, calc(100vw - 300px)); }
+}
+@media (max-width: 640px) {
+  .app.embed .dock { left: 12px; right: 12px; width: auto; bottom: 78px; }
 }

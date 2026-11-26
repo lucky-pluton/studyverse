@@ -319,6 +319,7 @@ function select(p: Place, fly = true): void {
   renderInfo();
   document.querySelectorAll<HTMLButtonElement>('.spot').forEach((s) => s.setAttribute('aria-pressed', String(s.dataset.id === p.id)));
   markDirectory(p.id);
+  showInDock(p);
   if (fly) flyToPlace(p);
 }
 
@@ -436,20 +437,6 @@ function setupUi(): void {
   labels = new LabelLayer($('labels'), marks.places, (p) => select(p));
   labels.setCounts(counts);
 
-  // study spot chips
-  const spots = $('spots');
-  for (const p of marks.places.filter((q) => q.kind === 'study')) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'spot';
-    b.dataset.id = p.id;
-    b.setAttribute('aria-pressed', 'false');
-    b.innerHTML = `<span aria-hidden="true">${p.icon}</span><span>${esc(p.name)}</span><span class="n" hidden></span>`;
-    b.addEventListener('click', () => select(p));
-    spots.appendChild(b);
-  }
-  updateSpotCounts();
-
   // toolbar
   $('btn2d').addEventListener('click', () => post({ type: 'SAHEJ_SWITCH_VIEW', view: '2d' }));
   $('btnCompass').addEventListener('click', () => rig.faceNorth());
@@ -538,15 +525,17 @@ function setupUi(): void {
 
   setupSearch();
   setupDirectory();
+  setupDock();
   setupPointer();
   setupKeys();
 }
 
 function updateSpotCounts(): void {
   document.querySelectorAll<HTMLButtonElement>('.spot').forEach((b) => {
+    const el = b.querySelector<HTMLElement>('.n');
+    if (!el) return;
     const p = marks.byId.get(b.dataset.id!);
     const n = p && p.studyId ? counts[p.studyId] || 0 : 0;
-    const el = b.querySelector<HTMLElement>('.n')!;
     el.hidden = n <= 0;
     el.textContent = String(n);
   });
@@ -913,6 +902,123 @@ function toggleDirectory(open?: boolean): void {
     panel.style.maxHeight = `calc(100vh - ${bottom + 130}px)`;
     markDirectory(current ? current.id : null);
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* bottom bar: every place, one category tab at a time                 */
+/* ------------------------------------------------------------------ */
+
+let dockTab = 'study';
+
+function setupDock(): void {
+  const tabs = $('dockTabs'), row = $('spots');
+  for (const c of CATEGORIES) {
+    if (c.id === 'all') continue;
+    const n = dirPlaces.filter((p) => p.cat === c.id).length;
+    if (!n) continue;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'dock-tab';
+    b.id = 'docktab-' + c.id;
+    b.dataset.tab = c.id;
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(c.id === dockTab));
+    b.setAttribute('aria-controls', 'spots');
+    b.tabIndex = c.id === dockTab ? 0 : -1;
+    b.style.setProperty('--c', c.color);
+    b.innerHTML = `<i aria-hidden="true"></i>${esc(c.label)} <b>${n}</b>`;
+    b.addEventListener('click', () => setDockTab(c.id));
+    tabs.appendChild(b);
+  }
+  tabs.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const all = [...tabs.querySelectorAll<HTMLButtonElement>('.dock-tab')];
+    const i = all.findIndex((b) => b.dataset.tab === dockTab);
+    const next = all[(i + (e.key === 'ArrowRight' ? 1 : all.length - 1)) % all.length];
+    setDockTab(next.dataset.tab!);
+    next.focus();
+    e.preventDefault();
+  });
+  $('dockPrev').addEventListener('click', () => row.scrollBy({ left: -row.clientWidth * 0.8 }));
+  $('dockNext').addEventListener('click', () => row.scrollBy({ left: row.clientWidth * 0.8 }));
+  // a mouse wheel scrolls these rows sideways
+  for (const el of [row, tabs]) {
+    el.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      el.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }, { passive: false });
+  }
+  row.addEventListener('scroll', updateDockArrows);
+  window.addEventListener('resize', updateDockArrows);
+  renderDock();
+}
+
+function setDockTab(id: string): void {
+  if (id === dockTab) return;
+  dockTab = id;
+  document.querySelectorAll<HTMLButtonElement>('.dock-tab').forEach((b) => {
+    const on = b.dataset.tab === id;
+    b.setAttribute('aria-selected', String(on));
+    b.tabIndex = on ? 0 : -1;
+    if (on) b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  });
+  $('spots').setAttribute('aria-labelledby', 'docktab-' + id);
+  renderDock();
+}
+
+function renderDock(): void {
+  const row = $('spots');
+  row.innerHTML = '';
+  row.scrollLeft = 0;
+  const frag = document.createDocumentFragment();
+  // study spots keep the app's own order, open ones before those opening soon; other tabs are A–Z
+  const list = dockTab === 'study'
+    ? [...marks.places.filter((q) => q.kind === 'study'), ...marks.places.filter((q) => q.kind === 'soon')]
+    : dirPlaces.filter((q) => q.cat === dockTab);
+  for (const p of list) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'spot';
+    b.dataset.id = p.id;
+    b.title = p.name;
+    b.setAttribute('aria-pressed', String(!!current && current.id === p.id));
+    if (p.kind === 'study') b.innerHTML = `<span aria-hidden="true">${p.icon || ''}</span><span>${esc(p.name)}</span><span class="n" hidden></span>`;
+    else if (p.kind === 'soon') b.innerHTML = `<span>${esc(p.name)}</span><span class="soon">${esc(p.badge || 'Soon')}</span>`;
+    else {
+      b.style.setProperty('--c', CATEGORY_COLOR[p.cat || 'oth'] || '#64748b');
+      b.innerHTML = `<i class="d" aria-hidden="true"></i><span>${esc(p.name)}</span>`;
+    }
+    b.addEventListener('click', () => select(p));
+    frag.appendChild(b);
+  }
+  row.appendChild(frag);
+  updateSpotCounts();
+  requestAnimationFrame(() => {
+    scrollDockToCurrent(false);
+    updateDockArrows();
+  });
+}
+
+function updateDockArrows(): void {
+  const row = $('spots');
+  ($('dockPrev') as HTMLButtonElement).disabled = row.scrollLeft <= 2;
+  ($('dockNext') as HTMLButtonElement).disabled = row.scrollLeft + row.clientWidth >= row.scrollWidth - 2;
+}
+
+function scrollDockToCurrent(smooth = true): void {
+  if (!current) return;
+  const row = $('spots');
+  const chip = row.querySelector<HTMLElement>(`.spot[data-id="${CSS.escape(current.id)}"]`);
+  if (!chip) return;
+  const left = chip.offsetLeft - row.offsetLeft - (row.clientWidth - chip.offsetWidth) / 2;
+  row.scrollTo({ left: Math.max(0, left), behavior: smooth ? 'smooth' : 'auto' });
+}
+
+/** Switches the bar to the place's category and scrolls its chip into view. */
+function showInDock(p: Place): void {
+  if (p.cat && p.cat !== dockTab && dirPlaces.includes(p)) setDockTab(p.cat);
+  else requestAnimationFrame(() => scrollDockToCurrent());
 }
 
 /* ------------------------------------------------------------------ */

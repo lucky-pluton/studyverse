@@ -132,7 +132,7 @@
         <div class="credit" id="satCredit"></div>
       </div>
 
-      <!-- bottom: study spots and time of day -->
+      <!-- bottom: every place by category, and the time of day -->
       <div class="glass dock" id="dock">
         <div class="tourbar" id="tourbar" hidden>
           <span id="tourText"></span>
@@ -141,7 +141,12 @@
           <button id="tourNext" class="btn btn-sm" type="button">Next</button>
           <button id="tourEnd" class="btn btn-sm" type="button">End tour</button>
         </div>
-        <div class="spots" id="spots" aria-label="Study spots"></div>
+        <div class="dock-tabs" id="dockTabs" role="tablist" aria-label="Go to a place by category"></div>
+        <div class="dock-row">
+          <button id="dockPrev" class="dock-arrow" type="button" aria-label="Scroll the place list left">&#8249;</button>
+          <div class="spots" id="spots" role="tabpanel" aria-labelledby="docktab-study"></div>
+          <button id="dockNext" class="dock-arrow" type="button" aria-label="Scroll the place list right">&#8250;</button>
+        </div>
         <div class="timebar">
           <span class="clock" id="clock">15:30 IST</span>
           <input id="tod" type="range" min="0" max="24" step="0.05" value="15.5" aria-label="Time of day" />
