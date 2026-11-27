@@ -27,6 +27,7 @@
           <kbd class="kbd">Ctrl K</kbd>
           <div id="qres" class="qres glass" role="listbox" hidden></div>
         </div>
+        <div id="mapFilter" class="map-filter" role="group" aria-label="Show on the map"></div>
       </section>
 
       <!-- top right: tools -->
@@ -47,6 +48,7 @@
         <div class="seg" role="group" aria-labelledby="mapStyleLabel">
           <button id="tSat" class="chip" type="button" aria-pressed="true">Satellite</button>
           <button id="tMap" class="chip" type="button" aria-pressed="false">Map</button>
+          <button id="tClean" class="chip" type="button" aria-pressed="false" title="Bright, simple colours">Clean</button>
         </div>
         <p class="pnote" id="satNote"></p>
         <span class="plabel" id="labelModeLabel">Labels</span>
@@ -124,6 +126,19 @@
 
       <!-- info card for the selected place -->
       <article class="glass info" id="info" hidden aria-live="polite"></article>
+
+      <!-- bottom right: map view switcher (three ways to see the same campus) -->
+      <div class="glass maptype" id="mapType" role="group" aria-label="Map view">
+        <button class="mt" type="button" data-ground="sat" aria-pressed="true" title="Satellite: real aerial imagery">
+          <span class="mt-thumb mt-sat" aria-hidden="true"></span><span class="mt-name">Satellite</span>
+        </button>
+        <button class="mt" type="button" data-ground="map" aria-pressed="false" title="Map: drawn ground, roads and water">
+          <span class="mt-thumb mt-map" aria-hidden="true"></span><span class="mt-name">Map</span>
+        </button>
+        <button class="mt" type="button" data-ground="clean" aria-pressed="false" title="Clean: bright, simple colours">
+          <span class="mt-thumb mt-clean" aria-hidden="true"></span><span class="mt-name">Clean</span>
+        </button>
+      </div>
 
       <!-- bottom left: where am I -->
       <div class="glass readout" id="readout">

@@ -683,7 +683,8 @@ const CROWN_HSL: [number, number, number, number][] = [
   [0.33, 0.38, 0.22, 0.07],
   [0.29, 0.4, 0.25, 0.08],
 ];
-const BLOSSOM = [0xe0632a, 0xe8c547, 0xe58fb0, 0xd9452b];
+// soft flowering crowns (gulmohar, cassia, pink trumpet): a few, muted, so they read as colour, not blobs
+const BLOSSOM = [0xd98a52, 0xd9c063, 0xd8a3b4, 0xcf7d55];
 
 export interface Trees {
   group: THREE.Group;
@@ -733,7 +734,7 @@ export function buildTrees(data: CampusData, excluded: (x: number, z: number) =>
         crowns.setMatrixAt(k, o.matrix);
         trunks.setMatrixAt(k, o.matrix);
         const [hh, ss, ll, lr] = CROWN_HSL[type];
-        if ((type === 1 || type === 0) && hash01(ri + 7) < 0.035) col.setHex(BLOSSOM[Math.floor(hash01(ri + 9) * BLOSSOM.length)]);
+        if ((type === 1 || type === 0) && hash01(ri + 7) < 0.018) col.setHex(BLOSSOM[Math.floor(hash01(ri + 9) * BLOSSOM.length)]);
         else col.setHSL(hh + (hash01(ri + 3) - 0.5) * 0.04, ss, ll + (hash01(ri + 5) - 0.5) * lr);
         crowns.setColorAt(k, col);
         trunks.setColorAt(k, col.setHSL(0.07, 0.3, 0.24 + hash01(ri + 11) * 0.1));

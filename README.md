@@ -95,6 +95,8 @@ Every major campus destination has its own physical, illustrated study room with
 ## 🌐 3D Campus and 3D Study Rooms
 
 - **Campus built from the map**: The 3D campus (`campus3d.html`, code in `src/campus3d/`) raises every building from its OpenStreetMap footprint: about 3,900 buildings, the real road network, lakes, the campus forest and Guindy National Park next door. Heights use mapped floor counts where they exist and are estimated otherwise.
+- **Map views**: Like the map types in online maps, the switcher at the bottom right (top right on phones) shows the same campus three ways: **Satellite** (real aerial imagery, the default; closer, sharper imagery loads around wherever you look, and the main campus uses a sharper image for roofs), **Map** (the drawn ground, water and roads) and **Clean** (bright, simple colours with brick and off-white buildings). The same choice is under **Layers → Ground**.
+- **Finding places**: Place names are tags with a pointer to their building. The chips under the search (Study, Academic, Hostels, Food, Sports, Services, Landmarks) show just one kind of place on the map.
 - **Study spots on the map**: The seven study rooms are pinned at their real places with live student counts. Select one and choose **Enter** to open the room.
 - **Rooms in 3D**: A room entered from the 3D campus opens as a 3D scene in the same style. Every seat from the illustrated room has a matching 3D spot, so seats, timers and presence are shared. Switch between **2D** and **3D** from the room's control pill.
 - **Tools**: search (`Ctrl K`), guided tour, walking routes over the real paths (distance and minutes on foot), street-level walking, and the time of day with the sun position for Chennai.
