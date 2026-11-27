@@ -160,40 +160,80 @@ function buildMainGate(glow: THREE.MeshStandardMaterial[]): { group: THREE.Group
   sign.add(t);
   for (const ux of [-4.2, 4.2]) {
     const u = new THREE.Mesh(new THREE.BoxGeometry(6, 0.18, 0.35), warmMat);
-    u.position.set(ux, 1.0, 0.45);
+    u.position.set(ux, 0.85, 0.45);
     sign.add(u);
   }
   for (const p of [[-10.2, -2.2, 1.15], [10.2, -2.2, 1.15], [-6.5, -5.5, 0.95], [6.5, -5.5, 0.95]]) palm(sign, p[0], p[1], p[2]);
   for (let hx = -8; hx <= 8; hx += 2.6) hedge(sign, hx, 2.6, 1.5, 0.85, 1.0, 0x9fb3a8);
 
-  // emblem disc on the sign
+  // The IIT Madras seal, as on the real sign: a gold relief on the granite. The artwork is
+  // "IIT Madras Logo (Black and White).svg" by IIT Madras via Wikimedia Commons, CC BY-SA 4.0,
+  // shipped in public/brand and recoloured gold here (the recoloured seal is under the same licence).
+  const S = 1024;
   const c = document.createElement('canvas');
-  c.width = c.height = 512;
+  c.width = c.height = S;
   const x = c.getContext('2d')!;
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  const ring = (): void => {
-    x.strokeStyle = '#d9c66e';
-    x.fillStyle = '#d9c66e';
-    x.lineWidth = 16; x.beginPath(); x.arc(256, 256, 244, 0, Math.PI * 2); x.stroke();
-    x.lineWidth = 6; x.beginPath(); x.arc(256, 256, 206, 0, Math.PI * 2); x.stroke();
+  tex.anisotropy = 8;
+  /** the image tinted with a fill style, on a scratch canvas */
+  const tinted = (img: CanvasImageSource, fill: string | CanvasGradient, size: number): HTMLCanvasElement => {
+    const t = document.createElement('canvas');
+    t.width = t.height = S;
+    const tx = t.getContext('2d')!;
+    tx.drawImage(img, (S - size) / 2, (S - size) / 2, size, size);
+    tx.globalCompositeOperation = 'source-in';
+    tx.fillStyle = fill;
+    tx.fillRect(0, 0, S, S);
+    return t;
   };
+  /** draws a layer several times in a small ring so its thin lines read from a distance */
+  const bold = (layer: HTMLCanvasElement, ox: number, oy: number, r: number): void => {
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2;
+      x.drawImage(layer, ox + Math.cos(a) * r, oy + Math.sin(a) * r);
+    }
+    x.drawImage(layer, ox, oy);
+  };
+  const gold = (): CanvasGradient => {
+    const g = x.createLinearGradient(0, 0, S, S);
+    g.addColorStop(0, '#fbe9ad');
+    g.addColorStop(0.45, '#e2bf68');
+    g.addColorStop(0.7, '#c99f4c');
+    g.addColorStop(1, '#f2da92');
+    return g;
+  };
+  const seal = new Image();
+  let sealReady = false;
   const drawDefault = (): void => {
-    x.clearRect(0, 0, 512, 512); ring();
-    x.beginPath(); x.moveTo(256, 150); x.lineTo(306, 256); x.lineTo(256, 362); x.lineTo(206, 256); x.closePath(); x.fill();
-    x.beginPath(); x.arc(256, 256, 18, 0, Math.PI * 2); x.fillStyle = '#b97874'; x.fill();
+    x.clearRect(0, 0, S, S);
+    if (sealReady) {
+      // a soft dark offset copy reads as the relief's shadow, then the bold gold face on top
+      bold(tinted(seal, 'rgba(50, 22, 16, 0.6)', S * 0.95), 8, 11, 4);
+      bold(tinted(seal, gold(), S * 0.95), 0, 0, 4);
+    } else {
+      x.strokeStyle = '#d4af5a';
+      x.lineWidth = 22;
+      x.beginPath(); x.arc(S / 2, S / 2, S * 0.46, 0, Math.PI * 2); x.stroke();
+    }
     tex.needsUpdate = true;
   };
+  let custom = false;
+  seal.onload = () => { sealReady = true; if (!custom) drawDefault(); };
+  seal.src = new URL('brand/iitm-logo.svg', document.baseURI).href;
   const drawImage = (img: HTMLImageElement): void => {
-    x.clearRect(0, 0, 512, 512);
-    x.save(); x.beginPath(); x.arc(256, 256, 200, 0, Math.PI * 2); x.clip();
-    const s = Math.max(400 / img.width, 400 / img.height), w = img.width * s, h = img.height * s;
-    x.drawImage(img, 256 - w / 2, 256 - h / 2, w, h); x.restore(); ring();
+    custom = true;
+    x.clearRect(0, 0, S, S);
+    x.save(); x.beginPath(); x.arc(S / 2, S / 2, S * 0.42, 0, Math.PI * 2); x.clip();
+    const s = Math.max((S * 0.84) / img.width, (S * 0.84) / img.height), w = img.width * s, h = img.height * s;
+    x.drawImage(img, S / 2 - w / 2, S / 2 - h / 2, w, h); x.restore();
+    x.strokeStyle = '#d4af5a'; x.lineWidth = 22;
+    x.beginPath(); x.arc(S / 2, S / 2, S * 0.46, 0, Math.PI * 2); x.stroke();
     tex.needsUpdate = true;
   };
   drawDefault();
-  const em = new THREE.Mesh(new THREE.CircleGeometry(1.9, 48), new THREE.MeshStandardMaterial({ map: tex, transparent: true, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.25 }));
-  em.position.set(0, 3.1, 0.2);
+  const em = new THREE.Mesh(new THREE.CircleGeometry(2.1, 64), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.4, metalness: 0.1, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.32 }));
+  em.position.set(0, 3.3, 0.2);
   sign.add(em);
 
   // low iron railing in front of the hedges
@@ -230,7 +270,7 @@ function buildMainGate(glow: THREE.MeshStandardMaterial[]): { group: THREE.Group
     word.castShadow = false;
     g.add(word);
   }
-  return { group: g, emblem: { setImage: drawImage, reset: drawDefault } };
+  return { group: g, emblem: { setImage: drawImage, reset: () => { custom = false; drawDefault(); } } };
 }
 
 /** White tensile canopy over a security checkpoint, with a guard cabin; local +z runs along the lane. */
