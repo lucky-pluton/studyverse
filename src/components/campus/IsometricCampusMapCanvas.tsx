@@ -581,7 +581,8 @@ export const IsometricCampusMapCanvas: React.FC<IsometricCampusMapCanvasProps> =
         {/* =====================================================================
             6. TOP-LEFT LIVE CAMPUS STATUS PILL
            ===================================================================== */}
-        <div className="interactive-clickable absolute top-3 sm:top-4 left-3 sm:left-4 z-30 bg-white/95 backdrop-blur-md rounded-2xl px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-2.5 border border-[#cbe1d5] shadow-md pointer-events-auto">
+        {/* sits below the app's fixed 2D/3D toggle (CampusMap) so the two never overlap */}
+        <div className="interactive-clickable absolute top-14 sm:top-16 left-3 sm:left-6 z-30 bg-white/95 backdrop-blur-md rounded-2xl px-3 sm:px-4 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-2.5 border border-[#cbe1d5] shadow-md pointer-events-auto">
           <div className="flex items-center gap-1.5">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -604,7 +605,8 @@ export const IsometricCampusMapCanvas: React.FC<IsometricCampusMapCanvasProps> =
         {/* =====================================================================
             7. TOP-RIGHT INTERACTIVE ZOOM & VIEW CONTROLS HUD
            ===================================================================== */}
-        <div className="interactive-clickable absolute top-2.5 sm:top-4 right-2.5 sm:right-4 z-40 bg-white/92 backdrop-blur-md rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 flex items-center gap-0.5 sm:gap-1 border border-white/95 shadow-md">
+        {/* sits below the app's fixed Quick List button (CampusMap) */}
+        <div className="interactive-clickable absolute top-14 sm:top-16 right-3 sm:right-4 z-40 bg-white/92 backdrop-blur-md rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 flex items-center gap-0.5 sm:gap-1 border border-white/95 shadow-md">
           <button
             onClick={handleZoomIn}
             className="w-5 h-5 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-bold text-[#2c4235] hover:bg-black/5 transition-colors cursor-pointer"

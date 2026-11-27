@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import type { LocationId, StudentPresence, TimeOfDay } from '../../types/studyverse';
 import { LOCATIONS } from '../../constants/locations';
 import { UnifiedLocationEnvironment } from './UnifiedLocationEnvironment';
@@ -8,6 +8,9 @@ import { chatService } from '../../services/chatService';
 import { LocationChatPanel } from '../chat/LocationChatPanel';
 import { ChatTriggerButton } from '../chat/ChatTriggerButton';
 import { AlertCircle, ExternalLink } from 'lucide-react';
+
+// three.js only loads when a room is opened in 3D
+const Room3DView = lazy(() => import('./Room3DView'));
 
 interface LocationViewProps {
   locationId: LocationId;
@@ -20,6 +23,9 @@ interface LocationViewProps {
   timeOfDay: TimeOfDay;
   isDnd?: boolean;
   onToggleDnd?: () => void;
+  /** '3d' shows the room as a 3D scene, '2d' as the illustration */
+  viewMode?: '2d' | '3d';
+  onViewModeChange?: (mode: '2d' | '3d') => void;
 }
 
 export const LocationView: React.FC<LocationViewProps> = ({
@@ -33,6 +39,8 @@ export const LocationView: React.FC<LocationViewProps> = ({
   timeOfDay,
   isDnd = false,
   onToggleDnd,
+  viewMode = '2d',
+  onViewModeChange,
 }) => {
   const [conflictAlert, setConflictAlert] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -84,6 +92,16 @@ export const LocationView: React.FC<LocationViewProps> = ({
     onSelectSeat(seatId);
   };
 
+  const toggleChat = () => {
+    setIsChatOpen((prev) => {
+      const next = !prev;
+      if (next && typeof window !== 'undefined' && window.innerWidth < 1100) {
+        window.dispatchEvent(new CustomEvent('studyverse:panel-opened', { detail: { panel: 'chat' } }));
+      }
+      return next;
+    });
+  };
+
   const handleOpenCompanionTab = () => {
     const url = new URL(window.location.href);
     url.searchParams.set('new_student', 'true');
@@ -110,6 +128,20 @@ export const LocationView: React.FC<LocationViewProps> = ({
 
       {/* Main Illustrated Architectural Scene (Full-Screen Edge-to-Edge) */}
       <div className="w-full h-full flex-1 relative overflow-hidden flex flex-col">
+        {viewMode === '3d' ? (
+          <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-[#cfdde3] text-xs font-medium text-[#36503f]">Building {location.name} in 3D…</div>}>
+            <Room3DView
+              location={location}
+              occupants={occupants}
+              currentUser={currentUser}
+              onSelectSeat={handleSeatClick}
+              timeOfDay={timeOfDay}
+              onToggleChat={toggleChat}
+              isChatOpen={isChatOpen}
+              onSwitchView={onViewModeChange ? () => onViewModeChange('2d') : undefined}
+            />
+          </Suspense>
+        ) : (
         <UnifiedLocationEnvironment
           location={location}
           occupants={occupants}
@@ -117,19 +149,13 @@ export const LocationView: React.FC<LocationViewProps> = ({
           onSelectSeat={handleSeatClick}
           timeOfDay={timeOfDay}
           onBackToCampus={onBackToCampus}
-          onToggleChat={() => {
-            setIsChatOpen((prev) => {
-              const next = !prev;
-              if (next && typeof window !== 'undefined' && window.innerWidth < 1100) {
-                window.dispatchEvent(new CustomEvent('studyverse:panel-opened', { detail: { panel: 'chat' } }));
-              }
-              return next;
-            });
-          }}
+          onToggleChat={toggleChat}
           isChatOpen={isChatOpen}
           onToggleDnd={onToggleDnd}
           isDnd={isDnd}
+          onSwitchView={onViewModeChange ? () => onViewModeChange('3d') : undefined}
         />
+        )}
       </div>
 
       {/* Subtle First-Arriver Pill (Non-intrusive floating element) */}

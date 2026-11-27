@@ -15,6 +15,9 @@ export function App() {
   const [allStudents, setAllStudents] = useState<StudentPresence[]>([]);
   const [currentLocation, setCurrentLocation] = useState<LocationId>('campus');
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('day');
+  // One 2D/3D choice for the campus and the rooms: entering a room from the 3D campus opens it in 3D,
+  // and going back keeps 3D. The campus opens in 2D when the app starts.
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const [conflictMessage, setConflictMessage] = useState<string | null>(null);
   const [isAvatarCustomizerOpen, setIsAvatarCustomizerOpen] = useState(false);
 
@@ -340,6 +343,8 @@ export function App() {
             currentUser={currentUser}
             onEnterLocation={handleNavigate}
             timeOfDay={timeOfDay}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
         ) : (
           <LocationView
@@ -353,6 +358,8 @@ export function App() {
             timeOfDay={timeOfDay}
             isDnd={currentUser.isDnd}
             onToggleDnd={handleToggleDnd}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
         )}
       </main>

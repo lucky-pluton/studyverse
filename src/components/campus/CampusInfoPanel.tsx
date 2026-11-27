@@ -244,26 +244,27 @@ export const CampusInfoPanel: React.FC<CampusInfoPanelProps> = ({
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#7a6b5d] block mb-1.5">
                   Upcoming Campus Facilities (Under Setup)
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* one card per row so each full name fits; names and details wrap instead of cutting off */}
+                <div className="grid grid-cols-1 gap-2">
                   {ALL_CAMPUS_NAV_ITEMS.filter((i) => !i.isAvailable).map((item) => (
                     <div
                       key={`info-upcoming-${item.id}`}
-                      className="p-2.5 rounded-2xl bg-[#fbf8f3] border border-[#e8ded0] flex items-center justify-between gap-2 select-none"
+                      className="p-2.5 rounded-2xl bg-[#fbf8f3] border border-[#e8ded0] flex items-start gap-2.5 select-none"
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-lg grayscale-[25%]">{item.icon}</span>
-                        <div className="min-w-0">
-                          <span className="font-serif-title text-xs font-bold text-[#3d3328] block truncate">
-                            {item.name}
-                          </span>
-                          <span className="text-[10px] text-[#786a5a] truncate block">
+                      <span className="text-lg grayscale-[25%] leading-none mt-0.5 shrink-0">{item.icon}</span>
+                      <div className="min-w-0 flex-1">
+                        <span className="font-serif-title text-xs font-bold text-[#3d3328] block leading-snug break-words">
+                          {item.name}
+                        </span>
+                        {item.statusDetail && (
+                          <span className="text-[10px] text-[#786a5a] block leading-snug mt-0.5 break-words">
                             {item.statusDetail}
                           </span>
-                        </div>
+                        )}
+                        <span className="inline-block mt-1.5 text-[8.5px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-[#ede3d5] text-[#6d5b4a]">
+                          {item.statusBadge}
+                        </span>
                       </div>
-                      <span className="text-[8.5px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider bg-[#ede3d5] text-[#6d5b4a] shrink-0">
-                        {item.statusBadge}
-                      </span>
                     </div>
                   ))}
                 </div>

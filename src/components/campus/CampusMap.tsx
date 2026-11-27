@@ -11,6 +11,9 @@ interface CampusMapProps {
   currentUser: StudentPresence;
   onEnterLocation: (loc: LocationId) => void;
   timeOfDay: TimeOfDay;
+  /** shared 2D/3D choice; when omitted the map keeps its own */
+  viewMode?: '2d' | '3d';
+  onViewModeChange?: (mode: '2d' | '3d') => void;
 }
 
 export const CampusMap: React.FC<CampusMapProps> = ({
@@ -18,14 +21,18 @@ export const CampusMap: React.FC<CampusMapProps> = ({
   currentUser,
   onEnterLocation,
   timeOfDay,
+  viewMode: viewModeProp,
+  onViewModeChange,
 }) => {
   const [comingSoonModal, setComingSoonModal] = useState<typeof VERIFIED_IITM_UPCOMING_DESTINATIONS[0] | null>(null);
   const [isQuickListOpen, setIsQuickListOpen] = useState(false);
   // When entering the campus it should show 2D only; 3D can be seen when clicked
-  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+  const [ownViewMode, setOwnViewMode] = useState<'2d' | '3d'>('2d');
+  const viewMode = viewModeProp ?? ownViewMode;
 
   const handleSetViewMode = (mode: '2d' | '3d') => {
-    setViewMode(mode);
+    setOwnViewMode(mode);
+    onViewModeChange?.(mode);
   };
 
   return (
@@ -107,7 +114,8 @@ export const CampusMap: React.FC<CampusMapProps> = ({
         <div className="w-5 h-5 rounded-lg bg-[#2d5a43] text-white flex items-center justify-center text-[10px] shadow-xs group-hover:bg-[#234735] transition-colors">
           <Compass className="w-3.5 h-3.5" />
         </div>
-        <span className="font-serif-title font-bold text-xs">Quick List</span>
+        {/* icon and count only on phones, so the button clears the 2D/3D toggle */}
+        <span className="font-serif-title font-bold text-xs hidden sm:inline">Quick List</span>
         <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
           {students.length}
         </span>

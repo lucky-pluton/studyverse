@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# OpenStreetMap download cache for scripts/build-campus-data.mjs
+scripts/.cache

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>IIT Madras Campus in 3D · Sahej-Shala</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Josefin+Sans:wght@300;400;600;700&display=swap" />
+  </head>
+  <body>
+    <div id="app" class="app" data-mode="day">
+      <div id="stage" class="stage" role="application" aria-label="Interactive 3D map of the IIT Madras campus in Chennai. Drag to move, scroll to zoom, right-drag to turn, and select a place for details."></div>
+      <div id="labels" class="labels"></div>
+      <div id="tip" class="tip" hidden></div>
+
+      <!-- top left: title and search -->
+      <section class="glass card-title" aria-label="Campus">
+        <div class="title-row">
+          <span class="brand">Sahej-Shala 3D</span>
+          <button id="btn2d" class="btn btn-ghost btn-sm" type="button" title="Back to the illustrated 2D map">&larr; 2D map</button>
+        </div>
+        <h1>IIT MADRAS</h1>
+        <p class="sub" id="subline">Guindy &middot; Chennai</p>
+        <div class="search">
+          <input id="q" type="search" placeholder="Search buildings, hostels, study spots" autocomplete="off" aria-label="Search the campus" />
+          <kbd class="kbd">Ctrl K</kbd>
+          <div id="qres" class="qres glass" role="listbox" hidden></div>
+        </div>
+      </section>
+
+      <!-- top right: tools -->
+      <nav class="glass toolbar" aria-label="Map tools">
+        <button id="btnCompass" class="btn compass" type="button" title="Face north" aria-label="Face north"><span id="needle" class="needle"></span></button>
+        <button id="btnDir" class="btn" type="button" aria-pressed="false" aria-controls="dirPanel">Buildings</button>
+        <button id="btnLabels" class="btn" type="button" aria-pressed="true">Labels</button>
+        <button id="btnTour" class="btn" type="button" aria-pressed="false">Tour</button>
+        <button id="btnRoute" class="btn" type="button" aria-pressed="false">Route</button>
+        <button id="btnWalk" class="btn" type="button" aria-pressed="false">Walk</button>
+        <button id="btnLayers" class="btn" type="button" aria-pressed="false" aria-controls="layersPanel">Layers</button>
+        <button id="btnAbout" class="btn" type="button" aria-pressed="false" aria-controls="aboutPanel">About</button>
+      </nav>
+
+      <div class="glass panel" id="layersPanel" hidden>
+        <div class="ptitle">Layers</div>
+        <span class="plabel" id="mapStyleLabel">Ground</span>
+        <div class="seg" role="group" aria-labelledby="mapStyleLabel">
+          <button id="tSat" class="chip" type="button" aria-pressed="true">Satellite</button>
+          <button id="tMap" class="chip" type="button" aria-pressed="false">Map</button>
+        </div>
+        <p class="pnote" id="satNote"></p>
+        <span class="plabel" id="labelModeLabel">Labels</span>
+        <div class="seg" role="group" aria-labelledby="labelModeLabel">
+          <button class="chip" type="button" data-labels="off" aria-pressed="false">Off</button>
+          <button class="chip" type="button" data-labels="key" aria-pressed="false">Key places</button>
+          <button class="chip" type="button" data-labels="all" aria-pressed="true">Every building</button>
+        </div>
+        <span class="plabel">Show</span>
+        <div class="tgl">
+          <button id="tRoads" class="chip" type="button" aria-pressed="false">Road lines</button>
+          <button id="tTrees" class="chip" type="button" aria-pressed="true">Trees</button>
+          <button id="tTraffic" class="chip" type="button" aria-pressed="true">Traffic</button>
+          <button id="tLamps" class="chip" type="button" aria-pressed="true">Street lamps</button>
+          <button id="tDeer" class="chip" type="button" aria-pressed="true">Deer</button>
+          <button id="tMarkers" class="chip" type="button" aria-pressed="true">Study markers</button>
+          <button id="tShadows" class="chip" type="button" aria-pressed="true">Shadows</button>
+          <button id="tSpin" class="chip" type="button" aria-pressed="false">Auto-rotate</button>
+        </div>
+        <label class="plabel" for="detail">Detail</label>
+        <select id="detail">
+          <option value="auto">Auto</option>
+          <option value="low">Low</option>
+          <option value="med">Medium</option>
+          <option value="high">High</option>
+        </select>
+        <label class="plabel" for="emblemFile">Main Gate emblem</label>
+        <input id="emblemFile" type="file" accept="image/*" />
+        <button id="emblemReset" class="chip" type="button">Use the default mark</button>
+        <p class="pnote">Your image stays on this device.</p>
+      </div>
+
+      <div class="glass panel" id="aboutPanel" hidden>
+        <div class="ptitle">About this model</div>
+        <ul class="keys">
+          <li><b>Drag</b> move</li>
+          <li><b>Scroll, pinch</b> zoom</li>
+          <li><b>Right-drag, Ctrl-drag</b> turn and tilt</li>
+          <li><b>W A S D</b> fly</li>
+          <li><b>Q / E</b> turn</li>
+          <li><b>Shift</b> faster</li>
+          <li><b>Click</b> a building</li>
+          <li><b>Ctrl K</b> search</li>
+        </ul>
+        <p class="pnote">Buildings, roads, water and green areas come from OpenStreetMap (&copy; OpenStreetMap contributors, ODbL). Heights use the mapped floor count where there is one; the rest are estimated from building type and size. Unnamed buildings are labelled by what their map tags say they are and the nearest named place or road. Trees, deer and traffic are illustrative.</p>
+        <p class="pnote">Satellite view: imagery from Esri World Imagery (Esri, Maxar, Earthstar Geographics), loaded in your browser while you view the page and draped over the ground and roofs. It was also used as a reference to place the Open Air Theatre and Gajendra Circle.</p>
+        <p class="pnote" id="aboutStats"></p>
+      </div>
+
+      <div class="glass routep" id="routePanel" hidden>
+        <div class="ptitle">Walking route</div>
+        <label class="plabel" for="rFrom">From</label>
+        <select id="rFrom"></select>
+        <label class="plabel" for="rTo">To</label>
+        <select id="rTo"></select>
+        <div class="acts">
+          <button id="rGo" class="btn btn-primary" type="button">Show route</button>
+          <button id="rSwap" class="btn" type="button">Swap</button>
+          <button id="rClear" class="btn" type="button">Clear</button>
+        </div>
+        <div id="rInfo" class="rinfo" aria-live="polite"></div>
+      </div>
+
+      <!-- building directory with category tabs -->
+      <section class="glass dir" id="dirPanel" hidden aria-label="Building directory">
+        <div class="dir-head">
+          <div class="ptitle">Campus buildings <span id="dirCount" class="dir-count"></span></div>
+          <button id="dirClose" class="btn close-sm" type="button" aria-label="Close the building directory">&times;</button>
+        </div>
+        <div class="dir-tabs" id="dirTabs" role="tablist" aria-label="Building categories"></div>
+        <input id="dirFilter" class="dir-filter" type="search" placeholder="Filter this tab" autocomplete="off" aria-label="Filter buildings in this tab" />
+        <div class="dir-list" id="dirList" role="tabpanel" aria-labelledby=""></div>
+      </section>
+
+      <!-- info card for the selected place -->
+      <article class="glass info" id="info" hidden aria-live="polite"></article>
+
+      <!-- bottom left: where am I -->
+      <div class="glass readout" id="readout">
+        <div class="where" id="where">Gajendra Circle</div>
+        <div class="coords" id="coords">12.9916&deg; N 80.2337&deg; E</div>
+        <div class="credit">Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
+        <div class="credit" id="satCredit"></div>
+      </div>
+
+      <!-- bottom: every place by category, and the time of day -->
+      <div class="glass dock" id="dock">
+        <div class="tourbar" id="tourbar" hidden>
+          <span id="tourText"></span>
+          <span class="spacer"></span>
+          <button id="tourPrev" class="btn btn-sm" type="button">Back</button>
+          <button id="tourNext" class="btn btn-sm" type="button">Next</button>
+          <button id="tourEnd" class="btn btn-sm" type="button">End tour</button>
+        </div>
+        <div class="dock-tabs" id="dockTabs" role="tablist" aria-label="Go to a place by category"></div>
+        <div class="dock-row">
+          <button id="dockPrev" class="dock-arrow" type="button" aria-label="Scroll the place list left">&#8249;</button>
+          <div class="spots" id="spots" role="tabpanel" aria-labelledby="docktab-study"></div>
+          <button id="dockNext" class="dock-arrow" type="button" aria-label="Scroll the place list right">&#8250;</button>
+        </div>
+        <div class="timebar">
+          <span class="clock" id="clock">15:30 IST</span>
+          <input id="tod" type="range" min="0" max="24" step="0.05" value="15.5" aria-label="Time of day" />
+          <div class="presets" id="presets">
+            <button class="chip" type="button" data-h="6.3">Sunrise</button>
+            <button class="chip" type="button" data-h="12.2">Midday</button>
+            <button class="chip" type="button" data-h="17.3">Golden hour</button>
+            <button class="chip" type="button" data-h="20.5">Night</button>
+            <button class="chip" type="button" data-h="now">Now</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hint glass" id="hint">Drag to move &middot; scroll to zoom &middot; right-drag to turn &middot; WASD to fly</div>
+
+      <div class="walkpad glass" id="walkpad" hidden aria-label="Walking controls">
+        <button id="padW" class="btn" type="button" aria-label="Walk forward">&#9650;</button>
+        <button id="padA" class="btn" type="button" aria-label="Step left">&#9664;</button>
+        <button id="padS" class="btn" type="button" aria-label="Walk back">&#9660;</button>
+        <button id="padD" class="btn" type="button" aria-label="Step right">&#9654;</button>
+        <span>Walk &middot; drag to look</span>
+      </div>
+
+      <div id="loader" class="loader">
+        <div class="ld">
+          <div class="ld-kicker">Campus in 3D</div>
+          <div class="ld-title">IIT MADRAS</div>
+          <div class="ld-sub">Guindy &middot; Chennai</div>
+          <div class="ld-bar"><i id="ldBar"></i></div>
+          <div class="ld-txt" id="ldTxt">Fetching the map&hellip;</div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/campus3d/main.ts"></script>
+  </body>
+</html>
