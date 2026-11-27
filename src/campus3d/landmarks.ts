@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { CampusData, NamedRec } from './data';
 import { fromLatLon, ringArea, ringBox, ringCentroid } from './data';
 import { LOCATIONS, VERIFIED_IITM_UPCOMING_DESTINATIONS } from '../constants/locations';
-import { MAIN_GATE, mainGateNode } from './gate';
+import { MAIN_GATE, SHOW_IITM_SEAL, mainGateNode } from './gate';
 
 export type PlaceKind = 'study' | 'soon' | 'major' | 'hostel' | 'building' | 'minor' | 'area' | 'poi' | 'district' | 'road';
 
@@ -169,6 +169,7 @@ function buildMainGate(glow: THREE.MeshStandardMaterial[]): { group: THREE.Group
   // The IIT Madras seal, as on the real sign: a gold relief on the granite. The artwork is
   // "IIT Madras Logo (Black and White).svg" by IIT Madras via Wikimedia Commons, CC BY-SA 4.0,
   // shipped in public/brand and recoloured gold here (the recoloured seal is under the same licence).
+  // It is only drawn when SHOW_IITM_SEAL is on (see gate.ts); otherwise the sign shows a plain gold ring.
   const S = 1024;
   const c = document.createElement('canvas');
   c.width = c.height = S;
@@ -219,8 +220,10 @@ function buildMainGate(glow: THREE.MeshStandardMaterial[]): { group: THREE.Group
     tex.needsUpdate = true;
   };
   let custom = false;
-  seal.onload = () => { sealReady = true; if (!custom) drawDefault(); };
-  seal.src = new URL('brand/iitm-logo.svg', document.baseURI).href;
+  if (SHOW_IITM_SEAL) {
+    seal.onload = () => { sealReady = true; if (!custom) drawDefault(); };
+    seal.src = new URL('brand/iitm-logo.svg', document.baseURI).href;
+  }
   const drawImage = (img: HTMLImageElement): void => {
     custom = true;
     x.clearRect(0, 0, S, S);

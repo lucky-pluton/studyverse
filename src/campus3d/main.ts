@@ -6,7 +6,7 @@ import { buildBuildings, buildDeer, buildGround, buildLamps, buildRoads, buildTr
 import { buildLandmarks, CATEGORIES, CATEGORY_COLOR, CATEGORY_LABEL, type Landmarks, type Place } from './landmarks';
 import { SATELLITE, applySatelliteUVs, loadSatellite, pickZoom, sharpenWith, type Satellite } from './satellite';
 import { createSatDetail, type DetailLevel, type SatDetail } from './satDetail';
-import { MAIN_GATE, mainGateSign } from './gate';
+import { MAIN_GATE, SHOW_IITM_SEAL, mainGateSign } from './gate';
 import { RoadGraph, RouteView, Traffic } from './routes';
 import { LabelLayer, type LabelMode } from './labels';
 import { CameraRig } from './controls';
@@ -541,6 +541,12 @@ function setupUi(): void {
     rd.readAsDataURL(f);
   });
   $('emblemReset').addEventListener('click', () => { marks.emblem?.reset(); emblemFile.value = ''; });
+  if (SHOW_IITM_SEAL) {
+    // the seal is on: name it in the panel and show its credit under About
+    $('emblemLabel').textContent = 'Main Gate emblem (shows the IIT Madras seal by default)';
+    $('emblemReset').textContent = 'Use the IIT Madras seal';
+    $('sealNote').hidden = false;
+  }
 
   // time of day
   const tod = $('tod') as HTMLInputElement;

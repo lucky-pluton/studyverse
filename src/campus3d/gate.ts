@@ -9,6 +9,13 @@
  */
 import type { CampusData } from './data';
 
+/**
+ * Whether the Main Gate sign shows the IIT Madras seal (public/brand/iitm-logo.svg). It stays off
+ * until the institute gives written permission to use its seal; until then the sign shows a plain
+ * gold ring. Set to true once permission is granted.
+ */
+export const SHOW_IITM_SEAL = false;
+
 export const MAIN_GATE = {
   /** centre of the median on the wall line, where the sign stands */
   sign: { dx: -9.0, dz: -4.4 },
