@@ -4,7 +4,8 @@ import { loadCampus, pointInRing, ringBox, ringCentroid, toLatLon, type CampusDa
 import { SkyEnv } from './sky';
 import { buildBuildings, buildDeer, buildGround, buildLamps, buildRoads, buildTrees, type Buildings, type Trees, type Lamps, type Deer } from './world';
 import { buildLandmarks, CATEGORIES, CATEGORY_COLOR, CATEGORY_LABEL, type Landmarks, type Place } from './landmarks';
-import { SATELLITE, applySatelliteUVs, loadSatellite, pickZoom, type Satellite } from './satellite';
+import { SATELLITE, applySatelliteUVs, loadSatellite, pickZoom, sharpenWith, type Satellite } from './satellite';
+import { createSatDetail, type DetailLevel, type SatDetail } from './satDetail';
 import { MAIN_GATE, mainGateSign } from './gate';
 import { RoadGraph, RouteView, Traffic } from './routes';
 import { LabelLayer, type LabelMode } from './labels';
@@ -83,6 +84,9 @@ let inCampus: (x: number, z: number) => boolean = () => false;
 let groundGroup: THREE.Group;
 let roadsGroup: THREE.Group;
 let sat: Satellite | null = null;
+/** closer imagery tiles loaded around the view */
+let satDetail: SatDetail | null = null;
+let detailLevel: DetailLevel = 'high';
 /** sat: real imagery; map: the drawn map; clean: the drawn map in bright flat colours (clean.ts) */
 let groundStyle: 'sat' | 'map' | 'clean' = 'sat';
 let clean: CleanStyle;
@@ -192,6 +196,9 @@ async function init(): Promise<void> {
 /* satellite imagery                                                   */
 /* ------------------------------------------------------------------ */
 
+/** the main campus, [x0, z0, x1, z1] in metres: academic zone, hostels, Gajendra Circle and the residential area */
+const SAT_CORE: [number, number, number, number] = [-650, -880, 820, 920];
+
 function startSatellite(): void {
   const budget = autoLevel === 'high' ? 11e6 : autoLevel === 'med' ? 4e6 : 1.2e6;
   const zoom = pickZoom(data, renderer.capabilities.maxTextureSize, budget);
@@ -205,6 +212,22 @@ function startSatellite(): void {
     applySatelliteUVs(roofs.geometry, sat);
     if (!roofMapMat) roofMapMat = roofs.material as THREE.Material;
     roofSatMat = new THREE.MeshStandardMaterial({ map: sat.texture, roughness: 0.92 });
+  }
+  // closer tiles around wherever you look, loaded as you move, like online maps
+  satDetail = createSatDetail(data, renderer.capabilities.getMaxAnisotropy());
+  satDetail.setLevel(detailLevel);
+  scene.add(satDetail.group);
+  // a sharper image of the main campus (every study spot is in it) for roofs and ground at any distance
+  if (autoLevel === 'high' && renderer.capabilities.maxTextureSize >= 4096) {
+    const core = loadSatellite(data, 18, () => {}, renderer.capabilities.getMaxAnisotropy(), SAT_CORE);
+    core.ground.geometry.dispose();
+    (core.ground.material as THREE.Material).dispose();
+    core.done.then((share) => {
+      // switch over only once it has loaded, so no part of the campus goes blank meanwhile
+      if (share < 0.9 || !sat) { core.texture.dispose(); return; }
+      if (roofSatMat) sharpenWith(roofSatMat, core);
+      sharpenWith(sat.ground.material as THREE.MeshLambertMaterial, core);
+    });
   }
   applyGroundStyle();
   sat.done.then((share) => {
@@ -230,11 +253,12 @@ function applyGroundStyle(): void {
     if (o.name === 'campus-lawn' || o.name === 'water' || o.name === 'pitch-lines' || o.name.startsWith('area-')) o.visible = !useSat;
   }
   roadsGroup.visible = !useSat || roadLines;
+  satDetail?.setEnabled(useSat);
   clean.set(useClean);
   const roofs = buildings.pickables.find((m) => m.name === 'b-roofs');
   if (roofs && roofMapMat) roofs.material = useSat && roofSatMat ? roofSatMat : useClean ? clean.roofMaterial : roofMapMat;
   // the imagery already shows the real canopy, so the 3D trees are darker and sparser over it
-  trees.setTint(useSat ? 0.66 : 1);
+  trees.setTint(useSat ? 0.74 : 1);
   trees.setDensity(treeDensity * treeShare());
   $('tSat').setAttribute('aria-pressed', String(useSat));
   $('tMap').setAttribute('aria-pressed', String(!useSat && !useClean));
@@ -249,7 +273,7 @@ function applyGroundStyle(): void {
 
 /** share of the trees drawn for the current ground style */
 function treeShare(): number {
-  if (groundStyle === 'sat' && sat) return 0.55;
+  if (groundStyle === 'sat' && sat) return 0.45;
   return groundStyle === 'clean' ? clean.treeShare : 1;
 }
 
@@ -784,6 +808,8 @@ function setDetail(mode: string): void {
   applyDetail(mode === 'auto' ? autoLevel : (mode as 'low' | 'med' | 'high'));
 }
 function applyDetail(level: 'low' | 'med' | 'high'): void {
+  detailLevel = level;
+  satDetail?.setLevel(level);
   const cfg = { low: { pr: 1, sh: 1024, tr: 0.3 }, med: { pr: 1.5, sh: 2048, tr: 0.6 }, high: { pr: 2, sh: 2048, tr: 1 } }[level];
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cfg.pr));
   if (sky.sun.shadow.mapSize.x !== cfg.sh) {
@@ -1132,6 +1158,7 @@ function frame(now: number): void {
     if (Math.abs(camera.near - near) / camera.near > 0.15) { camera.near = near; camera.updateProjectionMatrix(); }
   }
   sky.follow(camera, rig.walking ? camera.position : rig.target, Math.max(60, viewDist));
+  satDetail?.update(rig.walking ? camera.position : rig.target, camera.position, viewDist);
   renderer.toneMappingExposure = sky.exposure;
 
   if (!reduceMotion) {
