@@ -15,6 +15,9 @@ interface Item {
   cnt?: HTMLElement;
 }
 
+/** place names drawn as small white tags with a pointer down to the building */
+const TAGGED = new Set<Place['kind']>(['major', 'hostel', 'area', 'building', 'minor', 'poi']);
+
 const PRI: Record<Place['kind'], number> = { study: 100, major: 80, soon: 70, district: 60, hostel: 50, area: 40, building: 35, road: 30, minor: 20, poi: 15 };
 
 function esc(s: string): string {
@@ -26,14 +29,19 @@ export class LabelLayer {
   private v = new THREE.Vector3();
   private selected: string | null = null;
   mode: LabelMode = 'all';
+  /** show only this category on the map (study spots always show); null shows every kind */
+  filter: string | null = null;
   get enabled(): boolean { return this.mode !== 'off'; }
+  /** screen boxes of the page's panels, flat [x0, y0, x1, y1, …]; labels don't go under them */
+  private obstacles: number[] = [];
+  setObstacles(boxes: number[]): void { this.obstacles = boxes; }
 
   constructor(root: HTMLElement, places: Place[], onClick: (p: Place) => void) {
     for (const p of places) {
       if (p.kind === 'poi' && p.id === 'gc-name') continue;
       const interactive = p.kind !== 'district' && p.kind !== 'road';
       const el = document.createElement(interactive ? 'button' : 'div');
-      el.className = 'lbl k-' + p.kind + (p.outside ? ' out' : '');
+      el.className = 'lbl k-' + p.kind + (TAGGED.has(p.kind) ? ' tg' : '') + (p.outside ? ' out' : '');
       let cnt: HTMLElement | undefined;
       if (p.kind === 'study') {
         el.innerHTML = `<span class="ic" aria-hidden="true">${p.icon || '📍'}</span><span class="nm">${esc(p.name)}</span><span class="cnt" hidden></span>`;
@@ -96,7 +104,7 @@ export class LabelLayer {
       this.compact = compact;
       for (const it of this.items) if (it.place.kind === 'study') { it.el.classList.toggle('compact', compact); it.w = 0; }
     }
-    const placed: number[] = [];
+    const placed: number[] = this.obstacles.slice();
     const sel = this.items.find((it) => it.place.id === this.selected);
     if (sel) this.place(sel, true, camera, width, height, viewDist, target, placed);
     for (const it of this.items) if (it !== sel) this.place(it, false, camera, width, height, viewDist, target, placed);
@@ -106,8 +114,12 @@ export class LabelLayer {
 
   private place(it: Item, isSel: boolean, camera: THREE.PerspectiveCamera, width: number, height: number, viewDist: number, target: THREE.Vector3, placed: number[]): void {
     const p = it.place;
-    let show = this.enabled || isSel || p.kind === 'study';
-    if (show && !isSel) show = this.visibleAt(p, viewDist, Math.hypot(p.x - target.x, p.z - target.z));
+    // a chosen category shows even when labels are switched off
+    let show = this.enabled || isSel || p.kind === 'study' || (this.filter !== null && p.cat === this.filter);
+    if (show && !isSel && this.filter && p.kind !== 'study') {
+      // one category at a time: it shows from further out, everything else steps aside
+      show = p.cat === this.filter && viewDist < 3200;
+    } else if (show && !isSel) show = this.visibleAt(p, viewDist, Math.hypot(p.x - target.x, p.z - target.z));
     let sx = 0, sy = 0;
     if (show) {
       this.v.set(p.x, p.h + 3, p.z).project(camera);
@@ -118,8 +130,12 @@ export class LabelLayer {
     if (show) {
       if (!it.shown) { it.el.style.display = ''; it.shown = true; }
       if (!it.w) { it.w = it.el.offsetWidth || 80; it.h = it.el.offsetHeight || 20; }
-      const x0 = sx - it.w / 2 - 3, y0 = sy - it.h - 3, x1 = sx + it.w / 2 + 3, y1 = sy + 3;
-      if (!isSel) {
+      // tags and study pills sit a little above their anchor, on a pointer
+      const lift = p.kind === 'study' || TAGGED.has(p.kind) ? 10 : 0;
+      const x0 = sx - it.w / 2 - 3, y0 = sy - it.h - 3 - lift, x1 = sx + it.w / 2 + 3, y1 = sy + 3;
+      // a name cut off by the screen edge reads worse than no name
+      if (!isSel && (x0 < 2 || x1 > width - 2)) show = false;
+      if (show && !isSel) {
         for (let i = 0; i < placed.length; i += 4) {
           if (x0 < placed[i + 2] && x1 > placed[i] && y0 < placed[i + 3] && y1 > placed[i + 1]) { show = false; break; }
         }
