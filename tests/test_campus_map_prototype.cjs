@@ -1,17 +1,18 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL } = require('./env.cjs');
 const path = require('path');
 const fs = require('fs');
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   console.log('================================================================');
   console.log('  STUDYVERSE — ISOMETRIC CAMPUS MAP UI PROTOTYPE VERIFICATION   ');
-  console.log('  Target: http://localhost:5173/                                ');
+  console.log(`  Target: ${BASE_URL}/                                `);
   console.log('================================================================\n');
 
   let allPassed = true;
@@ -60,7 +61,7 @@ const fs = require('fs');
     });
 
     console.log('--- Step 1: Navigating to Studyverse Campus Map ---');
-    await page.goto('http://localhost:5173/', { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 1200));
 
     console.log('Console Errors on load:', consoleErrors);

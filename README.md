@@ -22,41 +22,41 @@ This is **not** a video conferencing application, social media platform, or conv
 
 ## 🌿 Campus Landmarks & Study Destinations
 
-Every major campus destination has its own physical, illustrated study room with predefined seating spots:
+Every major campus destination has its own illustrated study room and a matching 3D room. The seven rooms have 116 seats in all; each sits where a seat is visible in the room picture and has a matching seat in the 3D room:
 
 1. **🏛️ Central Library (IIT Madras)**:
    - High ceilings, tall windows with outdoor views of rain trees and grazing chital deer, emerald green banker's lamps, teak wood research tables, and individual study cubicles.
-   - 10 predefined seats with real-time timers and avatars.
+   - 18 seats with real-time timers and avatars.
 
 2. **🎓 Lecture Hall Complex (LHC & Classrooms)**:
    - Stepped lecture hall amphitheatre, large chalkboards with mathematics and physics equations, tiered student desks, and adjacent classroom corners for exam preparation.
-   - 10 predefined seats with real-time timers and avatars.
+   - 40 seats with real-time timers and avatars.
 
 3. **🌳 The Grand Banyan Tree Study Grove**:
    - Iconic campus tree-side study spot beneath an ancient banyan canopy with cascading aerial prop roots, stone benches, rustic wooden tables, and sweet birdsong.
-   - 10 predefined seats with real-time timers and avatars.
+   - 14 seats with real-time timers and avatars.
 
 4. **🎭 Open Air Theatre (OAT)**:
    - The legendary IIT Madras amphitheatre with semicircular stone tiers under the open sky and stars, stage timber benches, and evening breezes.
-   - 10 predefined seats with real-time timers and avatars.
+   - 16 seats with real-time timers and avatars.
 
 5. **☕ Campus Café (Himalaya Food Court)**:
    - Cozy campus cafeteria with Chennai filter coffee aroma, blackboard menu, wooden patio tables under striped awnings, and potted palms.
-   - 10 predefined seats with real-time timers and avatars.
+   - 12 seats with real-time timers and avatars.
 
 6. **🦌 Sangam Gardens & Deer Trail**:
    - Verdant botanical lawns, lotus pond, blooming scarlet gulmohar petals falling, and gentle spotted chital deer and blackbucks grazing peacefully in the background.
-   - 10 predefined seats with real-time timers and avatars.
+   - 8 seats with real-time timers and avatars.
 
 7. **🐘 Gajendra Circle (GC) Pavilion**:
    - The world-famous central roundabout of IIT Madras featuring the iconic elephant monument, circular fountain, stone benches, and shady rain trees at the intersection of Delhi and Bonn Avenues.
-   - 8 predefined seats with real-time timers and avatars.
+   - 8 seats with real-time timers and avatars.
 
 8. **✨ Upcoming Verified Campus Destinations**:
    - *Chemplast Cricket Ground Pavilion*
-   - *Department of Aerospace Wind Tunnel Quad*
+   - *Department of Aerospace Engineering*
    - *Students Activity Centre (SAC)*
-   - *Mandakini & Krishna Hostel Quads*
+   - *Mandakini & Krishna Hostel Common Lounges*
 
 ---
 
@@ -102,6 +102,7 @@ Every major campus destination has its own physical, illustrated study room with
 - **Tools**: search (`Ctrl K`), guided tour, walking routes over the real paths (distance and minutes on foot), street-level walking, and the time of day with the sun position for Chennai.
 - **Updating the map data**: `node scripts/build-campus-data.mjs --fetch` downloads fresh OpenStreetMap data and rewrites `public/data/iitm-campus.json`. Without `--fetch` it reuses the cached download in `scripts/.cache/`.
 - **Credit**: Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, available under the ODbL. The credit is shown on the 3D page.
+- **Satellite imagery**: Powered by Esri. Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community. Tiles load in the browser and are never stored in the repository. For the public site, set `VITE_ARCGIS_API_KEY` (a free [ArcGIS Location Platform](https://location.arcgis.com) key with the basemaps privilege, restricted to the site address) as a repository secret, so the imagery is used under Esri's developer terms (2 million tiles a month free). Without a key, the public tile endpoint is used, which is fine for local development.
 - **IIT Madras seal**: The seal on the 3D Main Gate sign is [IIT Madras Logo (Black and White).svg](https://commons.wikimedia.org/wiki/File:IIT_Madras_Logo_(Black_and_White).svg) by Indian Institute of Technology Madras, via Wikimedia Commons, licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). It is stored as `public/brand/iitm-logo.svg` and recoloured gold in the browser; the recoloured seal is shared under the same licence. Sahej-Shala is not affiliated with or endorsed by IIT Madras.
 
 ---
@@ -175,6 +176,10 @@ The Studyverse tech stack is segregated into distinct, modular layers:
   * Functional component architecture with modern React hooks (`useState`, `useEffect`, `useRef`, `useCallback`, `useMemo`).
   * **Zero Component Library Dependency**: Pure custom React components built specifically for the interactive campus map, chibi avatars, floating docks, chat panel, stopwatch, and pomodoro timer.
 
+### 2b. 🌐 3D Graphics
+* **three.js (`0.187`)**:
+  * The standalone 3D campus page (`campus3d.html`, code in `src/campus3d/`), built from OpenStreetMap data and Esri aerial imagery, and the 3D study rooms (`src/campus3d/rooms/`).
+
 ### 3. 🎨 Styling & Design System
 * **Tailwind CSS v4 (`4.3.5` via `@tailwindcss/vite`)**:
   * Next-generation CSS-first utility engine with instant build times.
@@ -231,8 +236,10 @@ npx @fission-ai/openspec@latest list --specs
 ```
 
 Active specifications are maintained under `openspec/specs/`:
+- `openspec/specs/campus-chat/spec.md`: Location Chat
 - `openspec/specs/campus-map/spec.md`: Campus Map & Occupancy
 - `openspec/specs/chibi-avatars/spec.md`: Chibi Avatar System & Sitting Poses
+- `openspec/specs/do-not-disturb/spec.md`: Do Not Disturb Quiet Mode
 - `openspec/specs/floating-study-timers/spec.md`: Tiny Floating Study Timers
 - `openspec/specs/focus-timer/spec.md`: Personal Focus & Pomodoro Timer
 - `openspec/specs/multiplayer-presence/spec.md`: Real-time Multiplayer Presence & Seat Exclusivity

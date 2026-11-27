@@ -1,17 +1,17 @@
 const puppeteer = require('puppeteer-core');
-const fs = require('fs');
+const { CHROME_PATH, BASE_URL, ARTIFACTS_DIR } = require('./env.cjs');
 const path = require('path');
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   console.log('================================================================');
   console.log('  STUDYVERSE — VERIFY CORRECTED LOCALHOST UI                    ');
-  console.log('  Target: http://localhost:5173/                                ');
+  console.log(`  Target: ${BASE_URL}/                                `);
   console.log('================================================================\n');
 
   let allPassed = true;
@@ -59,8 +59,8 @@ const path = require('path');
       sessionStorage.setItem('studyverse_session', JSON.stringify(student));
     });
 
-    console.log('[1/6] Navigating to http://localhost:5173/ ...');
-    await page.goto('http://localhost:5173/', { waitUntil: 'networkidle0', timeout: 15000 });
+    console.log(`[1/6] Navigating to ${BASE_URL}/ ...`);
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0', timeout: 15000 });
     await new Promise(r => setTimeout(r, 1500));
 
     // Check 1: Top Welcome Banner
@@ -179,15 +179,9 @@ const path = require('path');
 
     // Check 5: Capture Full Page Screenshot
     console.log('[6/6] Capturing high-resolution full-page screenshot ...');
-    const screenshotPath = path.join(__dirname, 'campus_corrected_preview.png');
+    const screenshotPath = path.join(ARTIFACTS_DIR, 'campus_corrected_preview.png');
     await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log(`      Screenshot saved to: ${screenshotPath}`);
-
-    // Copy to artifact directory
-    const artifactDir = 'C:/Users/Dell/.gemini/antigravity/brain/0371a2be-f412-43e8-ac6d-79bfa87cca66';
-    const artifactPath = path.join(artifactDir, 'campus_corrected_preview.png');
-    fs.copyFileSync(screenshotPath, artifactPath);
-    console.log(`      Copied screenshot to artifact directory: ${artifactPath}`);
 
     if (consoleErrors.length > 0) {
       console.log('\nConsole Errors:', consoleErrors);

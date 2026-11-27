@@ -7,11 +7,23 @@ import * as THREE from 'three';
 import type { CampusData } from './data';
 import { fromLatLon, toLatLon } from './data';
 
+/**
+ * An ArcGIS Location Platform API key (VITE_ARCGIS_API_KEY) puts the imagery under Esri's developer terms:
+ * tiles then come from Esri's keyed basemap endpoint and count towards that account's free allowance.
+ * Without a key the public endpoint is used, which suits local development and testing.
+ */
+const ARCGIS_KEY = (import.meta.env.VITE_ARCGIS_API_KEY as string | undefined)?.trim() || '';
+
 export const SATELLITE = {
   name: 'Esri World Imagery',
-  attribution: 'Imagery © Esri, Maxar, Earthstar Geographics',
-  hosts: ['https://server.arcgisonline.com', 'https://services.arcgisonline.com'],
-  url: (host: string, z: number, x: number, y: number): string => `${host}/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+  /** Esri's credit for World Imagery; it must be shown on or near the map */
+  attribution: 'Powered by Esri · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+  keyed: !!ARCGIS_KEY,
+  hosts: ARCGIS_KEY ? ['https://ibasemaps-api.arcgis.com'] : ['https://server.arcgisonline.com', 'https://services.arcgisonline.com'],
+  url: (host: string, z: number, x: number, y: number): string =>
+    ARCGIS_KEY
+      ? `${host}/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}?token=${encodeURIComponent(ARCGIS_KEY)}`
+      : `${host}/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
 };
 
 export const tileX = (lon: number, n: number): number => ((lon + 180) / 360) * n;

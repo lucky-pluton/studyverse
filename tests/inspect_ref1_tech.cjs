@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer-core');
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const { CHROME_PATH } = require('./env.cjs');
 
 (async () => {
   const browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new' });

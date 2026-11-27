@@ -1,9 +1,8 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL, ARTIFACTS_DIR } = require('./env.cjs');
 const fs = require('fs');
 const path = require('path');
 
-const ARTIFACTS_DIR = 'C:/Users/Dell/.gemini/antigravity/brain/0371a2be-f412-43e8-ac6d-79bfa87cca66';
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
 (async () => {
   console.log('=== STARTING SPACIOUS 3D CAMPUS EXPLORER VERIFICATION ===\n');
@@ -21,8 +20,8 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
   });
 
   // 1. Navigate to Studyverse
-  console.log('1. Navigating to http://localhost:5173/?demo=true ...');
-  await page.goto('http://localhost:5173/?demo=true', { waitUntil: 'networkidle2' });
+  console.log(`1. Navigating to ${BASE_URL}/?demo=true ...`);
+  await page.goto(`${BASE_URL}/?demo=true`, { waitUntil: 'networkidle2' });
   await new Promise((r) => setTimeout(r, 1200));
 
   // 2. Switch to 3D Campus Mode

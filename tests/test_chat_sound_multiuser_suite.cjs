@@ -1,8 +1,9 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL } = require('./env.cjs');
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
@@ -90,8 +91,8 @@ const puppeteer = require('puppeteer-core');
 
     console.log('Loading User A and User B into Central Library...');
     await Promise.all([
-      pageA.goto('http://localhost:5173/studyverse/', { waitUntil: 'networkidle0' }),
-      pageB.goto('http://localhost:5173/studyverse/', { waitUntil: 'networkidle0' })
+      pageA.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' }),
+      pageB.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' })
     ]);
 
     // Install audio chime spies on both pages to record every playChatChime invocation

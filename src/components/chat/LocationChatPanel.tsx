@@ -262,7 +262,7 @@ export const LocationChatPanel: React.FC<LocationChatPanelProps> = ({
   const handleReportMessage = (msgId: string) => {
     chatService.reportMessage(msgId);
     setActiveMenuMsgId(null);
-    setFeedbackNotice('Message reported and hidden from your view.');
+    setFeedbackNotice('Reported and hidden for you. If another student reports it too, it is hidden for everyone here.');
     setTimeout(() => setFeedbackNotice(null), 3000);
   };
 

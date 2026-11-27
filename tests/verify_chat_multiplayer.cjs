@@ -1,7 +1,6 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL } = require('./env.cjs');
 
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const BASE_URL = 'http://localhost:5173/';
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
