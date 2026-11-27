@@ -233,7 +233,7 @@ const AREA_STYLE: Record<string, { color: number; layer: number; y: number; uv: 
   pitch: { color: 0x74a653, layer: 7, y: 0.09, uv: 12 },
 };
 
-export function buildGround(data: CampusData): Ground {
+export function buildGround(data: CampusData, clearings: { x: number; z: number; r: number }[] = []): Ground {
   const group = new THREE.Group();
   group.name = 'ground';
   const noise = noiseTexture(5, 1400, 0.14);
@@ -309,14 +309,64 @@ export function buildGround(data: CampusData): Ground {
   const wallGb = new GeoBuilder();
   const wallCol = new THREE.Color(0xd8cfbb);
   const capCol = new THREE.Color(0xa1442f);
+  // every road or path that crosses a wall gets an opening, so entrances are never walled off
+  const crossings: [number, number, number, number, number][] = [];
+  for (const r of data.roads) {
+    for (let i = 0; i < r.v.length - 1; i++) {
+      crossings.push([data.rv[r.v[i] * 2], data.rv[r.v[i] * 2 + 1], data.rv[r.v[i + 1] * 2], data.rv[r.v[i + 1] * 2 + 1], r.w / 2 + 1.2]);
+    }
+  }
+  /** parts of the segment a→b to leave open, as [t0, t1] ranges */
+  function openings(ax: number, az: number, bx: number, bz: number, len: number): [number, number][] {
+    const out: [number, number][] = [];
+    const dx = bx - ax, dz = bz - az;
+    for (const [cx, cz, ex, ez, half] of crossings) {
+      if (Math.max(cx, ex) < Math.min(ax, bx) - half || Math.min(cx, ex) > Math.max(ax, bx) + half) continue;
+      if (Math.max(cz, ez) < Math.min(az, bz) - half || Math.min(cz, ez) > Math.max(az, bz) + half) continue;
+      const fx = ex - cx, fz = ez - cz;
+      const den = dx * fz - dz * fx;
+      if (Math.abs(den) < 1e-9) continue;
+      const t = ((cx - ax) * fz - (cz - az) * fx) / den, u = ((cx - ax) * dz - (cz - az) * dx) / den;
+      if (t < -0.02 || t > 1.02 || u < 0 || u > 1) continue;
+      // widen by the crossing angle so a diagonal road still gets its full width
+      const sin = Math.abs(den) / (len * Math.hypot(fx, fz));
+      const w = half / Math.max(0.35, sin) / len;
+      out.push([t - w, t + w]);
+    }
+    for (const c of clearings) {
+      // t range where the segment passes within c.r of the clearing centre
+      const qa = dx * dx + dz * dz, qb = 2 * ((ax - c.x) * dx + (az - c.z) * dz), qc = (ax - c.x) ** 2 + (az - c.z) ** 2 - c.r * c.r;
+      const disc = qb * qb - 4 * qa * qc;
+      if (disc <= 0) continue;
+      const s = Math.sqrt(disc);
+      out.push([(-qb - s) / (2 * qa), (-qb + s) / (2 * qa)]);
+    }
+    return out.sort((p, q) => p[0] - q[0]);
+  }
   function wallLine(pts: number[], closed: boolean, h: number): void {
     const n = pts.length / 2;
     const segs = closed ? n : n - 1;
     for (let i = 0; i < segs; i++) {
       const j = (i + 1) % n;
-      const ax = pts[i * 2], az = pts[i * 2 + 1], bx = pts[j * 2], bz = pts[j * 2 + 1];
+      const sx = pts[i * 2], sz = pts[i * 2 + 1], ex = pts[j * 2], ez = pts[j * 2 + 1];
+      const slen = Math.hypot(ex - sx, ez - sz);
+      if (slen < 0.05) continue;
+      let t = 0;
+      const pieces: [number, number][] = [];
+      for (const [o0, o1] of openings(sx, sz, ex, ez, slen)) {
+        if (o0 > t) pieces.push([t, Math.min(1, o0)]);
+        t = Math.max(t, o1);
+        if (t >= 1) break;
+      }
+      if (t < 1) pieces.push([t, 1]);
+      for (const [t0, t1] of pieces) {
+        if ((t1 - t0) * slen > 0.3) wallPiece(sx + (ex - sx) * t0, sz + (ez - sz) * t0, sx + (ex - sx) * t1, sz + (ez - sz) * t1, h);
+      }
+    }
+  }
+  function wallPiece(ax: number, az: number, bx: number, bz: number, h: number): void {
+    {
       const len = Math.hypot(bx - ax, bz - az);
-      if (len < 0.05) continue;
       const nx = -(bz - az) / len, nz = (bx - ax) / len;
       const t = 0.22;
       for (const s of [1, -1]) {

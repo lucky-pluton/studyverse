@@ -189,6 +189,87 @@ export function windowWall(p: THREE.Object3D, x: number, z: number, ry: number, 
   return g;
 }
 
+export interface Opening {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+  kind: 'door' | 'window';
+}
+
+/**
+ * A solid wall in the local x/y plane (facing local +z) with rectangular openings: windows are
+ * glazed with a frame and mullion, doors get two glass leaves with dark frames and handles.
+ */
+export function wallWithOpenings(p: THREE.Object3D, x: number, z: number, ry: number, w: number, h: number, openings: Opening[], wallColor = C.wall): THREE.Group {
+  const g = placed(p, x, 0, z, ry);
+  const wm = mat(wallColor, 0.95), t = 0.25;
+  // split the wall into columns at the opening edges, then fill each column around its openings
+  const xs = [...new Set([-w / 2, w / 2, ...openings.flatMap((o) => [o.x0, o.x1])])].sort((a, b) => a - b);
+  for (let i = 0; i < xs.length - 1; i++) {
+    const a = xs[i], b = xs[i + 1], mid = (a + b) / 2;
+    const holes = openings.filter((o) => o.x0 < mid && o.x1 > mid).sort((m, n) => m.y0 - n.y0);
+    let y = 0;
+    for (const o of holes) {
+      if (o.y0 > y) box(g, b - a, o.y0 - y, t, wm, mid, y, 0);
+      y = Math.max(y, o.y1);
+    }
+    if (y < h) box(g, b - a, h - y, t, wm, mid, y, 0);
+  }
+  box(g, w, 0.14, 0.04, mat(0xb9ab94, 0.8), 0, 0, 0.14); // skirting
+  const frame = mat(0x9aa3a8, 0.4, 0.5), dark = mat(0x3a3f44, 0.5, 0.3);
+  for (const o of openings) {
+    const ow = o.x1 - o.x0, oh = o.y1 - o.y0, cx = (o.x0 + o.x1) / 2;
+    const fm = o.kind === 'door' ? dark : frame;
+    box(g, ow + 0.16, 0.08, 0.3, fm, cx, o.y1, 0);
+    if (o.kind === 'window') box(g, ow + 0.16, 0.1, 0.36, mat(0xe6dccb, 0.8), cx, o.y0 - 0.1, 0.04);
+    for (const ex of [o.x0, o.x1]) box(g, 0.08, oh, 0.3, fm, ex, o.y0, 0);
+    if (o.kind === 'window') {
+      box(g, 0.06, oh, 0.18, frame, cx, o.y0, 0);
+      const glass = new THREE.Mesh(new THREE.PlaneGeometry(ow, oh), glassMat);
+      glass.position.set(cx, o.y0 + oh / 2, 0);
+      glass.renderOrder = 2;
+      g.add(glass);
+    } else {
+      // two door leaves, each a dark frame round a tall glass panel, with a push bar
+      for (const side of [-1, 1]) {
+        const lx = cx + (side * ow) / 4;
+        box(g, ow / 2 - 0.04, 0.12, 0.08, dark, lx, o.y0, 0.05);
+        box(g, ow / 2 - 0.04, 0.12, 0.08, dark, lx, o.y1 - 0.12, 0.05);
+        box(g, 0.08, oh, 0.08, dark, cx + (side * (ow / 2 - 0.04)), o.y0, 0.05);
+        const glass = new THREE.Mesh(new THREE.PlaneGeometry(ow / 2 - 0.12, oh - 0.24), glassMat);
+        glass.position.set(lx, o.y0 + oh / 2, 0.05);
+        glass.renderOrder = 2;
+        g.add(glass);
+        box(g, ow / 2 - 0.4, 0.05, 0.05, mat(0xc9ccce, 0.3, 0.8), lx, o.y0 + 1.05, 0.14);
+      }
+      box(g, 0.06, oh, 0.1, dark, cx, o.y0, 0.05);
+    }
+  }
+  return g;
+}
+
+/** A round wall clock facing local +z. */
+export function wallClock(p: THREE.Object3D, x: number, y: number, z: number, ry: number, r = 0.4): void {
+  const g = placed(p, x, y, z, ry);
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#fbfaf6';
+  ctx.beginPath(); ctx.arc(64, 64, 62, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#2f3336'; ctx.lineWidth = 6; ctx.stroke();
+  ctx.lineCap = 'round';
+  for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(64 + Math.sin(a) * 48, 64 - Math.cos(a) * 48); ctx.lineTo(64 + Math.sin(a) * 56, 64 - Math.cos(a) * 56); ctx.stroke(); }
+  ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(64, 64); ctx.lineTo(64 + 22, 64 - 18); ctx.stroke();
+  ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(64, 64); ctx.lineTo(64 - 8, 64 - 42); ctx.stroke();
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const face = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 }));
+  face.position.z = 0.04;
+  g.add(face);
+  add(g, new THREE.CylinderGeometry(r + 0.04, r + 0.04, 0.06, 32), mat(0x2f3336, 0.5), 0, 0, 0, { cast: false }).rotation.x = Math.PI / 2;
+}
+
 /** Floor with a soft tile grid. */
 export function tiledFloor(p: THREE.Object3D, w: number, d: number, color: string, line: string, tile = 1.2, x = 0, z = 0): THREE.Mesh {
   const c = document.createElement('canvas');

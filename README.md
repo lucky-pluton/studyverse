@@ -100,6 +100,7 @@ Every major campus destination has its own physical, illustrated study room with
 - **Tools**: search (`Ctrl K`), guided tour, walking routes over the real paths (distance and minutes on foot), street-level walking, and the time of day with the sun position for Chennai.
 - **Updating the map data**: `node scripts/build-campus-data.mjs --fetch` downloads fresh OpenStreetMap data and rewrites `public/data/iitm-campus.json`. Without `--fetch` it reuses the cached download in `scripts/.cache/`.
 - **Credit**: Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, available under the ODbL. The credit is shown on the 3D page.
+- **IIT Madras seal**: The seal on the 3D Main Gate sign is [IIT Madras Logo (Black and White).svg](https://commons.wikimedia.org/wiki/File:IIT_Madras_Logo_(Black_and_White).svg) by Indian Institute of Technology Madras, via Wikimedia Commons, licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). It is stored as `public/brand/iitm-logo.svg` and recoloured gold in the browser; the recoloured seal is shared under the same licence. Sahej-Shala is not affiliated with or endorsed by IIT Madras.
 
 ---
 
