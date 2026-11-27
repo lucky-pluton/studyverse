@@ -1,8 +1,10 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL, ARTIFACTS_DIR } = require('./env.cjs');
+const path = require('path');
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
@@ -46,7 +48,7 @@ const puppeteer = require('puppeteer-core');
       sessionStorage.setItem('studyverse_session', JSON.stringify(student));
     });
 
-    await page.goto('http://localhost:5173/studyverse/', { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 800));
 
     // 1. Verify StudyDock containment
@@ -207,7 +209,7 @@ const puppeteer = require('puppeteer-core');
     console.log(`Leave Seat test on ${label}: ${dockGone ? 'PASSED (User stood up, dock dismounted)' : 'FAILED'}`);
     if (!dockGone) allPassed = false;
 
-    await page.screenshot({ path: `verification_${label}.png` });
+    await page.screenshot({ path: path.join(ARTIFACTS_DIR, `verification_${label}.png`) });
     await page.close();
   };
 

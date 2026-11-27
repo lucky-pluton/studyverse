@@ -1,8 +1,9 @@
 name: CI & Build Verification
 
 on:
+  # every pull request, including ones stacked on another branch, so stacked PRs get checked too
   pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -33,3 +34,52 @@ jobs:
 
       - name: Run Automated Test Suite
         run: npm run test:dnd
+
+  browser-tests:
+    name: Browser Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout pull request code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Production build
+        run: npm run build
+
+      # Ubuntu 24.04 blocks the user namespaces Chrome's sandbox needs; this re-allows them for the run
+      - name: Allow Chrome's sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Serve the production build
+        run: |
+          npx vite preview --port 4173 --strictPort > "$RUNNER_TEMP/preview.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/preview.log"
+          exit 1
+
+      - name: Run the browser test suite
+        env:
+          BASE_URL: http://localhost:4173
+          CHROME_PATH: /usr/bin/google-chrome
+          ARTIFACTS_DIR: ${{ runner.temp }}/test-artifacts
+        run: npm run test:browser
+
+      - name: Keep the screenshots when something fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-test-screenshots
+          path: ${{ runner.temp }}/test-artifacts
+          if-no-files-found: ignore

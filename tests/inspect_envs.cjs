@@ -1,9 +1,11 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, ARTIFACTS_DIR } = require('./env.cjs');
+const path = require('path');
 const fs = require('fs');
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new'
   });
   const page = await browser.newPage();
@@ -44,7 +46,7 @@ const fs = require('fs');
   `;
 
   await page.setContent(html);
-  await page.screenshot({ path: 'C:/Users/Dell/.gemini/antigravity/brain/0371a2be-f412-43e8-ac6d-79bfa87cca66/inspect_current_envs.png', fullPage: true });
+  await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'inspect_current_envs.png'), fullPage: true });
   await browser.close();
   console.log('Saved inspection image to inspect_current_envs.png');
 })();

@@ -9,6 +9,7 @@ import {
   MAX_CHAT_MESSAGE_LENGTH,
   CHAT_RATE_LIMIT_MS,
   MAX_STORED_CHAT_MESSAGES,
+  COMMUNITY_HIDE_REPORT_COUNT,
 } from '../constants/chat';
 
 type ChatMessageListener = (messages: ChatMessage[]) => void;
@@ -49,6 +50,10 @@ class ChatService {
   private receivedMessageIds: Set<string> = new Set();
   private reportedMessageIds: Set<string> = new Set();
   private mutedSessionIds: Set<string> = new Set();
+  /** shared moderation: who has reported each message in this room */
+  private reportsByMessage: Map<string, Set<string>> = new Map();
+  /** messages hidden for everyone after enough different students reported them */
+  private communityHiddenIds: Set<string> = new Set();
 
   // Listeners
   private messageListeners: Set<ChatMessageListener> = new Set();
@@ -110,7 +115,10 @@ class ChatService {
 
   public getMessages(): ChatMessage[] {
     return this.messages.filter(
-      (m) => !this.reportedMessageIds.has(m.id) && !this.mutedSessionIds.has(m.sessionId)
+      (m) =>
+        !this.reportedMessageIds.has(m.id) &&
+        !this.communityHiddenIds.has(m.id) &&
+        !this.mutedSessionIds.has(m.sessionId)
     );
   }
 
@@ -401,6 +409,8 @@ class ChatService {
     }
     this.messages = [];
     this.receivedMessageIds.clear();
+    this.reportsByMessage.clear();
+    this.communityHiddenIds.clear();
     this.pendingMqttMessages = [];
     this.pendingSupabaseMessages = [];
     this.unreadCount = 0;
@@ -590,6 +600,13 @@ class ChatService {
     }
     this.notifyMessages();
 
+    this.broadcast(message);
+
+    return { success: true };
+  }
+
+  /** Sends a message or moderation signal over every transport. */
+  private broadcast(message: ChatMessage) {
     // 5. Dispatch via Global Cloud MQTT Relay (Guaranteed Delivery)
     this.dispatchMqttMessage(message);
 
@@ -611,8 +628,27 @@ class ChatService {
         this.broadcastChannel.postMessage(message);
       } catch {}
     }
+  }
 
-    return { success: true };
+  /**
+   * Counts a report from one student. Once COMMUNITY_HIDE_REPORT_COUNT different students
+   * (not the author) have reported a message, it is hidden for everyone in the room.
+   */
+  private recordReport(targetId: string | undefined, reporterId: string) {
+    if (!targetId) return;
+    const author = this.messages.find((m) => m.id === targetId)?.sessionId;
+    if (author && author === reporterId) return;
+    let reporters = this.reportsByMessage.get(targetId);
+    if (!reporters) {
+      reporters = new Set();
+      this.reportsByMessage.set(targetId, reporters);
+    }
+    reporters.add(reporterId);
+    if (reporters.size >= COMMUNITY_HIDE_REPORT_COUNT && !this.communityHiddenIds.has(targetId)) {
+      this.communityHiddenIds.add(targetId);
+      this.messages = this.messages.filter((m) => m.id !== targetId);
+      this.notifyMessages();
+    }
   }
 
   /**
@@ -627,7 +663,7 @@ class ChatService {
       currentLocation: this.currentLocationId,
     });
 
-    if (!msg || !msg.id || !msg.sessionId || !msg.text) {
+    if (!msg || !msg.id || !msg.sessionId || (!msg.text && msg.type !== 'report')) {
       logChatAudioDiagnostic(2, 'Message validation failed (empty or invalid payload)');
       return;
     }
@@ -648,8 +684,18 @@ class ChatService {
     }
     this.receivedMessageIds.add(msg.id);
 
-    // Filter out if muted or reported
-    if (this.mutedSessionIds.has(msg.sessionId) || this.reportedMessageIds.has(msg.id)) {
+    // Moderation signals are counted, never shown
+    if (msg.type === 'report') {
+      this.recordReport(msg.targetId, msg.sessionId);
+      return;
+    }
+
+    // Filter out if muted, reported by you, or hidden for everyone
+    if (
+      this.mutedSessionIds.has(msg.sessionId) ||
+      this.reportedMessageIds.has(msg.id) ||
+      this.communityHiddenIds.has(msg.id)
+    ) {
       logChatAudioDiagnostic(2, 'Message filtered (sender muted or message reported)');
       return;
     }
@@ -734,10 +780,28 @@ class ChatService {
   // =========================================================================
 
   /**
-   * Report a message: immediately hides it from the student
+   * Report a message: hides it for you at once, and tells the room. Once enough different
+   * students report it (COMMUNITY_HIDE_REPORT_COUNT), it is hidden for everyone there.
    */
   public reportMessage(messageId: string): boolean {
     this.reportedMessageIds.add(messageId);
+    if (this.currentUser && this.currentLocationId) {
+      this.recordReport(messageId, this.currentUser.sessionId);
+      const signal: ChatMessage = {
+        id: `report_${this.currentUser.sessionId}_${messageId}`,
+        sessionId: this.currentUser.sessionId,
+        senderName: this.currentUser.name,
+        avatarId: this.currentUser.avatarId,
+        // empty text: older versions of the app drop it instead of showing it as a message
+        text: '',
+        timestamp: Date.now(),
+        locationId: this.currentLocationId,
+        type: 'report',
+        targetId: messageId,
+      };
+      this.receivedMessageIds.add(signal.id);
+      this.broadcast(signal);
+    }
     this.messages = this.messages.filter((m) => m.id !== messageId);
     this.notifyMessages();
     return true;

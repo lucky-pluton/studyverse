@@ -1,8 +1,8 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL, ARTIFACTS_DIR } = require('./env.cjs');
 const fs = require('fs');
 const path = require('path');
 
-const ARTIFACTS_DIR = 'C:/Users/Dell/.gemini/antigravity/brain/0371a2be-f412-43e8-ac6d-79bfa87cca66';
 
 const DESTINATIONS = [
   { id: 'library', name: 'Central Library', seatId: 'lib-cubicle-01' },
@@ -16,14 +16,14 @@ const DESTINATIONS = [
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     defaultViewport: { width: 1440, height: 900, deviceScaleFactor: 2 }
   });
 
   const page = await browser.newPage();
-  console.log('--- Step 1: Navigating to Studyverse Campus Explorer (http://localhost:5173/?demo=true) ---');
-  await page.goto('http://localhost:5173/?demo=true', { waitUntil: 'networkidle0' });
+  console.log(`--- Step 1: Navigating to Studyverse Campus Explorer (${BASE_URL}/?demo=true) ---`);
+  await page.goto(`${BASE_URL}/?demo=true`, { waitUntil: 'networkidle0' });
   await new Promise(r => setTimeout(r, 1500));
 
   // 1. Capture Campus Explorer Homepage with user avatar on campus

@@ -1,9 +1,8 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL, ARTIFACTS_DIR } = require('./env.cjs');
 const fs = require('fs');
 const path = require('path');
 
-const ARTIFACTS_DIR = 'C:/Users/Dell/.gemini/antigravity/brain/0371a2be-f412-43e8-ac6d-79bfa87cca66';
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
 (async () => {
   const browser = await puppeteer.launch({
@@ -14,7 +13,7 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
   });
 
   const page = await browser.newPage();
-  await page.goto('http://localhost:5173/?demo=true', { waitUntil: 'networkidle2' });
+  await page.goto(`${BASE_URL}/?demo=true`, { waitUntil: 'networkidle2' });
   await page.evaluate(() => {
     const btn3D = Array.from(document.querySelectorAll('button')).find(b => b.innerText.includes('3D'));
     if (btn3D) btn3D.click();

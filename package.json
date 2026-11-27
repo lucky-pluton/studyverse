@@ -13,7 +13,9 @@
     "test:sound": "node tests/verify_production_chat_sound.cjs",
     "test:layout": "node tests/test_stopwatch_and_layout.cjs",
     "test:focus-timer": "node tests/test_focus_timer_master.cjs",
-    "test:explorer": "node tests/test_campus_explorer_experience.cjs"
+    "test:explorer": "node tests/test_campus_explorer_experience.cjs",
+    "test:browser": "node tests/run-browser-suite.cjs",
+    "test:reports": "node tests/test_chat_shared_reports.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

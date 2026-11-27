@@ -7,20 +7,32 @@ import * as THREE from 'three';
 import type { CampusData } from './data';
 import { fromLatLon, toLatLon } from './data';
 
+/**
+ * An ArcGIS Location Platform API key (VITE_ARCGIS_API_KEY) puts the imagery under Esri's developer terms:
+ * tiles then come from Esri's keyed basemap endpoint and count towards that account's free allowance.
+ * Without a key the public endpoint is used, which suits local development and testing.
+ */
+const ARCGIS_KEY = (import.meta.env.VITE_ARCGIS_API_KEY as string | undefined)?.trim() || '';
+
 export const SATELLITE = {
   name: 'Esri World Imagery',
-  attribution: 'Imagery © Esri, Maxar, Earthstar Geographics',
-  hosts: ['https://server.arcgisonline.com', 'https://services.arcgisonline.com'],
-  url: (host: string, z: number, x: number, y: number): string => `${host}/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+  /** Esri's credit for World Imagery; it must be shown on or near the map */
+  attribution: 'Powered by Esri · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+  keyed: !!ARCGIS_KEY,
+  hosts: ARCGIS_KEY ? ['https://ibasemaps-api.arcgis.com'] : ['https://server.arcgisonline.com', 'https://services.arcgisonline.com'],
+  url: (host: string, z: number, x: number, y: number): string =>
+    ARCGIS_KEY
+      ? `${host}/arcgis/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}?token=${encodeURIComponent(ARCGIS_KEY)}`
+      : `${host}/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
 };
 
-const tileX = (lon: number, n: number): number => ((lon + 180) / 360) * n;
-const tileY = (lat: number, n: number): number => {
+export const tileX = (lon: number, n: number): number => ((lon + 180) / 360) * n;
+export const tileY = (lat: number, n: number): number => {
   const r = (lat * Math.PI) / 180;
   return ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n;
 };
-const tileLat = (y: number, n: number): number => (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI;
-const tileLon = (x: number, n: number): number => (x / n) * 360 - 180;
+export const tileLat = (y: number, n: number): number => (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI;
+export const tileLon = (x: number, n: number): number => (x / n) * 360 - 180;
 
 export interface Satellite {
   texture: THREE.CanvasTexture;
@@ -28,6 +40,8 @@ export interface Satellite {
   ground: THREE.Mesh;
   /** texture coordinates for a world position */
   uvAt(x: number, z: number): [number, number];
+  /** the world rectangle the texture covers: north-west corner (x0, z0) to south-east corner (x1, z1) */
+  rect: { x0: number; z0: number; x1: number; z1: number };
   /** resolves when every tile has been tried; the value is the share that loaded (0..1) */
   done: Promise<number>;
   cancel(): void;
@@ -46,9 +60,16 @@ export function pickZoom(data: CampusData, maxTexture: number, maxPixels: number
   return 13;
 }
 
-export function loadSatellite(data: CampusData, zoom: number, onProgress: (f: number) => void, maxAnisotropy = 8): Satellite {
+export function loadSatellite(
+  data: CampusData,
+  zoom: number,
+  onProgress: (f: number) => void,
+  maxAnisotropy = 8,
+  /** area to cover, [x0, z0, x1, z1] in metres; the whole map by default */
+  bounds: [number, number, number, number] = data.meta.bounds,
+): Satellite {
   const n = 2 ** zoom;
-  const [bx0, bz0, bx1, bz1] = data.meta.bounds;
+  const [bx0, bz0, bx1, bz1] = bounds;
   const nw = toLatLon(data, bx0, bz0), se = toLatLon(data, bx1, bz1);
   const tx0 = Math.floor(tileX(nw.lon, n)), tx1 = Math.floor(tileX(se.lon, n));
   const ty0 = Math.floor(tileY(nw.lat, n)), ty1 = Math.floor(tileY(se.lat, n));
@@ -124,6 +145,7 @@ export function loadSatellite(data: CampusData, zoom: number, onProgress: (f: nu
 
   return {
     texture, ground, uvAt, done,
+    rect: { x0: a.x, z0: a.z, x1: b.x, z1: b.z },
     cancel() { cancelled = true; controller.abort(); window.clearInterval(flush); },
   };
 }
@@ -138,4 +160,44 @@ export function applySatelliteUVs(geo: THREE.BufferGeometry, sat: Satellite): vo
     uv[i * 2 + 1] = v;
   }
   geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+
+/**
+ * Lets a material that already shows the whole-map imagery switch to a sharper texture where that
+ * one has coverage (used for the roofs of the main campus). The sharper texture coordinates come from
+ * the world position, so the geometry needs no second set of UVs.
+ */
+export function sharpenWith(material: THREE.MeshStandardMaterial | THREE.MeshLambertMaterial, sharp: Satellite): void {
+  const { x0, z0, x1, z1 } = sharp.rect;
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.sharpMap = { value: sharp.texture };
+    shader.uniforms.sharpRect = { value: new THREE.Vector4(x0, z0, 1 / (x1 - x0), 1 / (z1 - z0)) };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', ['#include <common>', 'uniform vec4 sharpRect;', 'varying vec2 vSharpUv;'].join('\n'))
+      .replace(
+        '#include <begin_vertex>',
+        [
+          '#include <begin_vertex>',
+          '{',
+          '  vec4 sw = modelMatrix * vec4( transformed, 1.0 );',
+          '  vSharpUv = vec2( ( sw.x - sharpRect.x ) * sharpRect.z, 1.0 - ( sw.z - sharpRect.y ) * sharpRect.w );',
+          '}',
+        ].join('\n'),
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', ['#include <common>', 'uniform sampler2D sharpMap;', 'varying vec2 vSharpUv;'].join('\n'))
+      .replace(
+        '#include <map_fragment>',
+        [
+          '#ifdef USE_MAP',
+          '  vec4 sampledDiffuseColor = texture2D( map, vMapUv );',
+          '  vec4 sharpColor = texture2D( sharpMap, clamp( vSharpUv, 0.0, 1.0 ) );',
+          '  float inSharp = step( 0.0, vSharpUv.x ) * step( vSharpUv.x, 1.0 ) * step( 0.0, vSharpUv.y ) * step( vSharpUv.y, 1.0 );',
+          '  diffuseColor *= mix( sampledDiffuseColor, sharpColor, inSharp );',
+          '#endif',
+        ].join('\n'),
+      );
+  };
+  material.customProgramCacheKey = () => 'sharpen-with';
+  material.needsUpdate = true;
 }

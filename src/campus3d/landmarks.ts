@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { CampusData, NamedRec } from './data';
 import { fromLatLon, ringArea, ringBox, ringCentroid } from './data';
 import { LOCATIONS, VERIFIED_IITM_UPCOMING_DESTINATIONS } from '../constants/locations';
+import { MAIN_GATE, SHOW_IITM_SEAL, mainGateNode } from './gate';
 
 export type PlaceKind = 'study' | 'soon' | 'major' | 'hostel' | 'building' | 'minor' | 'area' | 'poi' | 'district' | 'road';
 
@@ -124,17 +125,27 @@ export interface GateControl {
   reset(): void;
 }
 
-/** Builds the gate with local +z facing out of campus and local x running across the road. */
-function buildMainGate(roadHalf: number, glow: THREE.MeshStandardMaterial[]): { group: THREE.Group; emblem: GateControl } {
+/**
+ * The Main Gate, origin at the centre of the median on the wall line, local +z facing out to
+ * Sardar Patel Road, local x across the two lanes. Layout from satellite imagery, sign details
+ * from photographs (see gate.ts).
+ */
+function buildMainGate(glow: THREE.MeshStandardMaterial[]): { group: THREE.Group; emblem: GateControl } {
   const g = new THREE.Group();
   const pink = 0xb97874, maroon = 0x7d2a36, white = 0xf3efe6, slate = 0x6d7b87, brick = 0x8a3b36;
   const lampMat = new THREE.MeshStandardMaterial({ color: 0xf5f0e0, emissive: 0xfff0c0, emissiveIntensity: 0 });
   const warmMat = new THREE.MeshStandardMaterial({ color: 0x7a5a30, emissive: 0xffc27a, emissiveIntensity: 0 });
   glow.push(lampMat, warmMat);
+  const lane = MAIN_GATE.laneWidth, inner = 7.9, outer = inner + 1.2 + lane + 1.2;
 
-  // sign pavilion beside the road, facing out
+  // planted median with its kerb
+  box(g, inner * 2 - 0.6, 0.35, 9, 0xcfc8b8, 0, 0, -1.5);
+  box(g, inner * 2 - 1.2, 0.4, 8.4, 0x6f9c55, 0, 0.02, -1.5);
+
+  // the name sign, facing the road, scaled to the median
   const sign = new THREE.Group();
-  sign.position.set(-(roadHalf + 15), 0, 1);
+  sign.position.set(0, 0.35, 0.6);
+  sign.scale.setScalar(0.8);
   g.add(sign);
   box(sign, 19, 0.7, 3.4, 0xcdc6b6, 0, 0, 0);
   box(sign, 14.4, 8.6, 0.9, pink, 0, 0.7, -0.3);
@@ -149,59 +160,135 @@ function buildMainGate(roadHalf: number, glow: THREE.MeshStandardMaterial[]): { 
   sign.add(t);
   for (const ux of [-4.2, 4.2]) {
     const u = new THREE.Mesh(new THREE.BoxGeometry(6, 0.18, 0.35), warmMat);
-    u.position.set(ux, 1.0, 0.45);
+    u.position.set(ux, 0.85, 0.45);
     sign.add(u);
   }
-  for (const p of [[-11.5, 2.4, 1.1], [11.5, 2.4, 1.1]]) palm(sign, p[0], p[1], p[2]);
-  for (let hx = -9; hx <= 9; hx += 3) hedge(sign, hx, 2.6, 1.7, 0.9, 1.1, 0x84a396);
+  for (const p of [[-10.2, -2.2, 1.15], [10.2, -2.2, 1.15], [-6.5, -5.5, 0.95], [6.5, -5.5, 0.95]]) palm(sign, p[0], p[1], p[2]);
+  for (let hx = -8; hx <= 8; hx += 2.6) hedge(sign, hx, 2.6, 1.5, 0.85, 1.0, 0x9fb3a8);
 
-  // emblem disc on the sign
+  // The IIT Madras seal, as on the real sign: a gold relief on the granite. The artwork is
+  // "IIT Madras Logo (Black and White).svg" by IIT Madras via Wikimedia Commons, CC BY-SA 4.0,
+  // shipped in public/brand and recoloured gold here (the recoloured seal is under the same licence).
+  // It is only drawn when SHOW_IITM_SEAL is on (see gate.ts); otherwise the sign shows a plain gold ring.
+  const S = 1024;
   const c = document.createElement('canvas');
-  c.width = c.height = 512;
+  c.width = c.height = S;
   const x = c.getContext('2d')!;
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  const ring = (): void => {
-    x.strokeStyle = '#d9c66e';
-    x.fillStyle = '#d9c66e';
-    x.lineWidth = 16; x.beginPath(); x.arc(256, 256, 244, 0, Math.PI * 2); x.stroke();
-    x.lineWidth = 6; x.beginPath(); x.arc(256, 256, 206, 0, Math.PI * 2); x.stroke();
+  tex.anisotropy = 8;
+  /** the image tinted with a fill style, on a scratch canvas */
+  const tinted = (img: CanvasImageSource, fill: string | CanvasGradient, size: number): HTMLCanvasElement => {
+    const t = document.createElement('canvas');
+    t.width = t.height = S;
+    const tx = t.getContext('2d')!;
+    tx.drawImage(img, (S - size) / 2, (S - size) / 2, size, size);
+    tx.globalCompositeOperation = 'source-in';
+    tx.fillStyle = fill;
+    tx.fillRect(0, 0, S, S);
+    return t;
   };
+  /** draws a layer several times in a small ring so its thin lines read from a distance */
+  const bold = (layer: HTMLCanvasElement, ox: number, oy: number, r: number): void => {
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2;
+      x.drawImage(layer, ox + Math.cos(a) * r, oy + Math.sin(a) * r);
+    }
+    x.drawImage(layer, ox, oy);
+  };
+  const gold = (): CanvasGradient => {
+    const g = x.createLinearGradient(0, 0, S, S);
+    g.addColorStop(0, '#fbe9ad');
+    g.addColorStop(0.45, '#e2bf68');
+    g.addColorStop(0.7, '#c99f4c');
+    g.addColorStop(1, '#f2da92');
+    return g;
+  };
+  const seal = new Image();
+  let sealReady = false;
   const drawDefault = (): void => {
-    x.clearRect(0, 0, 512, 512); ring();
-    x.beginPath(); x.moveTo(256, 150); x.lineTo(306, 256); x.lineTo(256, 362); x.lineTo(206, 256); x.closePath(); x.fill();
-    x.beginPath(); x.arc(256, 256, 18, 0, Math.PI * 2); x.fillStyle = '#b97874'; x.fill();
+    x.clearRect(0, 0, S, S);
+    if (sealReady) {
+      // a soft dark offset copy reads as the relief's shadow, then the bold gold face on top
+      bold(tinted(seal, 'rgba(50, 22, 16, 0.6)', S * 0.95), 8, 11, 4);
+      bold(tinted(seal, gold(), S * 0.95), 0, 0, 4);
+    } else {
+      x.strokeStyle = '#d4af5a';
+      x.lineWidth = 22;
+      x.beginPath(); x.arc(S / 2, S / 2, S * 0.46, 0, Math.PI * 2); x.stroke();
+    }
     tex.needsUpdate = true;
   };
+  let custom = false;
+  if (SHOW_IITM_SEAL) {
+    seal.onload = () => { sealReady = true; if (!custom) drawDefault(); };
+    seal.src = new URL('brand/iitm-logo.svg', document.baseURI).href;
+  }
   const drawImage = (img: HTMLImageElement): void => {
-    x.clearRect(0, 0, 512, 512);
-    x.save(); x.beginPath(); x.arc(256, 256, 200, 0, Math.PI * 2); x.clip();
-    const s = Math.max(400 / img.width, 400 / img.height), w = img.width * s, h = img.height * s;
-    x.drawImage(img, 256 - w / 2, 256 - h / 2, w, h); x.restore(); ring();
+    custom = true;
+    x.clearRect(0, 0, S, S);
+    x.save(); x.beginPath(); x.arc(S / 2, S / 2, S * 0.42, 0, Math.PI * 2); x.clip();
+    const s = Math.max((S * 0.84) / img.width, (S * 0.84) / img.height), w = img.width * s, h = img.height * s;
+    x.drawImage(img, S / 2 - w / 2, S / 2 - h / 2, w, h); x.restore();
+    x.strokeStyle = '#d4af5a'; x.lineWidth = 22;
+    x.beginPath(); x.arc(S / 2, S / 2, S * 0.46, 0, Math.PI * 2); x.stroke();
     tex.needsUpdate = true;
   };
   drawDefault();
-  const em = new THREE.Mesh(new THREE.CircleGeometry(1.9, 48), new THREE.MeshStandardMaterial({ map: tex, transparent: true, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.25 }));
-  em.position.set(0, 3.1, 0.2);
+  const em = new THREE.Mesh(new THREE.CircleGeometry(2.1, 64), new THREE.MeshStandardMaterial({ map: tex, transparent: true, roughness: 0.4, metalness: 0.1, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.32 }));
+  em.position.set(0, 3.3, 0.2);
   sign.add(em);
 
-  // brick piers with lamp finials on both sides of the road
-  for (const px of [-(roadHalf + 2.6), roadHalf + 2.6]) {
-    box(g, 3.0, 7.0, 3.0, brick, px, 0, 0);
-    box(g, 3.6, 0.6, 3.6, white, px, 7.0, 0);
-    cyl(g, 0.3, 2.0, 1.3, slate, px, 7.6, 0, 4);
-    const fin = new THREE.Mesh(new THREE.OctahedronGeometry(1.0, 0), lampMat);
-    fin.scale.set(1, 0.8, 1);
-    fin.position.set(px, 9.7, 0);
-    fin.castShadow = true;
-    g.add(fin);
+  // low iron railing in front of the hedges
+  for (let fx = -inner + 0.6; fx <= inner - 0.6; fx += 0.7) box(g, 0.06, 1.0, 0.06, 0x23272a, fx, 0.35, 3.5);
+  box(g, inner * 2 - 1.2, 0.08, 0.08, 0x23272a, 0, 1.25, 3.5);
+  box(g, inner * 2 - 1.2, 0.08, 0.08, 0x23272a, 0, 0.6, 3.5);
+
+  // brick-red piers with white caps and lantern tops, framing each lane
+  for (const px of [-outer, -inner, inner, outer]) {
+    box(g, 2.4, 5.6, 2.4, brick, px, 0, -1.5);
+    box(g, 2.9, 0.45, 2.9, white, px, 5.6, -1.5);
+    box(g, 1.2, 0.9, 1.2, white, px, 6.05, -1.5);
+    const lantern = add(g, new THREE.CylinderGeometry(0.42, 0.32, 0.9, 6), lampMat, px, 7.4, -1.5);
+    lantern.castShadow = false;
+    cyl(g, 0.05, 0.5, 0.35, slate, px, 7.85, -1.5, 6);
   }
-  // guard booth and iron fence
-  box(g, 3.2, 3.0, 3.2, 0xe9e2d2, roadHalf + 7.5, 0, -2);
-  box(g, 3.8, 0.4, 3.8, 0xa1442f, roadHalf + 7.5, 3.0, -2);
-  for (let fx = roadHalf + 4.5; fx <= roadHalf + 26; fx += 1.4) box(g, 0.1, 1.4, 0.1, 0x23272a, fx, 0, 1.2);
-  box(g, 22, 0.1, 0.1, 0x23272a, roadHalf + 15.2, 1.25, 1.2);
-  return { group: g, emblem: { setImage: drawImage, reset: drawDefault } };
+  for (const side of [-1, 1]) {
+    const mid = side * (inner + 1.2 + lane / 2);
+    // sliding iron gate, open and parked against the outer pier along the wall line
+    const gx = side * (outer + 1.2 + lane / 2);
+    box(g, lane, 0.1, 0.1, 0x2b2f33, gx, 2.1, -1.5);
+    box(g, lane, 0.1, 0.1, 0x2b2f33, gx, 0.25, -1.5);
+    for (let k = 0; k <= 14; k++) box(g, 0.05, 1.85, 0.05, 0x2b2f33, gx - lane / 2 + (k * lane) / 14, 0.25, -1.5);
+    // boom barrier, raised, just inside the gate
+    box(g, 0.45, 1.1, 0.45, 0xe7e3da, mid - side * (lane / 2 - 0.5), 0, -6);
+    const boom = add(g, new THREE.BoxGeometry(lane - 0.8, 0.12, 0.12), mat(0xd9483b), mid, 1.15, -6);
+    boom.geometry.translate((lane - 0.8) / 2 * side, 0, 0);
+    boom.position.x = mid - side * (lane / 2 - 0.5);
+    boom.rotation.z = side * 1.2;
+    // lane markings: IN on one side, OUT on the other
+    const word = textPlane(3.2, 1.2, [side < 0 ? 'IN' : 'OUT'], '#f4f1e8');
+    word.rotation.x = -Math.PI / 2;
+    word.position.set(mid, 0.18, 1.5);
+    word.castShadow = false;
+    g.add(word);
+  }
+  return { group: g, emblem: { setImage: drawImage, reset: () => { custom = false; drawDefault(); } } };
+}
+
+/** White tensile canopy over a security checkpoint, with a guard cabin; local +z runs along the lane. */
+function checkpointCanopy(w: number, d: number, glow: THREE.MeshStandardMaterial[]): THREE.Group {
+  const g = new THREE.Group();
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) cyl(g, 0.1, 0.12, 4.4, 0xe9e9e6, sx * (w / 2 - 0.3), 0, sz * (d / 2 - 0.3), 8);
+  const roof = add(g, new THREE.ConeGeometry(1, 1.4, 4, 1, true), new THREE.MeshStandardMaterial({ color: 0xf7f7f4, roughness: 0.6, side: THREE.DoubleSide }), 0, 5.1, 0);
+  roof.rotation.y = Math.PI / 4;
+  roof.scale.set((w / 2) * Math.SQRT2, 1, (d / 2) * Math.SQRT2);
+  const light = new THREE.MeshStandardMaterial({ color: 0xfafaf5, emissive: 0xfff4d8, emissiveIntensity: 0 });
+  glow.push(light);
+  add(g, new THREE.BoxGeometry(w * 0.7, 0.06, 0.25), light, 0, 4.35, 0, false);
+  box(g, 1.7, 2.5, 2.2, 0xe9e2d2, w / 2 + 1.4, 0, 0);
+  box(g, 2.1, 0.25, 2.6, 0x8a3b36, w / 2 + 1.4, 2.5, 0);
+  return g;
 }
 
 /* ------------------------------------------------------------------ */
@@ -500,31 +587,25 @@ export function buildLandmarks(data: CampusData, inCampus: (x: number, z: number
 
   /* --- Main Gate --- */
   let emblem: GateControl | null = null;
-  const gatePoi = data.pois.find((p) => p.n === 'IIT Madras gate');
-  if (gatePoi) {
-    // find the road through the gate and which way leads into campus
-    let best = Infinity, dirX = 0, dirZ = 1, roadHalf = 4;
-    for (const r of data.roads) {
-      if (r.c > 4) continue;
-      for (let i = 0; i < r.v.length - 1; i++) {
-        const ax = data.rv[r.v[i] * 2], az = data.rv[r.v[i] * 2 + 1], bx = data.rv[r.v[i + 1] * 2], bz = data.rv[r.v[i + 1] * 2 + 1];
-        const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz;
-        if (l2 < 1) continue;
-        const t = Math.max(0, Math.min(1, ((gatePoi.x - ax) * dx + (gatePoi.z - az) * dz) / l2));
-        const d = Math.hypot(ax + dx * t - gatePoi.x, az + dz * t - gatePoi.z);
-        if (d < best && r.c > 0) { best = d; const l = Math.sqrt(l2); dirX = dx / l; dirZ = dz / l; roadHalf = r.w / 2; }
-      }
-    }
-    if (!inCampus(gatePoi.x + dirX * 40, gatePoi.z + dirZ * 40)) { dirX = -dirX; dirZ = -dirZ; }
-    const gate = buildMainGate(roadHalf, glow);
-    gate.group.position.set(gatePoi.x, 0, gatePoi.z);
-    // local +z must point out of campus: rotation.y = atan2(outX, outZ)
-    gate.group.rotation.y = Math.atan2(-dirX, -dirZ);
+  const gateNode = mainGateNode(data);
+  if (gateNode) {
+    const sx = gateNode.x + MAIN_GATE.sign.dx, sz = gateNode.z + MAIN_GATE.sign.dz;
+    const gate = buildMainGate(glow);
+    gate.group.position.set(sx, 0, sz);
+    // local +z faces the road: rotation.y = atan2(faceX, faceZ)
+    gate.group.rotation.y = Math.atan2(MAIN_GATE.facing.x, MAIN_GATE.facing.z);
     group.add(gate.group);
     emblem = gate.emblem;
-    clear.push({ x: gatePoi.x, z: gatePoi.z, r: 34 });
-    const p = addPlace({ id: 'gate', name: 'Main Gate', tag: 'Entrance', kind: 'major', x: gatePoi.x, z: gatePoi.z, h: 15, radius: 45,
-      text: 'The main entrance, on Sardar Patel Road between Adyar and Guindy. A pink granite sign with gold lettering stands in a white pavilion with a slate roof, beside brick-red piers topped with lamps. Bonn Avenue runs from here through the forest to Gajendra Circle, about 2 km away.' });
+    clear.push({ x: sx, z: sz, r: 24 });
+    for (const c of MAIN_GATE.canopies) {
+      const cp = checkpointCanopy(c.w, c.d, glow);
+      cp.position.set(gateNode.x + c.dx, 0, gateNode.z + c.dz);
+      cp.rotation.y = Math.atan2(c.dir.x, c.dir.z);
+      group.add(cp);
+      clear.push({ x: gateNode.x + c.dx, z: gateNode.z + c.dz, r: 10 });
+    }
+    const p = addPlace({ id: 'gate', name: 'Main Gate', tag: 'Entrance', kind: 'major', x: sx, z: sz, h: 12, radius: 40,
+      text: 'The main entrance on Sardar Patel Road, rebuilt in 2021 where the IIT flyover begins. The pink granite name sign with gold lettering and the Institute emblem stands on the planted median between the in and out lanes, framed by brick-red piers with lanterns. Security checkpoints under white canopies sit a little further in, and Bonn Avenue then runs through the forest to Gajendra Circle, about 2 km away.' });
     pickTargets.push({ obj: gate.group, place: p });
   }
 

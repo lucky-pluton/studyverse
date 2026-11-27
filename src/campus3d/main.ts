@@ -4,10 +4,13 @@ import { loadCampus, pointInRing, ringBox, ringCentroid, toLatLon, type CampusDa
 import { SkyEnv } from './sky';
 import { buildBuildings, buildDeer, buildGround, buildLamps, buildRoads, buildTrees, type Buildings, type Trees, type Lamps, type Deer } from './world';
 import { buildLandmarks, CATEGORIES, CATEGORY_COLOR, CATEGORY_LABEL, type Landmarks, type Place } from './landmarks';
-import { SATELLITE, applySatelliteUVs, loadSatellite, pickZoom, type Satellite } from './satellite';
+import { SATELLITE, applySatelliteUVs, loadSatellite, pickZoom, sharpenWith, type Satellite } from './satellite';
+import { createSatDetail, type DetailLevel, type SatDetail } from './satDetail';
+import { MAIN_GATE, SHOW_IITM_SEAL, mainGateSign } from './gate';
 import { RoadGraph, RouteView, Traffic } from './routes';
 import { LabelLayer, type LabelMode } from './labels';
 import { CameraRig } from './controls';
+import { createCleanStyle, type CleanStyle } from './clean';
 
 /* ------------------------------------------------------------------ */
 /* DOM                                                                 */
@@ -81,7 +84,12 @@ let inCampus: (x: number, z: number) => boolean = () => false;
 let groundGroup: THREE.Group;
 let roadsGroup: THREE.Group;
 let sat: Satellite | null = null;
-let satOn = true;
+/** closer imagery tiles loaded around the view */
+let satDetail: SatDetail | null = null;
+let detailLevel: DetailLevel = 'high';
+/** sat: real imagery; map: the drawn map; clean: the drawn map in bright flat colours (clean.ts) */
+let groundStyle: 'sat' | 'map' | 'clean' = 'sat';
+let clean: CleanStyle;
 let roadLines = false;
 let roofMapMat: THREE.Material | null = null;
 let roofSatMat: THREE.MeshStandardMaterial | null = null;
@@ -110,7 +118,9 @@ async function init(): Promise<void> {
 
   progress(0.5, 'Laying out the ground and roads…');
   await nextFrame();
-  const ground = buildGround(data);
+  // keep the Main Gate plaza free of the boundary wall
+  const gateSign = mainGateSign(data);
+  const ground = buildGround(data, gateSign ? [{ ...gateSign, r: MAIN_GATE.clearRadius }] : []);
   groundGroup = ground.group;
   scene.add(ground.group);
   roadsGroup = buildRoads(data);
@@ -133,6 +143,9 @@ async function init(): Promise<void> {
   await nextFrame();
   trees = buildTrees(data, marks.excluded);
   scene.add(trees.group);
+  clean = createCleanStyle({ ground: groundGroup, roads: roadsGroup, buildings: buildings.group, trees: trees.group });
+  const roofMesh = buildings.pickables.find((m) => m.name === 'b-roofs');
+  if (roofMesh) roofMapMat = roofMesh.material as THREE.Material;
   lap('trees');
   deer = buildDeer(data);
   scene.add(deer.mesh);
@@ -183,6 +196,9 @@ async function init(): Promise<void> {
 /* satellite imagery                                                   */
 /* ------------------------------------------------------------------ */
 
+/** the main campus, [x0, z0, x1, z1] in metres: academic zone, hostels, Gajendra Circle and the residential area */
+const SAT_CORE: [number, number, number, number] = [-650, -880, 820, 920];
+
 function startSatellite(): void {
   const budget = autoLevel === 'high' ? 11e6 : autoLevel === 'med' ? 4e6 : 1.2e6;
   const zoom = pickZoom(data, renderer.capabilities.maxTextureSize, budget);
@@ -194,15 +210,31 @@ function startSatellite(): void {
   const roofs = buildings.pickables.find((m) => m.name === 'b-roofs');
   if (roofs) {
     applySatelliteUVs(roofs.geometry, sat);
-    roofMapMat = roofs.material as THREE.Material;
+    if (!roofMapMat) roofMapMat = roofs.material as THREE.Material;
     roofSatMat = new THREE.MeshStandardMaterial({ map: sat.texture, roughness: 0.92 });
+  }
+  // closer tiles around wherever you look, loaded as you move, like online maps
+  satDetail = createSatDetail(data, renderer.capabilities.getMaxAnisotropy());
+  satDetail.setLevel(detailLevel);
+  scene.add(satDetail.group);
+  // a sharper image of the main campus (every study spot is in it) for roofs and ground at any distance
+  if (autoLevel === 'high' && renderer.capabilities.maxTextureSize >= 4096) {
+    const core = loadSatellite(data, 18, () => {}, renderer.capabilities.getMaxAnisotropy(), SAT_CORE);
+    core.ground.geometry.dispose();
+    (core.ground.material as THREE.Material).dispose();
+    core.done.then((share) => {
+      // switch over only once it has loaded, so no part of the campus goes blank meanwhile
+      if (share < 0.9 || !sat) { core.texture.dispose(); return; }
+      if (roofSatMat) sharpenWith(roofSatMat, core);
+      sharpenWith(sat.ground.material as THREE.MeshLambertMaterial, core);
+    });
   }
   applyGroundStyle();
   sat.done.then((share) => {
     if (share < 0.3) {
       credit.textContent = '';
       $('satNote').textContent = 'Satellite imagery could not be loaded, so the map style is shown. Check your connection and reload to try again.';
-      satOn = false;
+      if (groundStyle === 'sat') groundStyle = 'map';
       applyGroundStyle();
       return;
     }
@@ -211,23 +243,38 @@ function startSatellite(): void {
   });
 }
 
-/** Satellite: real imagery on the ground and roofs. Map: the drawn ground, water and roads. */
+/** Satellite: real imagery on the ground and roofs. Map: the drawn ground, water and roads.
+ *  Clean: the drawn map in bright, flat colours (see clean.ts). */
 function applyGroundStyle(): void {
-  const useSat = satOn && !!sat;
+  const useSat = groundStyle === 'sat' && !!sat;
+  const useClean = groundStyle === 'clean';
   if (sat) sat.ground.visible = useSat;
   for (const o of groundGroup.children) {
     if (o.name === 'campus-lawn' || o.name === 'water' || o.name === 'pitch-lines' || o.name.startsWith('area-')) o.visible = !useSat;
   }
   roadsGroup.visible = !useSat || roadLines;
+  satDetail?.setEnabled(useSat);
+  clean.set(useClean);
   const roofs = buildings.pickables.find((m) => m.name === 'b-roofs');
-  if (roofs && roofMapMat && roofSatMat) roofs.material = useSat ? roofSatMat : roofMapMat;
+  if (roofs && roofMapMat) roofs.material = useSat && roofSatMat ? roofSatMat : useClean ? clean.roofMaterial : roofMapMat;
   // the imagery already shows the real canopy, so the 3D trees are darker and sparser over it
-  trees.setTint(useSat ? 0.66 : 1);
-  trees.setDensity(treeDensity * (useSat ? 0.55 : 1));
+  trees.setTint(useSat ? 0.74 : 1);
+  trees.setDensity(treeDensity * treeShare());
   $('tSat').setAttribute('aria-pressed', String(useSat));
-  $('tMap').setAttribute('aria-pressed', String(!useSat));
+  $('tMap').setAttribute('aria-pressed', String(!useSat && !useClean));
+  $('tClean').setAttribute('aria-pressed', String(useClean));
+  const shown = useSat ? 'sat' : useClean ? 'clean' : 'map';
+  document.querySelectorAll<HTMLButtonElement>('[data-ground]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ground === shown)));
   $('tRoads').setAttribute('aria-pressed', String(roadsGroup.visible));
   $('satCredit').hidden = !useSat;
+  // the Clean style lifts the daylight a little
+  setHour(hour);
+}
+
+/** share of the trees drawn for the current ground style */
+function treeShare(): number {
+  if (groundStyle === 'sat' && sat) return 0.45;
+  return groundStyle === 'clean' ? clean.treeShare : 1;
 }
 
 /* walking-mode collision against building footprints */
@@ -449,12 +496,19 @@ function setupUi(): void {
     document.querySelectorAll<HTMLButtonElement>('[data-labels]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.labels === m)));
   };
   $('btnLabels').addEventListener('click', () => setLabelMode(labelMode === 'off' ? lastLabelMode : 'off'));
+  setupMapFilter();
   document.querySelectorAll<HTMLButtonElement>('[data-labels]').forEach((b) => b.addEventListener('click', () => setLabelMode(b.dataset.labels as LabelMode)));
   setLabelMode('all');
-  $('tSat').addEventListener('click', () => { satOn = true; applyGroundStyle(); });
-  $('tMap').addEventListener('click', () => { satOn = false; applyGroundStyle(); });
+  $('tSat').addEventListener('click', () => { groundStyle = 'sat'; applyGroundStyle(); });
+  $('tMap').addEventListener('click', () => { groundStyle = 'map'; applyGroundStyle(); });
+  $('tClean').addEventListener('click', () => { groundStyle = 'clean'; applyGroundStyle(); });
+  // the on-map view switcher does the same as the Ground buttons in Layers
+  document.querySelectorAll<HTMLButtonElement>('[data-ground]').forEach((b) => b.addEventListener('click', () => {
+    groundStyle = b.dataset.ground as typeof groundStyle;
+    applyGroundStyle();
+  }));
   // road lines always show in the map style; over satellite imagery they are optional
-  $('tRoads').addEventListener('click', () => { if (satOn && sat) { roadLines = !roadLines; applyGroundStyle(); } });
+  $('tRoads').addEventListener('click', () => { if (groundStyle === 'sat' && sat) { roadLines = !roadLines; applyGroundStyle(); } });
   toggle('tTrees', (on) => { trees.group.visible = on; });
   $('btnDir').addEventListener('click', () => toggleDirectory());
   $('dirClose').addEventListener('click', () => toggleDirectory(false));
@@ -487,6 +541,12 @@ function setupUi(): void {
     rd.readAsDataURL(f);
   });
   $('emblemReset').addEventListener('click', () => { marks.emblem?.reset(); emblemFile.value = ''; });
+  if (SHOW_IITM_SEAL) {
+    // the seal is on: name it in the panel and show its credit under About
+    $('emblemLabel').textContent = 'Main Gate emblem (shows the IIT Madras seal by default)';
+    $('emblemReset').textContent = 'Use the IIT Madras seal';
+    $('sealNote').hidden = false;
+  }
 
   // time of day
   const tod = $('tod') as HTMLInputElement;
@@ -723,6 +783,12 @@ function setHour(h: number): void {
   hour = ((h % 24) + 24) % 24;
   ($('tod') as HTMLInputElement).value = String(hour);
   sky.setHour(hour);
+  if (groundStyle === 'clean') {
+    // brighter, flatter daylight for the Clean style
+    const day = 1 - sky.nightF;
+    sky.hemi.intensity *= 1 + 0.25 * day;
+    sky.exposure += 0.06 * day;
+  }
   const hh = Math.floor(hour), mm = Math.floor((hour - hh) * 60);
   $('clock').textContent = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} IST`;
   document.querySelectorAll<HTMLButtonElement>('#presets [data-h]').forEach((b) => {
@@ -748,6 +814,8 @@ function setDetail(mode: string): void {
   applyDetail(mode === 'auto' ? autoLevel : (mode as 'low' | 'med' | 'high'));
 }
 function applyDetail(level: 'low' | 'med' | 'high'): void {
+  detailLevel = level;
+  satDetail?.setLevel(level);
   const cfg = { low: { pr: 1, sh: 1024, tr: 0.3 }, med: { pr: 1.5, sh: 2048, tr: 0.6 }, high: { pr: 2, sh: 2048, tr: 1 } }[level];
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cfg.pr));
   if (sky.sun.shadow.mapSize.x !== cfg.sh) {
@@ -756,7 +824,7 @@ function applyDetail(level: 'low' | 'med' | 'high'): void {
     sky.sun.shadow.map = null;
   }
   treeDensity = cfg.tr;
-  trees.setDensity(cfg.tr * (satOn && sat ? 0.55 : 1));
+  trees.setDensity(cfg.tr * treeShare());
   resize();
 }
 
@@ -910,6 +978,45 @@ function toggleDirectory(open?: boolean): void {
 
 let dockTab = 'study';
 
+/** screen boxes of the visible panels, so place names don't hide underneath them */
+function panelBoxes(): number[] {
+  const out: number[] = [];
+  for (const sel of ['.card-title', '.toolbar', '#dock', '#readout', '#info', '#mapType']) {
+    const el = document.querySelector<HTMLElement>(sel);
+    if (!el || el.hidden || el.offsetParent === null) continue;
+    const r = el.getBoundingClientRect();
+    out.push(r.left, r.top, r.right, r.bottom);
+  }
+  return out;
+}
+
+/** chips under the search that show just one kind of place on the map */
+const MAP_FILTERS = ['all', 'study', 'aca', 'hos', 'food', 'spo', 'svc', 'lmk'];
+
+function setupMapFilter(): void {
+  const row = $('mapFilter');
+  const chips: HTMLButtonElement[] = [];
+  const apply = (id: string): void => {
+    labels.filter = id === 'all' ? null : id;
+    for (const c of chips) c.setAttribute('aria-pressed', String(c.dataset.cat === id));
+  };
+  for (const id of MAP_FILTERS) {
+    const cat = CATEGORIES.find((c) => c.id === id);
+    if (!cat) continue;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.dataset.cat = id;
+    b.title = id === 'all' ? 'Show every kind of place on the map' : `Show only ${cat.label.toLowerCase()} on the map`;
+    b.innerHTML = id === 'all' ? 'All' : `<i aria-hidden="true"></i>${id === 'study' ? 'Study' : cat.label}`;
+    if (id !== 'all') b.style.setProperty('--c', cat.color);
+    b.addEventListener('click', () => apply(id));
+    row.appendChild(b);
+    chips.push(b);
+  }
+  apply('all');
+}
+
 function setupDock(): void {
   const tabs = $('dockTabs'), row = $('spots');
   for (const c of CATEGORIES) {
@@ -1057,6 +1164,7 @@ function frame(now: number): void {
     if (Math.abs(camera.near - near) / camera.near > 0.15) { camera.near = near; camera.updateProjectionMatrix(); }
   }
   sky.follow(camera, rig.walking ? camera.position : rig.target, Math.max(60, viewDist));
+  satDetail?.update(rig.walking ? camera.position : rig.target, camera.position, viewDist);
   renderer.toneMappingExposure = sky.exposure;
 
   if (!reduceMotion) {
@@ -1073,7 +1181,8 @@ function frame(now: number): void {
   }
   ($('needle') as HTMLElement).style.transform = `rotate(${(-rig.azimuth * 180) / Math.PI}deg)`;
 
-  if (labels.mode !== 'off' || current) labels.update(camera, stage.clientWidth, stage.clientHeight, viewDist, rig.walking ? camera.position : rig.target);
+  if (frameNo % 30 === 0) labels.setObstacles(panelBoxes());
+  labels.update(camera, stage.clientWidth, stage.clientHeight, viewDist, rig.walking ? camera.position : rig.target);
   if (frameNo % 8 === 0) updateReadout();
 
   // auto detail: step down once or twice if the frame rate is low

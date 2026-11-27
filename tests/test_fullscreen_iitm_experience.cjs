@@ -1,9 +1,8 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL, ARTIFACTS_DIR } = require('./env.cjs');
 const fs = require('fs');
 const path = require('path');
 
-const ARTIFACTS_DIR = 'C:/Users/Dell/.gemini/antigravity/brain/0371a2be-f412-43e8-ac6d-79bfa87cca66';
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
 (async () => {
   console.log('=== STARTING FULL-SCREEN IIT MADRAS VIRTUAL CAMPUS VERIFICATION ===\n');
@@ -23,7 +22,7 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
   // TEST 1: INITIAL SCREEN — ENTER THE CAMPUS (FULL-SCREEN IIT MADRAS MAIN GATE)
   // --------------------------------------------------------------------------
   console.log('1. Navigating to onboarding flow (?new_student=true)...');
-  await page.goto('http://localhost:5173/?new_student=true', { waitUntil: 'networkidle0' });
+  await page.goto(`${BASE_URL}/?new_student=true`, { waitUntil: 'networkidle0' });
   await new Promise((r) => setTimeout(r, 1000));
 
   // Step 1: Name entry
@@ -192,7 +191,7 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 
   // Test Mobile Main Gate Entrance Screen
   console.log('- Testing Mobile Main Gate Entrance Screen...');
-  await page.goto('http://localhost:5173/?new_student=true', { waitUntil: 'networkidle0' });
+  await page.goto(`${BASE_URL}/?new_student=true`, { waitUntil: 'networkidle0' });
   await new Promise((r) => setTimeout(r, 600));
   await page.type('input[type="text"]', 'Arjun');
   await page.click('button[type="submit"]');

@@ -1,9 +1,8 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL, ARTIFACTS_DIR } = require('./env.cjs');
 const fs = require('fs');
 const path = require('path');
 
-const ARTIFACTS_DIR = 'C:/Users/Dell/.gemini/antigravity/brain/0371a2be-f412-43e8-ac6d-79bfa87cca66';
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
 (async () => {
   console.log('=== STARTING COMPREHENSIVE FOCUS TIMER VERIFICATION SUITE ===\n');
@@ -15,8 +14,8 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
   });
 
   const page = await browser.newPage();
-  console.log('Navigating to http://localhost:5173/?demo=true...');
-  await page.goto('http://localhost:5173/?demo=true', { waitUntil: 'networkidle0' });
+  console.log(`Navigating to ${BASE_URL}/?demo=true...`);
+  await page.goto(`${BASE_URL}/?demo=true`, { waitUntil: 'networkidle0' });
   await new Promise((r) => setTimeout(r, 1500));
 
   // Open the timer utility panel
@@ -294,7 +293,7 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
   // 16. Multi-tab synchronization
   console.log('\n--- Scenario 16: Multi-tab synchronization ---');
   const secondTab = await browser.newPage();
-  await secondTab.goto('http://localhost:5173/?demo=true', { waitUntil: 'networkidle0' });
+  await secondTab.goto(`${BASE_URL}/?demo=true`, { waitUntil: 'networkidle0' });
   await new Promise((r) => setTimeout(r, 1500));
 
   const secondTabInfo = await secondTab.evaluate(() => {

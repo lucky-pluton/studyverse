@@ -4,7 +4,7 @@
  * seat choice stay shared with the 2D rooms. Rooms open toward +z, where the camera starts.
  */
 import * as THREE from 'three';
-import { C, add, backdropBuilding, bench, bookStack, bookshelf, box, chair, cyl, deskLamp, flowers, hedge, mat, plant, roundTable, stool, table, tiledFloor, tree, windowWall } from './kit';
+import { C, add, backdropBuilding, bench, bookStack, bookshelf, box, chair, cyl, deskLamp, flowers, hedge, mat, plant, roundTable, stool, table, tiledFloor, tree, wallClock, wallWithOpenings, windowWall } from './kit';
 import { annularSector, buildBanyan, elephant, textPlane } from '../landmarks';
 import { buildSurroundings } from './surroundings';
 
@@ -64,8 +64,22 @@ function library(): RoomBuild {
   tiledFloor(g, W, D + 4, '#f2ebe0', '#e2d8c8', 1.4, 0, 2);
   // back window wall and outdoor view
   windowWall(g, 0, -D / 2, 0, W, H, { x0: -6.2, x1: 6.2, y0: 0.5, y1: 5.3, cols: 6, rows: 3 });
-  // glazed entrance wall behind the camera, so turning round shows the campus through windows
-  windowWall(g, 0, 10.88, Math.PI, W, H, { x0: -7.5, x1: 7.5, y0: 0.3, y1: 5.3, cols: 6, rows: 3 });
+  // entrance wall behind the camera: glass double doors, two windows, the library's name and a clock
+  wallWithOpenings(g, 0, 10.88, Math.PI, W, H, [
+    { x0: -1.5, x1: 1.5, y0: 0, y1: 2.9, kind: 'door' },
+    { x0: -7.2, x1: -3.4, y0: 1.1, y1: 3.9, kind: 'window' },
+    { x0: 3.4, x1: 7.2, y0: 1.1, y1: 3.9, kind: 'window' },
+  ]);
+  {
+    const name = textPlane(5.2, 0.7, ['CENTRAL LIBRARY'], '#2d5a43');
+    name.position.set(0, 3.55, 10.72);
+    name.rotation.y = Math.PI;
+    g.add(name);
+    wallClock(g, 0, 4.7, 10.72, Math.PI, 0.42);
+    for (const x of [-2.3, 2.3]) plant(g, x, 10.2, 0.9);
+    bookshelf(g, -5.3, 10.45, Math.PI, 3.6, 0.95);
+    bookshelf(g, 5.3, 10.45, Math.PI, 3.6, 0.95);
+  }
   box(g, W, 0.3, D + 4, C.white, 0, H, 2); // ceiling
   for (const sx of [-1, 1]) {
     box(g, 0.3, H, D + 4, C.wall, sx * (W / 2), 0, 2); // side walls
@@ -130,7 +144,25 @@ function lhc(): RoomBuild {
   box(g, W, 0.3, D + 4, C.white, 0, H, 1);
   box(g, W, H, 0.3, C.wall, 0, 0, -D / 2);
   for (const sx of [-1, 1]) windowWall(g, sx * (W / 2), 0, -sx * Math.PI / 2, D + 4, H, { x0: -4, x1: 6, y0: 1.2, y1: 5.2, cols: 3, rows: 2 }, C.wall);
-  windowWall(g, 0, 10.9, Math.PI, W, H, { x0: -6, x1: 6, y0: 1.6, y1: 5.6, cols: 4, rows: 2 }, C.wall);
+  // back wall of the hall: entrance doors at both corners with exit signs, high windows and a clock
+  wallWithOpenings(g, 0, 10.9, Math.PI, W, H, [
+    { x0: -8.6, x1: -6.4, y0: 0, y1: 2.7, kind: 'door' },
+    { x0: 6.4, x1: 8.6, y0: 0, y1: 2.7, kind: 'door' },
+    { x0: -5.2, x1: -1.2, y0: 3.6, y1: 5.8, kind: 'window' },
+    { x0: 1.2, x1: 5.2, y0: 3.6, y1: 5.8, kind: 'window' },
+  ], C.wall);
+  {
+    const exitMat = new THREE.MeshStandardMaterial({ color: 0x1f8a4c, emissive: 0x2fd36b, emissiveIntensity: 0.6 });
+    r.glow.push(exitMat);
+    for (const x of [-7.5, 7.5]) {
+      add(g, new THREE.BoxGeometry(0.9, 0.32, 0.08), exitMat, x, 3.05, 10.74, { cast: false });
+      const word = textPlane(0.7, 0.22, ['EXIT'], '#ffffff');
+      word.position.set(x, 3.05, 10.69);
+      word.rotation.y = Math.PI;
+      g.add(word);
+    }
+    wallClock(g, 0, 4.7, 10.74, Math.PI, 0.5);
+  }
   r.update = buildSurroundings(g, { clear: [-10.5, -10, 10.5, 13], margin: 8, nearMin: 40, nearCount: 80, seed: 21 }).update;
   outdoorTrees(g, [[-24, -6, 1.2, 1], [-27, 8, 1.1], [24, -5, 1.2, 4], [27, 9, 1.1, 1]]);
   // stage, chalkboard, podium
@@ -223,7 +255,20 @@ function cafe(): RoomBuild {
   box(g, W, 0.3, D + 4, C.white, 0, H, 2);
   box(g, W, H, 0.3, 0xf6e6c8, 0, 0, -D / 2);
   for (const sx of [-1, 1]) windowWall(g, sx * (W / 2), 1, -sx * Math.PI / 2, D + 6, H, { x0: -6, x1: 7.2, y0: 0.4, y1: 5.4, cols: 4, rows: 2 }, 0xf6e6c8);
-  windowWall(g, 0, 10.4, Math.PI, W, H, { x0: -7, x1: 7, y0: 0.4, y1: 5.4, cols: 5, rows: 2 }, 0xf6e6c8);
+  // shop front behind the camera: glass doors in the middle, display windows either side, name above
+  wallWithOpenings(g, 0, 10.4, Math.PI, W, H, [
+    { x0: -1.3, x1: 1.3, y0: 0, y1: 2.8, kind: 'door' },
+    { x0: -7.6, x1: -2.4, y0: 0.7, y1: 3.9, kind: 'window' },
+    { x0: 2.4, x1: 7.6, y0: 0.7, y1: 3.9, kind: 'window' },
+  ], 0xf6e6c8);
+  {
+    const name = textPlane(4.4, 0.75, ['CAMPUS CAFÉ'], '#845328');
+    name.position.set(0, 3.5, 10.24);
+    name.rotation.y = Math.PI;
+    g.add(name);
+    wallClock(g, 5.0, 4.75, 10.24, Math.PI, 0.38);
+    for (const x of [-2.0, 2.0]) plant(g, x, 9.8, 0.8);
+  }
   r.update = buildSurroundings(g, { clear: [-9.5, -7, 9.5, 12], margin: 8, nearMin: 38, nearCount: 80, seed: 31 }).update;
   outdoorTrees(g, [[-22, -4, 1.2, 1], [-24, 8, 1.1], [22, -3, 1.2], [24, 9, 1.1, 1]]);
   backdropBuilding(g, -48, 2, 10, 11, 26);

@@ -1,17 +1,17 @@
 const puppeteer = require('puppeteer-core');
+const { CHROME_PATH, BASE_URL, ARTIFACTS_DIR } = require('./env.cjs');
 const path = require('path');
-const fs = require('fs');
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    executablePath: CHROME_PATH,
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
 
   console.log('================================================================');
   console.log('  STUDYVERSE — VERIFY CORRECTED CAMPUS MAP LAYOUT & SPACING      ');
-  console.log('  Target: http://localhost:5173/                                ');
+  console.log(`  Target: ${BASE_URL}/                                `);
   console.log('================================================================\n');
 
   let allPassed = true;
@@ -59,8 +59,8 @@ const fs = require('fs');
       sessionStorage.setItem('studyverse_session', JSON.stringify(student));
     });
 
-    console.log('[1/8] Navigating to http://localhost:5173/ ...');
-    await page.goto('http://localhost:5173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    console.log(`[1/8] Navigating to ${BASE_URL}/ ...`);
+    await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await new Promise(r => setTimeout(r, 1500));
 
     // Check 1: Top Welcome Banner
@@ -225,15 +225,9 @@ const fs = require('fs');
     }
 
     // Capture Full Page Screenshot
-    const screenshotPath = path.join(__dirname, 'campus_corrected_pastel_preview.png');
+    const screenshotPath = path.join(ARTIFACTS_DIR, 'campus_corrected_pastel_preview.png');
     await page.screenshot({ path: screenshotPath, fullPage: true });
     console.log(`\n      Full-page screenshot saved to: ${screenshotPath}`);
-
-    // Copy to artifact directory
-    const artifactDir = 'C:/Users/Dell/.gemini/antigravity/brain/0371a2be-f412-43e8-ac6d-79bfa87cca66';
-    const artifactPath = path.join(artifactDir, 'campus_corrected_pastel_preview.png');
-    fs.copyFileSync(screenshotPath, artifactPath);
-    console.log(`      Copied screenshot to artifact directory: ${artifactPath}`);
 
     // Also test Mobile Viewport (375 x 812)
     console.log('\n--- Checking Mobile Viewport (375 x 812) ---');

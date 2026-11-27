@@ -12,3 +12,5 @@ export const QUICK_STUDY_REACTIONS: QuickStudyReaction[] = [
 export const MAX_CHAT_MESSAGE_LENGTH = 300;
 export const CHAT_RATE_LIMIT_MS = 1000;
 export const MAX_STORED_CHAT_MESSAGES = 60;
+/** a message reported by this many different students is hidden for everyone in the room */
+export const COMMUNITY_HIDE_REPORT_COUNT = 2;

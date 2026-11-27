@@ -27,6 +27,7 @@
           <kbd class="kbd">Ctrl K</kbd>
           <div id="qres" class="qres glass" role="listbox" hidden></div>
         </div>
+        <div id="mapFilter" class="map-filter" role="group" aria-label="Show on the map"></div>
       </section>
 
       <!-- top right: tools -->
@@ -47,6 +48,7 @@
         <div class="seg" role="group" aria-labelledby="mapStyleLabel">
           <button id="tSat" class="chip" type="button" aria-pressed="true">Satellite</button>
           <button id="tMap" class="chip" type="button" aria-pressed="false">Map</button>
+          <button id="tClean" class="chip" type="button" aria-pressed="false" title="Bright, simple colours">Clean</button>
         </div>
         <p class="pnote" id="satNote"></p>
         <span class="plabel" id="labelModeLabel">Labels</span>
@@ -73,9 +75,9 @@
           <option value="med">Medium</option>
           <option value="high">High</option>
         </select>
-        <label class="plabel" for="emblemFile">Main Gate emblem</label>
+        <label class="plabel" for="emblemFile" id="emblemLabel">Main Gate emblem</label>
         <input id="emblemFile" type="file" accept="image/*" />
-        <button id="emblemReset" class="chip" type="button">Use the default mark</button>
+        <button id="emblemReset" class="chip" type="button">Reset the emblem</button>
         <p class="pnote">Your image stays on this device.</p>
       </div>
 
@@ -92,7 +94,8 @@
           <li><b>Ctrl K</b> search</li>
         </ul>
         <p class="pnote">Buildings, roads, water and green areas come from OpenStreetMap (&copy; OpenStreetMap contributors, ODbL). Heights use the mapped floor count where there is one; the rest are estimated from building type and size. Unnamed buildings are labelled by what their map tags say they are and the nearest named place or road. Trees, deer and traffic are illustrative.</p>
-        <p class="pnote">Satellite view: imagery from Esri World Imagery (Esri, Maxar, Earthstar Geographics), loaded in your browser while you view the page and draped over the ground and roofs. It was also used as a reference to place the Open Air Theatre and Gajendra Circle.</p>
+        <p class="pnote" id="sealNote" hidden>The seal on the Main Gate sign is the IIT Madras logo by Indian Institute of Technology Madras, from <a href="https://commons.wikimedia.org/wiki/File:IIT_Madras_Logo_(Black_and_White).svg" target="_blank" rel="noopener">Wikimedia Commons</a>, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a> and recoloured gold here. Sahej-Shala is not affiliated with or endorsed by IIT Madras.</p>
+        <p class="pnote">Satellite view: imagery powered by Esri (source: Esri, Maxar, Earthstar Geographics, and the GIS User Community), loaded in your browser while you view the page and draped over the ground and roofs. It was also used as a reference to place the Open Air Theatre and Gajendra Circle.</p>
         <p class="pnote" id="aboutStats"></p>
       </div>
 
@@ -123,6 +126,19 @@
 
       <!-- info card for the selected place -->
       <article class="glass info" id="info" hidden aria-live="polite"></article>
+
+      <!-- bottom right: map view switcher (three ways to see the same campus) -->
+      <div class="glass maptype" id="mapType" role="group" aria-label="Map view">
+        <button class="mt" type="button" data-ground="sat" aria-pressed="true" title="Satellite: real aerial imagery">
+          <span class="mt-thumb mt-sat" aria-hidden="true"></span><span class="mt-name">Satellite</span>
+        </button>
+        <button class="mt" type="button" data-ground="map" aria-pressed="false" title="Map: drawn ground, roads and water">
+          <span class="mt-thumb mt-map" aria-hidden="true"></span><span class="mt-name">Map</span>
+        </button>
+        <button class="mt" type="button" data-ground="clean" aria-pressed="false" title="Clean: bright, simple colours">
+          <span class="mt-thumb mt-clean" aria-hidden="true"></span><span class="mt-name">Clean</span>
+        </button>
+      </div>
 
       <!-- bottom left: where am I -->
       <div class="glass readout" id="readout">

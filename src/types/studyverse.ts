@@ -115,7 +115,10 @@ export interface ChatMessage {
   text: string;
   timestamp: number;
   locationId: LocationId;
-  type?: 'chat' | 'reaction';
+  /** 'report' is a moderation signal: it is never shown, it counts towards hiding `targetId` for everyone */
+  type?: 'chat' | 'reaction' | 'report';
+  /** for reports: the id of the message being reported */
+  targetId?: string;
 }
 
 export interface QuickStudyReaction {
