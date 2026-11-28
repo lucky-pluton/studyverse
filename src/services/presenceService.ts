@@ -460,7 +460,7 @@ class PresenceService {
         try {
           const wire: WireMessage = JSON.parse(message.payloadString);
           this.handleWireMessage(wire, 'mqtt');
-        } catch {}
+        } catch { }
       };
 
       this.mqttClient.connect({
@@ -503,7 +503,7 @@ class PresenceService {
       pahoMsg.destinationName = MQTT_TOPIC_PRESENCE;
       pahoMsg.qos = 0;
       this.mqttClient.send(pahoMsg);
-    } catch {}
+    } catch { }
   }
 
   // =========================================================================
@@ -525,7 +525,7 @@ class PresenceService {
         payload: msg,
       });
       if (type === 'update' || type === 'join') {
-        this.channel.track(payload).catch(() => {});
+        this.channel.track(payload).catch(() => { });
       }
     }
 
@@ -679,7 +679,7 @@ class PresenceService {
       if (changed) {
         this.notifyListeners();
       }
-    } catch {}
+    } catch { }
   }
 
   private syncToStorage() {
@@ -710,7 +710,7 @@ class PresenceService {
       });
 
       localStorage.setItem(LOCAL_STORAGE_PEER_KEY, JSON.stringify(registry));
-    } catch {}
+    } catch { }
   }
 
   private broadcastLocalPresence(type: WireMessage['type'], payload: StudentPresence) {
@@ -723,7 +723,7 @@ class PresenceService {
         timestamp: Date.now(),
       };
       this.broadcastChannel.postMessage(msg);
-    } catch {}
+    } catch { }
   }
 
   // =========================================================================
@@ -924,7 +924,7 @@ class PresenceService {
       try {
         this.channel.untrack();
         this.supabase?.removeChannel(this.channel);
-      } catch {}
+      } catch { }
       this.channel = null;
       this.isSupabaseSubscribed = false;
     }
@@ -932,7 +932,7 @@ class PresenceService {
     if (this.trysteroRoom) {
       try {
         this.trysteroRoom.leave();
-      } catch {}
+      } catch { }
       this.trysteroRoom = null;
       this.trysteroAction = null;
       this.webrtcPeersCount = 0;
@@ -944,7 +944,7 @@ class PresenceService {
           this.sendMqttMessage('leave', this.currentPresence);
         }
         this.mqttClient.disconnect();
-      } catch {}
+      } catch { }
       this.mqttClient = null;
       this.isMqttConnected = false;
     }
@@ -968,7 +968,7 @@ class PresenceService {
           delete registry[this.currentPresence.sessionId];
           localStorage.setItem(LOCAL_STORAGE_PEER_KEY, JSON.stringify(registry));
         }
-      } catch {}
+      } catch { }
     }
 
     this.teardownTransports();
@@ -976,7 +976,7 @@ class PresenceService {
     if (this.broadcastChannel) {
       try {
         this.broadcastChannel.close();
-      } catch {}
+      } catch { }
       this.broadcastChannel = null;
     }
 

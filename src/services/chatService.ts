@@ -151,7 +151,7 @@ class ChatService {
     try {
       localStorage.setItem(DND_STORAGE_KEY, enabled ? 'true' : 'false');
       localStorage.setItem(QUIET_STUDY_STORAGE_KEY, enabled ? 'true' : 'false');
-    } catch {}
+    } catch { }
     if (enabled) {
       this.unreadCount = 0;
       this.notifyUnread();
@@ -190,7 +190,7 @@ class ChatService {
     this.isSoundEnabled = enabled;
     try {
       localStorage.setItem(CHAT_SOUND_STORAGE_KEY, enabled ? 'true' : 'false');
-    } catch {}
+    } catch { }
     this.soundListeners.forEach((fn) => fn(enabled));
   }
 
@@ -494,7 +494,7 @@ class ChatService {
     if (this.mqttClient && this.isMqttConnected && this.subscribedMqttTopic) {
       try {
         this.mqttClient.unsubscribe(this.subscribedMqttTopic);
-      } catch {}
+      } catch { }
       this.subscribedMqttTopic = null;
     }
 
@@ -503,7 +503,7 @@ class ChatService {
       try {
         const supabase = presenceService.getSupabaseClient();
         supabase?.removeChannel(this.supabaseChannel);
-      } catch {}
+      } catch { }
       this.supabaseChannel = null;
       this.isSupabaseSubscribed = false;
     }
@@ -512,7 +512,7 @@ class ChatService {
     if (this.trysteroRoom) {
       try {
         this.trysteroRoom.leave();
-      } catch {}
+      } catch { }
       this.trysteroRoom = null;
       this.trysteroAction = null;
     }
@@ -521,7 +521,7 @@ class ChatService {
     if (this.broadcastChannel) {
       try {
         this.broadcastChannel.close();
-      } catch {}
+      } catch { }
       this.broadcastChannel = null;
     }
 
@@ -641,7 +641,7 @@ class ChatService {
     if (this.broadcastChannel) {
       try {
         this.broadcastChannel.postMessage(message);
-      } catch {}
+      } catch { }
     }
   }
 
@@ -890,7 +890,7 @@ class ChatService {
         if (this.mqttClient.isConnected()) {
           this.mqttClient.disconnect();
         }
-      } catch {}
+      } catch { }
       this.mqttClient = null;
     }
 

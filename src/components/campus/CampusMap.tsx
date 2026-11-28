@@ -124,9 +124,15 @@ export const CampusMap: React.FC<CampusMapProps> = ({
       {/* =========================================================================
           3. FLOATING EXPANDABLE QUICK LIST SIDE DRAWER
          ========================================================================= */}
+      {isQuickListOpen && (
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-[1px] z-45 sm:hidden transition-opacity"
+          onClick={() => setIsQuickListOpen(false)}
+        />
+      )}
       <div
         data-test-id="quick-list-drawer"
-        className={`fixed top-18 sm:top-20 right-3 sm:right-4 bottom-4 w-96 max-w-[calc(100vw-1.5rem)] z-50 transition-all duration-300 ease-out transform ${
+        className={`fixed top-18 sm:top-20 right-3 sm:right-4 bottom-4 w-[480px] sm:w-[520px] md:w-[560px] max-w-[calc(100vw-1.5rem)] z-50 transition-all duration-300 ease-out transform ${
           isQuickListOpen
             ? 'translate-x-0 opacity-100 pointer-events-auto'
             : 'translate-x-[115%] opacity-0 pointer-events-none'
@@ -137,7 +143,7 @@ export const CampusMap: React.FC<CampusMapProps> = ({
           onEnterLocation={onEnterLocation}
           onClose={() => setIsQuickListOpen(false)}
           defaultExpanded={true}
-          className="h-full max-h-[calc(100dvh-7rem)] overflow-y-auto backdrop-blur-lg bg-[#fffdfa]/95 border-2 border-[#d5e2d9] shadow-2xl rounded-3xl"
+          className="h-full max-h-[calc(100dvh-7rem)] overflow-y-auto backdrop-blur-xl bg-[#fffdfa]/98 border-2 border-[#d5e2d9] shadow-2xl rounded-3xl"
         />
       </div>
 
