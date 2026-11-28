@@ -56,6 +56,7 @@ export const CampusInfoPanel: React.FC<CampusInfoPanelProps> = ({
 
   // Students who are currently seated
   const seatedStudents = students.filter((s) => s.seatId !== null);
+  const unseatedStudents = students.filter((s) => s.seatId === null);
 
   return (
     <div
@@ -278,64 +279,127 @@ export const CampusInfoPanel: React.FC<CampusInfoPanelProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-[#63806f] flex items-center gap-1">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  Active Seated Learners on Campus
+                  Live Learners on Campus
                 </span>
                 <span className="text-[10px] text-[#6b8577] font-semibold">
-                  {seatedStudents.length} student{seatedStudents.length === 1 ? '' : 's'} seated
+                  {students.length} student{students.length === 1 ? '' : 's'} online ({seatedStudents.length} seated)
                 </span>
               </div>
 
-              {seatedStudents.length === 0 ? (
+              {students.length === 0 ? (
                 <div className="p-6 rounded-2xl bg-[#faf6f0] border border-[#e8ded0] text-center space-y-2">
                   <p className="text-xs text-[#6e6152] font-medium">
-                    No students are currently seated in a study spot.
+                    No other students are currently connected.
                   </p>
                   <p className="text-[11px] text-[#8a7a67]">
                     Click any destination on the map to claim a desk and start your study session!
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-72 overflow-y-auto pr-1">
-                  {seatedStudents.map((student) => {
-                    const locDef = LOCATIONS[student.location] || LOCATIONS.library;
-                    const timeSeated = student.seatEnteredAt ? formatDuration(student.seatEnteredAt) : 'Just seated';
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {/* Seated Learners */}
+                  {seatedStudents.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[9.5px] uppercase font-bold tracking-wider text-[#2d5a43] block">
+                        Seated at Desks ({seatedStudents.length})
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {seatedStudents.map((student) => {
+                          const locDef = LOCATIONS[student.location] || LOCATIONS.library;
+                          const timeSeated = student.seatEnteredAt ? formatDuration(student.seatEnteredAt) : 'Just seated';
 
-                    return (
-                      <div
-                        key={student.sessionId}
-                        onClick={() => onEnterLocation(student.location)}
-                        className="p-3 rounded-2xl bg-white border border-[#d8e5dd] hover:border-[#2d5a43] hover:shadow-xs transition-all cursor-pointer flex items-center justify-between gap-2 group"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-[#e8e2d8] border border-[#d2c5b5] flex items-center justify-center shrink-0">
-                            <AvatarRenderer config={student.avatarConfig} size="xs" showProp={false} />
-                          </div>
+                          return (
+                            <div
+                              key={student.sessionId}
+                              onClick={() => onEnterLocation(student.location)}
+                              className="p-2.5 rounded-2xl bg-white border border-[#d8e5dd] hover:border-[#2d5a43] hover:shadow-xs transition-all cursor-pointer flex items-center justify-between gap-2 group"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full overflow-hidden bg-[#e8e2d8] border border-[#d2c5b5] flex items-center justify-center shrink-0">
+                                  <AvatarRenderer config={student.avatarConfig} size="xs" showProp={false} />
+                                </div>
 
-                          <div className="text-left">
-                            <span className="font-semibold text-xs text-[#203a2c] block truncate max-w-[120px]">
-                              {student.name}
-                            </span>
-                            <div className="flex items-center gap-1 text-[10px] text-[#557060]">
-                              <span>{locDef.icon}</span>
-                              <span className="truncate max-w-[110px]">{locDef.name}</span>
+                                <div className="text-left">
+                                  <span className="font-semibold text-xs text-[#203a2c] block truncate max-w-[110px]">
+                                    {student.name}
+                                  </span>
+                                  <div className="flex items-center gap-1 text-[10px] text-[#557060]">
+                                    <span>{locDef.icon}</span>
+                                    <span className="truncate max-w-[100px]">{locDef.name}</span>
+                                  </div>
+                                  <span className="text-[9px] text-[#8a7866] block">
+                                    {student.studyTopic || 'Deep Focus'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <span className="text-[10px] font-mono-timer font-bold bg-[#e6eee8] text-[#2d5a43] px-1.5 py-0.5 rounded block mb-1">
+                                  {timeSeated}
+                                </span>
+                                <span className="text-[9px] font-semibold text-[#2d5a43] group-hover:underline flex items-center gap-0.5 justify-end">
+                                  Join <ArrowRight className="w-2.5 h-2.5" />
+                                </span>
+                              </div>
                             </div>
-                            <span className="text-[9px] text-[#8a7866] block">
-                              {student.studyTopic || 'Deep Focus'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <span className="text-[10px] font-mono-timer font-bold bg-[#e6eee8] text-[#2d5a43] px-1.5 py-0.5 rounded block mb-1">
-                            {timeSeated}
-                          </span>
-                          <span className="text-[9px] font-semibold text-[#2d5a43] group-hover:underline flex items-center gap-0.5 justify-end">
-                            Join <ArrowRight className="w-2.5 h-2.5" />
-                          </span>
-                        </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
+
+                  {/* Exploring / Campus Grounds Learners */}
+                  {unseatedStudents.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[9.5px] uppercase font-bold tracking-wider text-[#685744] block">
+                        Exploring Campus & Spots ({unseatedStudents.length})
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {unseatedStudents.map((student) => {
+                          const isCampus = student.location === 'campus' || student.location === 'city';
+                          const locDef = isCampus ? null : LOCATIONS[student.location];
+                          const locName = isCampus ? 'Campus Common' : `${locDef?.name || 'Study Room'} (Browsing)`;
+                          const locIcon = isCampus ? '🏛️' : locDef?.icon || '📍';
+
+                          return (
+                            <div
+                              key={student.sessionId}
+                              onClick={() => onEnterLocation(student.location)}
+                              className="p-2.5 rounded-2xl bg-[#faf8f5] border border-[#e5dcd0] hover:border-[#2d5a43] hover:shadow-xs transition-all cursor-pointer flex items-center justify-between gap-2 group"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full overflow-hidden bg-[#e8e2d8] border border-[#d2c5b5] flex items-center justify-center shrink-0">
+                                  <AvatarRenderer config={student.avatarConfig} size="xs" showProp={false} />
+                                </div>
+
+                                <div className="text-left">
+                                  <span className="font-semibold text-xs text-[#203a2c] block truncate max-w-[110px]">
+                                    {student.name}
+                                  </span>
+                                  <div className="flex items-center gap-1 text-[10px] text-[#557060]">
+                                    <span>{locIcon}</span>
+                                    <span className="truncate max-w-[100px]">{locName}</span>
+                                  </div>
+                                  <span className="text-[9px] text-[#8a7866] block">
+                                    {student.studyTopic || 'Exploring'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#ebdccb] text-[#594735] block mb-1">
+                                  Active
+                                </span>
+                                <span className="text-[9px] font-semibold text-[#2d5a43] group-hover:underline flex items-center gap-0.5 justify-end">
+                                  Join <ArrowRight className="w-2.5 h-2.5" />
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

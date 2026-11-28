@@ -453,20 +453,79 @@ export const IsometricCampusMapCanvas: React.FC<IsometricCampusMapCanvasProps> =
                   transform: 'translate(-50%, -50%)',
                 }}
               >
-                {occupants.slice(0, 3).map((peer, idx) => (
+                {occupants.slice(0, 4).map((peer, idx) => (
                   <div
                     key={peer.sessionId || idx}
                     className="relative flex flex-col items-center animate-bounce-slow"
                     style={{ animationDelay: `${idx * 0.2}s` }}
+                    title={`${peer.name} · ${peer.studyTopic || 'Studying'}`}
                   >
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white/90 border border-emerald-500/60 shadow-xs flex items-center justify-center overflow-hidden">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white/95 border-2 border-emerald-500 shadow-md flex items-center justify-center overflow-hidden">
                       <AvatarRenderer config={peer.avatarConfig} size="xs" />
                     </div>
+                    <span className="text-[8px] font-bold bg-[#193224]/90 text-white px-1 rounded-sm shadow-xs whitespace-nowrap mt-0.5">
+                      {peer.name.split(' ')[0]}
+                    </span>
                   </div>
                 ))}
+                {occupants.length > 4 && (
+                  <div className="w-5 h-5 rounded-full bg-[#2d5a43] text-white text-[9px] font-bold flex items-center justify-center shadow-xs">
+                    +{occupants.length - 4}
+                  </div>
+                )}
               </div>
             );
           })}
+
+          {/* =====================================================================
+              3b. PEER STUDENTS WALKING / STUDYING ON CAMPUS GROUNDS
+             ===================================================================== */}
+          {students
+            .filter(
+              (s) =>
+                (s.location === 'campus' || s.location === 'city') &&
+                s.sessionId !== currentUser?.sessionId
+            )
+            .map((peer, idx) => {
+              const peerSpots = [
+                { x: 44, y: 66 },
+                { x: 56, y: 66 },
+                { x: 47, y: 72 },
+                { x: 53, y: 72 },
+                { x: 41, y: 60 },
+                { x: 59, y: 60 },
+                { x: 48, y: 56 },
+                { x: 52, y: 56 },
+              ];
+              const spot = peerSpots[idx % peerSpots.length];
+              return (
+                <div
+                  key={`campus-peer-${peer.sessionId || idx}`}
+                  className="absolute z-30 pointer-events-auto flex flex-col items-center group cursor-pointer transition-transform hover:scale-105"
+                  style={{
+                    left: `${spot.x}%`,
+                    top: `${spot.y}%`,
+                    transform: 'translate(-50%, -100%)',
+                  }}
+                  title={`${peer.name} · ${peer.studyTopic || 'Exploring Campus'}`}
+                >
+                  {/* Peer Name Badge */}
+                  <div className="bg-[#1b3326]/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-md whitespace-nowrap mb-0.5 border border-white/40 flex items-center gap-1 group-hover:bg-[#2d5a43]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    <span>{peer.name}</span>
+                  </div>
+
+                  {/* Chibi Avatar */}
+                  <div className="relative">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/95 border-2 border-emerald-500 shadow-md flex items-center justify-center overflow-hidden">
+                      <AvatarRenderer config={peer.avatarConfig} size="sm" animate={true} />
+                    </div>
+                    {/* Shadow */}
+                    <div className="w-6 h-1.5 bg-black/20 rounded-full blur-2xs mx-auto -mt-0.5" />
+                  </div>
+                </div>
+              );
+            })}
 
           {/* =====================================================================
               4. USER'S LIVE AVATAR ON CAMPUS (Walks when a building is clicked)

@@ -34,6 +34,15 @@ function logChatAudioDiagnostic(step: number, action: string, details?: Record<s
   }
 }
 
+const RELIABLE_NOSTR_RELAYS = [
+  'wss://relay.damus.io',
+  'wss://nos.lol',
+  'wss://relay.current.fyi',
+  'wss://nostr.mom',
+  'wss://purplerelay.com',
+  'wss://relay.primal.net',
+];
+
 const MQTT_BROKERS = [
   { host: 'broker.emqx.io', port: 8084, path: '/mqtt' },
   { host: 'broker.hivemq.com', port: 8884, path: '/mqtt' },
@@ -453,7 +462,13 @@ class ChatService {
     // 3. Setup WebRTC P2P Mesh (Trystero over Port 443 WSS Nostr relays)
     try {
       this.trysteroRoom = joinRoom(
-        { appId: 'studyverse_campus_chat_v1' },
+        {
+          appId: 'studyverse_campus_chat_v1',
+          relayConfig: {
+            urls: RELIABLE_NOSTR_RELAYS,
+            redundancy: 4,
+          },
+        },
         `room_${locationId}`
       );
       this.trysteroAction = this.trysteroRoom.makeAction<ChatMessage>('chat_message');

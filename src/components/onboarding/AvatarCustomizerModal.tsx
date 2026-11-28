@@ -180,11 +180,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                     key={loc.id}
                     type="button"
                     onClick={() => setPreviewLocation(loc.id)}
-                    className={`px-2 py-1 rounded-lg text-[10.5px] font-medium flex items-center gap-1 transition-all cursor-pointer ${
-                      previewLocation === loc.id
+                    className={`px-2 py-1 rounded-lg text-[10.5px] font-medium flex items-center gap-1 transition-all cursor-pointer ${previewLocation === loc.id
                         ? 'bg-[#2d5a43] text-white shadow-xs font-semibold'
                         : 'bg-[#faf6f0] border border-[#e4d9cc] text-[#5e5346] hover:bg-[#f0e7dc]'
-                    }`}
+                      }`}
                   >
                     <span>{loc.icon}</span>
                     <span>{loc.label}</span>
@@ -209,11 +208,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                   key={tab.key}
                   type="button"
                   onClick={() => setActiveTab(tab.key as TabKey)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                    activeTab === tab.key
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${activeTab === tab.key
                       ? 'bg-[#2d5a43] text-white shadow-xs'
                       : 'bg-[#f4ebe0] hover:bg-[#ebe1d4] text-[#695d50]'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -234,11 +232,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                         key={preset.id}
                         type="button"
                         onClick={() => setCurrentAvatar({ ...preset })}
-                        className={`p-2.5 rounded-2xl flex flex-col items-center text-center transition-all cursor-pointer ${
-                          isSelected
+                        className={`p-2.5 rounded-2xl flex flex-col items-center text-center transition-all cursor-pointer ${isSelected
                             ? 'bg-[#f4ebe0] border-2 border-[#2d5a43] shadow-md ring-2 ring-[#2d5a43]/20 scale-[1.01]'
                             : 'bg-[#fffdfa] border border-[#e6dcce] hover:border-[#cbbea9] hover:bg-[#faf5ee] shadow-2xs'
-                        }`}
+                          }`}
                       >
                         <AvatarRenderer config={preset} size="sm" showProp={false} animate={isSelected} />
                         <span className="font-serif-title text-xs font-semibold text-[#2d2822] mt-1.5">
@@ -270,11 +267,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                           key={tone.id}
                           type="button"
                           onClick={() => handleUpdate({ skinTone: tone.hex })}
-                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer ${
-                            isSelected
+                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer ${isSelected
                               ? 'bg-[#f3ebd0] ring-2 ring-[#2d5a43] shadow-xs'
                               : 'bg-white border border-[#e6dcce] hover:bg-[#faf6ee]'
-                          }`}
+                            }`}
                         >
                           <span
                             className="w-6 h-6 rounded-full border border-black/15 shadow-2xs"
@@ -302,11 +298,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                           key={hc.id}
                           type="button"
                           onClick={() => handleUpdate({ hairColor: hc.hex })}
-                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer ${
-                            isSelected
+                          className={`flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer ${isSelected
                               ? 'bg-[#f3ebd0] ring-2 ring-[#2d5a43] shadow-xs'
                               : 'bg-white border border-[#e6dcce] hover:bg-[#faf6ee]'
-                          }`}
+                            }`}
                         >
                           <span
                             className="w-6 h-6 rounded-full border border-black/15 shadow-2xs"
@@ -334,11 +329,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                           key={style.id}
                           type="button"
                           onClick={() => handleUpdate({ hairStyle: style.id })}
-                          className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between ${
-                            isSelected
+                          className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between ${isSelected
                               ? 'bg-[#f4ebe0] border-2 border-[#2d5a43] shadow-xs'
                               : 'bg-white border border-[#e6dcce] hover:bg-[#faf6ee]'
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-semibold text-[#2d2822]">
                             {style.name}
@@ -370,11 +364,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                           key={cloth.id}
                           type="button"
                           onClick={() => handleUpdate({ clothingStyle: cloth.id })}
-                          className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between ${
-                            isSelected
+                          className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between ${isSelected
                               ? 'bg-[#f4ebe0] border-2 border-[#2d5a43] shadow-xs'
                               : 'bg-white border border-[#e6dcce] hover:bg-[#faf6ee]'
-                          }`}
+                            }`}
                         >
                           <span className="text-xs font-semibold text-[#2d2822]">
                             {cloth.name}
@@ -406,11 +399,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                               accentColor: color.accentHex || '#efe6fb',
                             })
                           }
-                          className={`flex items-center gap-2 p-2 rounded-xl transition-all cursor-pointer ${
-                            isSelected
+                          className={`flex items-center gap-2 p-2 rounded-xl transition-all cursor-pointer ${isSelected
                               ? 'bg-[#f3ebd0] ring-2 ring-[#2d5a43] shadow-xs'
                               : 'bg-white border border-[#e6dcce] hover:bg-[#faf6ee]'
-                          }`}
+                            }`}
                         >
                           <span
                             className="w-5 h-5 rounded-full border border-black/15 shadow-2xs shrink-0"
@@ -442,11 +434,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                           key={acc.id}
                           type="button"
                           onClick={() => handleUpdate({ accessory: acc.id })}
-                          className={`p-3 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between ${
-                            isSelected
+                          className={`p-3 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between ${isSelected
                               ? 'bg-[#f4ebe0] border-2 border-[#2d5a43] shadow-xs'
                               : 'bg-white border border-[#e6dcce] hover:bg-[#faf6ee]'
-                          }`}
+                            }`}
                         >
                           <div>
                             <span className="text-xs font-semibold text-[#2d2822] block">
@@ -476,11 +467,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleUpdate({ hasBackpack: !currentAvatar.hasBackpack })}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                      currentAvatar.hasBackpack
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${currentAvatar.hasBackpack
                         ? 'bg-[#2d5a43] text-white shadow-xs'
                         : 'bg-[#ede4d8] text-[#695d50] hover:bg-[#e0d6c8]'
-                    }`}
+                      }`}
                   >
                     {currentAvatar.hasBackpack ? 'Equipped' : 'Not Equipped'}
                   </button>
@@ -504,11 +494,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                           key={st.id}
                           type="button"
                           onClick={() => handleUpdate({ status: st.id })}
-                          className={`p-3 rounded-xl text-left transition-all cursor-pointer flex items-center gap-2.5 ${
-                            isSelected
+                          className={`p-3 rounded-xl text-left transition-all cursor-pointer flex items-center gap-2.5 ${isSelected
                               ? 'bg-[#f4ebe0] border-2 border-[#2d5a43] shadow-xs'
                               : 'bg-white border border-[#e6dcce] hover:bg-[#faf6ee]'
-                          }`}
+                            }`}
                         >
                           <span className="text-lg">{st.emoji}</span>
                           <div>
@@ -519,10 +508,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                               {st.id === 'deep-focus'
                                 ? 'Uninterrupted focus session'
                                 : st.id === 'studying'
-                                ? 'Actively studying coursework'
-                                : st.id === 'break'
-                                ? 'Grabbing tea / brief rest'
-                                : 'Temporarily stepped away'}
+                                  ? 'Actively studying coursework'
+                                  : st.id === 'break'
+                                    ? 'Grabbing tea / brief rest'
+                                    : 'Temporarily stepped away'}
                             </span>
                           </div>
                         </button>
@@ -551,11 +540,10 @@ export const AvatarCustomizerModal: React.FC<AvatarCustomizerModalProps> = ({
                           key={item.id}
                           type="button"
                           onClick={() => handleUpdate({ activity: item.id as AvatarConfig['activity'] })}
-                          className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex items-center gap-2.5 ${
-                            isSelected
+                          className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex items-center gap-2.5 ${isSelected
                               ? 'bg-[#f4ebe0] border-2 border-[#2d5a43] shadow-xs'
                               : 'bg-white border border-[#e6dcce] hover:bg-[#faf6ee]'
-                          }`}
+                            }`}
                         >
                           <div className="w-8 h-8 rounded-lg bg-[#faf6f0] border border-[#e6dcce] flex items-center justify-center text-[#2d5a43] shrink-0">
                             <Icon className="w-4 h-4" />

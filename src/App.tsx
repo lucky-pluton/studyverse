@@ -40,12 +40,26 @@ export function App() {
 
       // Check whether this tab is a duplicated/cloned tab window
       let isClonedTab = false;
-      if (!window.name || !window.name.startsWith('studyverse_win_')) {
-        const previousOwner = sessionStorage.getItem('studyverse_tab_window_id');
-        window.name = 'studyverse_win_' + Math.random().toString(36).substring(2, 9);
-        sessionStorage.setItem('studyverse_tab_window_id', window.name);
-        if (previousOwner !== null) {
-          isClonedTab = true;
+      const navTiming =
+        typeof performance !== 'undefined' && performance.getEntriesByType
+          ? (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)
+          : undefined;
+      const isReload = navTiming ? navTiming.type === 'reload' : false;
+
+      const previousOwner = sessionStorage.getItem('studyverse_tab_window_id');
+
+      if (!isReload) {
+        if (!window.name || !window.name.startsWith('studyverse_win_')) {
+          window.name = 'studyverse_win_' + Math.random().toString(36).substring(2, 9);
+          sessionStorage.setItem('studyverse_tab_window_id', window.name);
+          if (previousOwner !== null) {
+            isClonedTab = true;
+          }
+        }
+      } else {
+        // Page reload: ensure window.name is preserved so session is continuous
+        if (!window.name && previousOwner) {
+          window.name = previousOwner;
         }
       }
 
@@ -53,7 +67,7 @@ export function App() {
       if (stored) {
         const parsed: StudentPresence = JSON.parse(stored);
 
-        // If tab was duplicated, allocate a fresh unique sessionId so tabs do not collide
+        // Only allocate a fresh sessionId if this is a duplicated tab (and not a reload)
         if (isClonedTab) {
           parsed.sessionId =
             'student_' +

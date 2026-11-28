@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { LocationDefinition, StudentPresence, TimeOfDay } from '../../types/studyverse';
 import { SeatSpot } from './SeatSpot';
+import { AvatarRenderer } from '../common/AvatarRenderer';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize, Minimize, MessageSquare, X, Box } from 'lucide-react';
 
 import envLibrary from '../../assets/environments/env_library.jpg';
@@ -68,6 +69,7 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
   const containerRef = useRef<HTMLDivElement>(null);
 
   const openSeatsCount = Math.max(0, location.seats.length - occupants.length);
+  const unseatedOccupants = occupants.filter((o) => !o.seatId);
   const isNight = timeOfDay === 'night';
   const isSunset = timeOfDay === 'sunset';
   const bgImage = ENV_IMAGES[location.id] || envLibrary;
@@ -234,6 +236,61 @@ export const UnifiedLocationEnvironment: React.FC<UnifiedLocationEnvironmentProp
             />
           );
         })}
+
+        {/* Unseated Learners in this room (exploring or browsing desks) */}
+        {unseatedOccupants.length > 0 && (
+          <div className="absolute inset-x-0 bottom-4 pointer-events-none z-20 flex items-end justify-center gap-6 px-6">
+            {unseatedOccupants.map((student, idx) => {
+              const isSelf = student.sessionId === currentUser.sessionId;
+              return (
+                <div
+                  key={student.sessionId || idx}
+                  className="pointer-events-auto flex flex-col items-center group cursor-pointer transition-transform hover:scale-105"
+                  title={`${student.name}${isSelf ? ' (You)' : ''} · ${student.studyTopic || 'Exploring room'}`}
+                >
+                  {/* Name badge */}
+                  <div
+                    className={`px-2 py-0.5 rounded-full text-[9px] font-bold shadow-md whitespace-nowrap mb-1 flex items-center gap-1 border ${
+                      isSelf
+                        ? 'bg-[#1b3326] text-emerald-200 border-emerald-400/50'
+                        : 'bg-white/95 text-[#243f30] border-[#bcd5c7]'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>{student.name}</span>
+                    {isSelf ? <span className="text-[8px] font-normal text-emerald-300">(You)</span> : null}
+                  </div>
+
+                  {/* 2.5D Chibi Avatar standing */}
+                  <div className="relative flex flex-col items-center">
+                    <AvatarRenderer
+                      config={student.avatarConfig}
+                      size="sm"
+                      isSeated={false}
+                      locationId={location.id}
+                      showProp={true}
+                      animate={true}
+                    />
+                    <div className="w-8 h-2 -mt-1 bg-black/25 rounded-full blur-2xs" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Room Presence Badge (Top-Left) */}
+      <div className="absolute top-3 left-3 z-30 flex items-center gap-2 bg-[#fffdfa]/92 hover:bg-[#fffdfa] backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#dce7e1] shadow-md text-xs">
+        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="font-serif-title font-bold text-[#1f3529]">{location.name}</span>
+        <span className="text-[#627a6c]">·</span>
+        <span className="text-[#2d5a43] font-semibold">{occupants.length} learner{occupants.length === 1 ? '' : 's'} here</span>
+        {unseatedOccupants.length > 0 && (
+          <span className="text-[10px] text-[#557762] hidden sm:inline">
+            ({unseatedOccupants.length} browsing)
+          </span>
+        )}
       </div>
 
       {/* 2. FLOATING CONTROL PILL (Top-Right, Clean & Unobtrusive) */}

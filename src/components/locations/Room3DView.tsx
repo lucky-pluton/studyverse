@@ -28,6 +28,7 @@ const Room3DView: React.FC<Room3DViewProps> = ({ location, occupants, currentUse
   const [hintVisible, setHintVisible] = useState(true);
 
   const openSeatsCount = Math.max(0, location.seats.length - occupants.length);
+  const unseatedOccupants = occupants.filter((o) => !o.seatId);
   // in 3D the distance sets the size, so every seat uses the same base avatar size
   const seats3d = useMemo(() => location.seats.map((s) => ({ ...s, x: 0, y: 0, scale: 1, size: 'md' as const })), [location.seats]);
 
@@ -120,6 +121,36 @@ const Room3DView: React.FC<Room3DViewProps> = ({ location, occupants, currentUse
           );
         })}
       </div>
+
+      {/* Room Presence Badge (Top-Left) */}
+      <div className="absolute top-3 left-3 z-[2100] flex items-center gap-2 bg-[#fffdfa]/92 hover:bg-[#fffdfa] backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#dce7e1] shadow-md text-xs">
+        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="font-serif-title font-bold text-[#1f3529]">{location.name} (3D)</span>
+        <span className="text-[#627a6c]">·</span>
+        <span className="text-[#2d5a43] font-semibold">{occupants.length} learner{occupants.length === 1 ? '' : 's'} here</span>
+        {unseatedOccupants.length > 0 && (
+          <span className="text-[10px] text-[#557762] hidden sm:inline">
+            ({unseatedOccupants.length} browsing)
+          </span>
+        )}
+      </div>
+
+      {/* Unseated Learners in 3D room */}
+      {unseatedOccupants.length > 0 && (
+        <div className="absolute left-3 bottom-20 z-[2100] flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-[#dce7e1] shadow-lg text-xs pointer-events-auto">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#355844]">Exploring:</span>
+          <div className="flex items-center gap-1.5 flex-wrap max-w-md">
+            {unseatedOccupants.map((student, idx) => (
+              <span
+                key={student.sessionId || idx}
+                className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#eaf3ee] text-[#1f382b] border border-[#bcd2c5]"
+              >
+                {student.name}{student.sessionId === currentUser.sessionId ? ' (You)' : ''}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* control pill, matching the 2D room */}
       <div className="absolute top-3 right-3 z-[2100] flex items-center gap-1.5 bg-[#fffdfa]/92 hover:bg-[#fffdfa] backdrop-blur-md px-3 py-1.5 rounded-full border border-[#dce7e1] shadow-md transition-all text-xs">
