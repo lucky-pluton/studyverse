@@ -14,75 +14,88 @@
       <div id="labels" class="labels"></div>
       <div id="tip" class="tip" hidden></div>
 
-      <!-- top left: title and search -->
-      <section class="glass card-title" aria-label="Campus">
-        <div class="title-row">
-          <span class="brand">Sahej-Shala 3D</span>
-          <button id="btn2d" class="btn btn-ghost btn-sm" type="button" title="Back to the illustrated 2D map">&larr; 2D map</button>
-        </div>
-        <h1>IIT MADRAS</h1>
-        <p class="sub" id="subline">Guindy &middot; Chennai</p>
+      <!-- top left: search and the show-on-map chips, like Google Maps -->
+      <section class="card-title" aria-label="Search the campus">
         <div class="search">
-          <input id="q" type="search" placeholder="Search buildings, hostels, study spots" autocomplete="off" aria-label="Search the campus" />
+          <svg class="search-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input id="q" type="search" placeholder="Search IIT Madras" autocomplete="off" aria-label="Search the campus" />
           <kbd class="kbd">Ctrl K</kbd>
           <div id="qres" class="qres glass" role="listbox" hidden></div>
         </div>
         <div id="mapFilter" class="map-filter" role="group" aria-label="Show on the map"></div>
       </section>
 
-      <!-- top right: tools -->
-      <nav class="glass toolbar" aria-label="Map tools">
-        <button id="btnCompass" class="btn compass" type="button" title="Face north" aria-label="Face north"><span id="needle" class="needle"></span></button>
-        <button id="btnDir" class="btn" type="button" aria-pressed="false" aria-controls="dirPanel">Buildings</button>
-        <button id="btnLabels" class="btn" type="button" aria-pressed="true">Labels</button>
-        <button id="btnTour" class="btn" type="button" aria-pressed="false">Tour</button>
-        <button id="btnRoute" class="btn" type="button" aria-pressed="false">Route</button>
-        <button id="btnWalk" class="btn" type="button" aria-pressed="false">Walk</button>
-        <button id="btnLayers" class="btn" type="button" aria-pressed="false" aria-controls="layersPanel">Layers</button>
-        <button id="btnAbout" class="btn" type="button" aria-pressed="false" aria-controls="aboutPanel">About</button>
-      </nav>
+      <!-- top right: one Layers button and one compass -->
+      <div class="maptools">
+        <button id="btnLayers" class="layers-btn" type="button" aria-pressed="false" aria-controls="layersPanel" aria-label="Layers" title="Layers">
+          <span class="mt-thumb mt-sat" id="layersThumb" aria-hidden="true"></span>
+          <span class="layers-cap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/></svg>Layers</span>
+        </button>
+        <button id="btnCompass" class="compass" type="button" title="Face north" aria-label="Face north"><span id="needle" class="needle"></span></button>
+      </div>
 
-      <div class="glass panel" id="layersPanel" hidden>
-        <div class="ptitle">Layers</div>
-        <span class="plabel" id="mapStyleLabel">Ground</span>
-        <div class="seg" role="group" aria-labelledby="mapStyleLabel">
-          <button id="tSat" class="chip" type="button" aria-pressed="true">Satellite</button>
-          <button id="tMap" class="chip" type="button" aria-pressed="false">Map</button>
-          <button id="tClean" class="chip" type="button" aria-pressed="false" title="Bright, simple colours">Clean</button>
+      <!-- the Layers popup: map type in one click, then every detail and mode on its own -->
+      <div class="glass panel layers" id="layersPanel" hidden>
+        <div class="lp-head">
+          <span class="ptitle">Map type</span>
+          <button id="layersClose" class="btn close-sm" type="button" aria-label="Close layers">&times;</button>
+        </div>
+        <div class="lp-types" id="mapType" role="group" aria-label="Map type">
+          <button class="mt" type="button" data-ground="sat" aria-pressed="true"><span class="mt-thumb mt-sat" aria-hidden="true"></span><span class="mt-name">Satellite</span></button>
+          <button class="mt" type="button" data-ground="map" aria-pressed="false"><span class="mt-thumb mt-map" aria-hidden="true"></span><span class="mt-name">Map</span></button>
+          <button class="mt" type="button" data-ground="clean" aria-pressed="false"><span class="mt-thumb mt-clean" aria-hidden="true"></span><span class="mt-name">Clean</span></button>
         </div>
         <p class="pnote" id="satNote"></p>
-        <span class="plabel" id="labelModeLabel">Labels</span>
-        <div class="seg" role="group" aria-labelledby="labelModeLabel">
-          <button class="chip" type="button" data-labels="off" aria-pressed="false">Off</button>
-          <button class="chip" type="button" data-labels="key" aria-pressed="false">Key places</button>
-          <button class="chip" type="button" data-labels="all" aria-pressed="true">Every building</button>
+
+        <span class="ptitle">Map details</span>
+        <div class="lp-grid">
+          <button id="btnLabels" class="tile" type="button" aria-pressed="true"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg></span>Labels</button>
+          <button id="tRoads" class="tile" type="button" aria-pressed="false"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21 9 3M19 21 15 3M12 5v2M12 10.5v2M12 16v2"/></svg></span>Roads</button>
+          <button id="tTrees" class="tile" type="button" aria-pressed="true"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22v-5"/><path d="M12 2 6.5 10H9l-4 7h14l-4-7h2.5z"/></svg></span>Trees</button>
+          <button id="tTraffic" class="tile" type="button" aria-pressed="true"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16v-4l2.5-5h11l2.5 5v4z"/><circle cx="7.5" cy="16.5" r="1.8"/><circle cx="16.5" cy="16.5" r="1.8"/></svg></span>Traffic</button>
+          <button id="tLamps" class="tile" type="button" aria-pressed="true"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 22h6M11 22V7a3 3 0 0 1 3-3h3"/><path d="M15 4v2.5h4V4"/></svg></span>Lamps</button>
+          <button id="tDeer" class="tile" type="button" aria-pressed="true"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.5" cy="9" r="1.6"/><circle cx="10" cy="5.5" r="1.6"/><circle cx="14.5" cy="5.5" r="1.6"/><circle cx="18" cy="9" r="1.6"/><path d="M7.5 16.5c0-2.8 2-5 4.5-5s4.5 2.2 4.5 5c0 1.8-1.5 2.5-4.5 2.5s-4.5-.7-4.5-2.5z"/></svg></span>Deer</button>
+          <button id="tMarkers" class="tile" type="button" aria-pressed="true"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.5s6.5-5.8 6.5-11.3a6.5 6.5 0 0 0-13 0c0 5.5 6.5 11.3 6.5 11.3z"/><circle cx="12" cy="10" r="2.3"/></svg></span>Study pins</button>
+          <button id="tShadows" class="tile" type="button" aria-pressed="true"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="fill"/></svg></span>Shadows</button>
         </div>
-        <span class="plabel">Show</span>
-        <div class="tgl">
-          <button id="tRoads" class="chip" type="button" aria-pressed="false">Road lines</button>
-          <button id="tTrees" class="chip" type="button" aria-pressed="true">Trees</button>
-          <button id="tTraffic" class="chip" type="button" aria-pressed="true">Traffic</button>
-          <button id="tLamps" class="chip" type="button" aria-pressed="true">Street lamps</button>
-          <button id="tDeer" class="chip" type="button" aria-pressed="true">Deer</button>
-          <button id="tMarkers" class="chip" type="button" aria-pressed="true">Study markers</button>
-          <button id="tShadows" class="chip" type="button" aria-pressed="true">Shadows</button>
-          <button id="tSpin" class="chip" type="button" aria-pressed="false">Auto-rotate</button>
+
+        <span class="ptitle">Explore</span>
+        <div class="lp-grid">
+          <button id="btnDir" class="tile" type="button" aria-pressed="false" aria-controls="dirPanel"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5L12 3v18M12 21h8V9.5L12 7"/><path d="M8 8v.01M8 12v.01M8 16v.01M16 12v.01M16 16v.01"/></svg></span>Buildings</button>
+          <button id="btnTour" class="tile" type="button" aria-pressed="false"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m10 8.5 5.5 3.5-5.5 3.5z"/></svg></span>Tour</button>
+          <button id="btnRoute" class="tile" type="button" aria-pressed="false" aria-controls="routePanel"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h7.5a3.5 3.5 0 0 0 0-7h-7a3.5 3.5 0 0 1 0-7H16"/></svg></span>Route</button>
+          <button id="btnWalk" class="tile" type="button" aria-pressed="false"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="m8.5 22 3-7.5 3 3V22M6.5 12.5 10 8l4.5 1 2.5 3.5"/></svg></span>Walk</button>
         </div>
-        <label class="plabel" for="detail">Detail</label>
-        <select id="detail">
-          <option value="auto">Auto</option>
-          <option value="low">Low</option>
-          <option value="med">Medium</option>
-          <option value="high">High</option>
-        </select>
-        <label class="plabel" for="emblemFile" id="emblemLabel">Main Gate emblem</label>
-        <input id="emblemFile" type="file" accept="image/*" />
-        <button id="emblemReset" class="chip" type="button">Reset the emblem</button>
-        <p class="pnote">Your image stays on this device.</p>
+
+        <details class="lp-more">
+          <summary>More options</summary>
+          <span class="plabel" id="labelModeLabel">Labels</span>
+          <div class="seg" role="group" aria-labelledby="labelModeLabel">
+            <button class="chip" type="button" data-labels="off" aria-pressed="false">Off</button>
+            <button class="chip" type="button" data-labels="key" aria-pressed="false">Key places</button>
+            <button class="chip" type="button" data-labels="all" aria-pressed="true">Every building</button>
+          </div>
+          <div class="seg"><button id="tSpin" class="chip" type="button" aria-pressed="false">Auto-rotate</button></div>
+          <label class="plabel" for="detail">Detail</label>
+          <select id="detail">
+            <option value="auto">Auto</option>
+            <option value="low">Low</option>
+            <option value="med">Medium</option>
+            <option value="high">High</option>
+          </select>
+          <label class="plabel" for="emblemFile" id="emblemLabel">Main Gate emblem</label>
+          <input id="emblemFile" type="file" accept="image/*" />
+          <button id="emblemReset" class="chip" type="button">Reset the emblem</button>
+          <p class="pnote">Your image stays on this device.</p>
+        </details>
+        <button id="btnAbout" class="lp-about" type="button" aria-pressed="false" aria-controls="aboutPanel">About this map</button>
       </div>
 
       <div class="glass panel" id="aboutPanel" hidden>
-        <div class="ptitle">About this model</div>
+        <div class="lp-head">
+          <span class="ptitle">About this model</span>
+          <button id="aboutClose" class="btn close-sm" type="button" aria-label="Close">&times;</button>
+        </div>
         <ul class="keys">
           <li><b>Drag</b> move</li>
           <li><b>Scroll, pinch</b> zoom</li>
@@ -100,7 +113,10 @@
       </div>
 
       <div class="glass routep" id="routePanel" hidden>
-        <div class="ptitle">Walking route</div>
+        <div class="lp-head">
+          <span class="ptitle">Walking route</span>
+          <button id="routeClose" class="btn close-sm" type="button" aria-label="Close the route">&times;</button>
+        </div>
         <label class="plabel" for="rFrom">From</label>
         <select id="rFrom"></select>
         <label class="plabel" for="rTo">To</label>
@@ -127,26 +143,14 @@
       <!-- info card for the selected place -->
       <article class="glass info" id="info" hidden aria-live="polite"></article>
 
-      <!-- bottom right: map view switcher (three ways to see the same campus) -->
-      <div class="glass maptype" id="mapType" role="group" aria-label="Map view">
-        <button class="mt" type="button" data-ground="sat" aria-pressed="true" title="Satellite: real aerial imagery">
-          <span class="mt-thumb mt-sat" aria-hidden="true"></span><span class="mt-name">Satellite</span>
-        </button>
-        <button class="mt" type="button" data-ground="map" aria-pressed="false" title="Map: drawn ground, roads and water">
-          <span class="mt-thumb mt-map" aria-hidden="true"></span><span class="mt-name">Map</span>
-        </button>
-        <button class="mt" type="button" data-ground="clean" aria-pressed="false" title="Clean: bright, simple colours">
-          <span class="mt-thumb mt-clean" aria-hidden="true"></span><span class="mt-name">Clean</span>
-        </button>
-      </div>
-
-      <!-- bottom left: where am I -->
+      <!-- bottom left: the building at the centre of the view and its coordinates -->
       <div class="glass readout" id="readout">
         <div class="where" id="where">Gajendra Circle</div>
-        <div class="coords" id="coords">12.9916&deg; N 80.2337&deg; E</div>
-        <div class="credit">Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</div>
-        <div class="credit" id="satCredit"></div>
+        <div class="coords" id="coords">12.9916&deg; N, 80.2337&deg; E</div>
       </div>
+
+      <!-- bottom right corner: map credits in small print -->
+      <div class="attrib" id="attrib">&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors<span id="satCredit"></span></div>
 
       <!-- bottom: every place by category, and the time of day -->
       <div class="glass dock" id="dock">
@@ -183,7 +187,7 @@
         <button id="padA" class="btn" type="button" aria-label="Step left">&#9664;</button>
         <button id="padS" class="btn" type="button" aria-label="Walk back">&#9660;</button>
         <button id="padD" class="btn" type="button" aria-label="Step right">&#9654;</button>
-        <span>Walk &middot; drag to look</span>
+        <button id="padExit" class="btn btn-sm pad-exit" type="button">Stop walking</button>
       </div>
 
       <div id="loader" class="loader">

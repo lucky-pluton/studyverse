@@ -4,7 +4,8 @@ import { VERIFIED_IITM_UPCOMING_DESTINATIONS } from '../../constants/locations';
 import { CampusInfoPanel } from './CampusInfoPanel';
 import { IsometricCampusMapCanvas } from './IsometricCampusMapCanvas';
 import { ThreeCampusView } from '../three/ThreeCampusView';
-import { Compass, Layers, Globe } from 'lucide-react';
+import { Users, Layers, Globe } from 'lucide-react';
+import { TimerLauncherButton } from '../study/TimerLauncherButton';
 
 interface CampusMapProps {
   students: StudentPresence[];
@@ -40,8 +41,10 @@ export const CampusMap: React.FC<CampusMapProps> = ({
       {/* =========================================================================
           VIEW MODE TOGGLE: [ 🗺️ 2D Map | 🌐 3D Campus ]
          ========================================================================= */}
+      {/* top-left icons: the 2D/3D switch and the study timers */}
+      <div className="fixed top-18 sm:top-20 left-3 sm:left-6 z-40 flex items-center gap-2">
       <div
-        className="fixed top-18 sm:top-20 left-3 sm:left-6 z-40 flex items-center bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-[#cbe1d5] shadow-lg hover:shadow-xl transition-all"
+        className="flex items-center bg-white/95 backdrop-blur-md p-1 rounded-2xl border border-[#cbe1d5] shadow-lg hover:shadow-xl transition-all"
         role="group"
         aria-label="Campus View Mode"
       >
@@ -72,10 +75,9 @@ export const CampusMap: React.FC<CampusMapProps> = ({
         >
           <Globe className="w-3.5 h-3.5" />
           <span>3D Campus</span>
-          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-amber-400 text-amber-950 leading-none">
-            3D
-          </span>
         </button>
+      </div>
+      <TimerLauncherButton />
       </div>
 
       {/* =========================================================================
@@ -112,7 +114,7 @@ export const CampusMap: React.FC<CampusMapProps> = ({
         aria-label="Toggle Campus Quick List"
       >
         <div className="w-5 h-5 rounded-lg bg-[#2d5a43] text-white flex items-center justify-center text-[10px] shadow-xs group-hover:bg-[#234735] transition-colors">
-          <Compass className="w-3.5 h-3.5" />
+          <Users className="w-3.5 h-3.5" />
         </div>
         {/* icon and count only on phones, so the button clears the 2D/3D toggle */}
         <span className="font-serif-title font-bold text-xs hidden sm:inline">Quick List</span>
