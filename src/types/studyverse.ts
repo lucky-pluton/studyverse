@@ -76,6 +76,17 @@ export interface SeatDefinition {
   description?: string;
   scale?: number; // perspective scaling factor (e.g. 0.75 for background, 1.0 for foreground)
   size?: 'xs' | 'sm' | 'md' | 'lg'; // avatar renderer size based on perspective depth
+  /** for a seat with no chair in the room picture: draw one, seen from the side, under the seat */
+  chair?: DrawnChair;
+}
+
+/** A chair drawn over the room picture, seen side-on. The cushion's top sits at the seat's x/y. */
+export interface DrawnChair {
+  /** which way the sitter faces: toward the table beside the chair */
+  facing: 'left' | 'right';
+  /** size as a percentage of the room picture's width and height */
+  width: number;
+  height: number;
 }
 
 export interface LocationDefinition {

@@ -22,11 +22,11 @@ This is **not** a video conferencing application, social media platform, or conv
 
 ## 🌿 Campus Landmarks & Study Destinations
 
-Every major campus destination has its own illustrated study room and a matching 3D room. The seven rooms have 116 seats in all; each sits where a seat is visible in the room picture and has a matching seat in the 3D room:
+Every major campus destination has its own illustrated study room and a matching 3D room. The seven rooms have 128 seats in all; each sits where a seat is visible in the room picture (six Library chairs at the open ends of the reading tables are drawn in) and has a matching seat in the 3D room:
 
 1. **🏛️ Central Library (IIT Madras)**:
    - High ceilings, tall windows with outdoor views of rain trees and grazing chital deer, emerald green banker's lamps, teak wood research tables, and individual study cubicles.
-   - 18 seats with real-time timers and avatars.
+   - 24 seats with real-time timers and avatars, including chairs at the ends of the reading tables.
 
 2. **🎓 Lecture Hall Complex (LHC & Classrooms)**:
    - Stepped lecture hall amphitheatre, large chalkboards with mathematics and physics equations, tiered student desks, and adjacent classroom corners for exam preparation.
@@ -46,7 +46,7 @@ Every major campus destination has its own illustrated study room and a matching
 
 6. **🦌 Sangam Gardens & Deer Trail**:
    - Verdant botanical lawns, lotus pond, blooming scarlet gulmohar petals falling, and gentle spotted chital deer and blackbucks grazing peacefully in the background.
-   - 8 seats with real-time timers and avatars.
+   - 14 seats with real-time timers and avatars: every garden and gazebo bench seats two.
 
 7. **🐘 Gajendra Circle (GC) Pavilion**:
    - The world-famous central roundabout of IIT Madras featuring the iconic elephant monument, circular fountain, stone benches, and shady rain trees at the intersection of Delhi and Bonn Avenues.

@@ -97,6 +97,17 @@ export class RoomStage {
     this.flight = { fromPos: this.camera.position.clone(), fromTarget: this.controls.target.clone(), toPos, toTarget, t: 0 };
   }
 
+  setView(pos: [number, number, number], target: [number, number, number], instant = false): void {
+    const toPos = new THREE.Vector3(...pos), toTarget = new THREE.Vector3(...target);
+    if (instant) {
+      this.camera.position.copy(toPos);
+      this.controls.target.copy(toTarget);
+      this.controls.update();
+      return;
+    }
+    this.flight = { fromPos: this.camera.position.clone(), fromTarget: this.controls.target.clone(), toPos, toTarget, t: 0 };
+  }
+
   zoom(factor: number): void {
     const off = this.camera.position.clone().sub(this.controls.target);
     const len = THREE.MathUtils.clamp(off.length() * factor, this.controls.minDistance, this.controls.maxDistance);

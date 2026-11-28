@@ -2,6 +2,7 @@ import React from 'react';
 import type { LocationId, SeatDefinition, StudentPresence } from '../../types/studyverse';
 import { AvatarRenderer, type ChibiPose } from '../common/AvatarRenderer';
 import { FloatingSeatTimer } from '../common/TimerBadge';
+import { DrawnChair } from './DrawnChair';
 
 interface SeatSpotProps {
   seat: SeatDefinition;
@@ -54,6 +55,9 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
   const scale = seat.scale || (avatarSize === 'sm' ? 0.82 : avatarSize === 'lg' ? 1.0 : 0.9);
 
   return (
+    <>
+    {/* a chair drawn under seats that have none in the room picture */}
+    <DrawnChair seat={seat} />
     <div
       className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center transition-transform z-10 hover:z-20"
       style={{
@@ -137,5 +141,6 @@ export const SeatSpot: React.FC<SeatSpotProps> = ({
         </button>
       )}
     </div>
+    </>
   );
 };

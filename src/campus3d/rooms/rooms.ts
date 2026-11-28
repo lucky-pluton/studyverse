@@ -36,6 +36,18 @@ function seat(r: RoomBuild, id: string, x: number, z: number, y = 0): void {
   r.anchors.set(id, new THREE.Vector3(x, y + 0.95, z));
 }
 const facing = (fromX: number, fromZ: number, toX: number, toZ: number): number => Math.atan2(toX - fromX, toZ - fromZ);
+/**
+ * Records two seats on a bench centred at (x, z) and turned by ry, `half` either side of its middle
+ * along its length. The first id gets the end further left as seen from the room's camera (-x),
+ * matching the "Left" seat in the 2D room.
+ */
+function benchSeats(r: RoomBuild, ids: readonly [string, string], x: number, z: number, ry: number, half: number, y = 0): void {
+  const ends = [-half, half]
+    .map((lx) => [x + lx * Math.cos(ry), z - lx * Math.sin(ry)] as const)
+    .sort((a, b) => a[0] - b[0]);
+  seat(r, ids[0], ends[0][0], ends[0][1], y);
+  seat(r, ids[1], ends[1][0], ends[1][1], y);
+}
 
 function ceilingLight(r: RoomBuild, x: number, y: number, z: number, w: number, d: number): void {
   const m = new THREE.MeshStandardMaterial({ color: 0xfffaf0, emissive: 0xfff4dc, emissiveIntensity: 0.4 });
@@ -124,6 +136,18 @@ function library(): RoomBuild {
     near.forEach((id, i) => { const x = cx - 1.65 + i * 1.1; chair(g, x, -0.65, Math.PI); seat(r, id, x, -0.65); });
     far.forEach((id, i) => { const x = cx - 1.1 + i * 1.1; chair(g, x, -2.75, 0); seat(r, id, x, -2.75); });
   }
+  // chairs at the open ends of the tables, facing along them: the aisle ends of all four tables
+  // and the shelf ends of the front two (the 2D room draws these chairs in, side-on)
+  const ends = [
+    ['lib-end-fw-aisle', -4.2, 2.3, 4.6, 1], ['lib-end-fw-wall', -4.2, 2.3, 4.6, -1],
+    ['lib-end-fe-aisle', 4.2, 2.3, 4.6, -1], ['lib-end-fe-wall', 4.2, 2.3, 4.6, 1],
+    ['lib-end-bw-aisle', -3.8, -1.7, 4.4, 1], ['lib-end-be-aisle', 3.8, -1.7, 4.4, -1],
+  ] as const;
+  for (const [id, cx, z, len, side] of ends) {
+    const x = cx + side * (len / 2 + 0.45);
+    chair(g, x, z, facing(x, z, cx, z));
+    seat(r, id, x, z);
+  }
   for (let i = 0; i < 3; i++) ceilingLight(r, -5 + i * 5, H - 0.05, 0.5, 2.2, 0.8);
   pointLight(r, -4, 4.5, 1);
   pointLight(r, 4, 4.5, 1);
@@ -207,7 +231,7 @@ function lhc(): RoomBuild {
   for (let i = 0; i < 3; i++) ceilingLight(r, 0, H - 0.05, -6 + i * 5, 8, 0.5);
   pointLight(r, -5, 5.5, -1);
   pointLight(r, 5, 5.5, -1);
-  r.view = { pos: [0, 3.9, 9.8], target: [0, 1.3, -4.2] };
+  r.view = { pos: [0, 3.3, -7.4], target: [0, 1.7, 2.2] };
   r.bounds = { x: [-9.4, 9.4], y: [1.2, H - 0.4], z: [-7.5, 10.55] };
   r.maxDistance = 15;
   return r;
@@ -501,19 +525,20 @@ function park(): RoomBuild {
   bench(gz, 0, -3.7, 0, 2.6, 0.4);
   seat(r, 'park-fountain-01', -0.55, -2.4 - 3.65, 0.4);
   seat(r, 'park-fountain-03', 0.55, -2.4 - 3.65, 0.4);
-  for (const [id, x, z, ry] of [['park-trellis', -3.0, -2.4, 0.9], ['park-pondside', 3.0, -2.4, -0.9]] as const) {
+  // every bench seats two (the room picture's benches each have room for two students)
+  const sideBenches = [
+    [['park-trellis', 'park-trellis-02'], -3.0, -2.4, 0.9], [['park-pondside', 'park-pondside-02'], 3.0, -2.4, -0.9],
+    [['park-fountain-02', 'park-fountain-04'], -3.3, 1.2, 1.9], [['park-picnic-01', 'park-picnic-02'], 3.3, 1.2, -1.9],
+  ] as const;
+  for (const [ids, x, z, ry] of sideBenches) {
     bench(gz, x, z, ry, 1.8, 0.4);
-    seat(r, id, x, z - 2.4, 0.4);
-  }
-  for (const [id, x, z, ry] of [['park-fountain-02', -3.3, 1.2, 1.9], ['park-picnic-01', 3.3, 1.2, -1.9]] as const) {
-    bench(gz, x, z, ry, 1.8, 0.4);
-    seat(r, id, x, z - 2.4, 0.4);
+    benchSeats(r, ids, x, z - 2.4, ry, 0.42, 0.4);
   }
   // garden benches, flower beds, lamp and trees
   bench(g, -9.6, -0.6, 0.5, 2.2);
-  seat(r, 'park-path-01', -9.6, -0.6);
+  benchSeats(r, ['park-path-01', 'park-path-02'], -9.6, -0.6, 0.5, 0.5);
   bench(g, 9.6, -0.6, -0.5, 2.2);
-  seat(r, 'park-rain-tree', 9.6, -0.6);
+  benchSeats(r, ['park-rain-tree', 'park-rain-tree-02'], 9.6, -0.6, -0.5, 0.5);
   for (const sx of [-1, 1]) {
     const bed = new THREE.Mesh(new THREE.CircleGeometry(4.5, 32), new THREE.MeshLambertMaterial({ color: 0x6fae55 }));
     bed.rotation.x = -Math.PI / 2;
