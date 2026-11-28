@@ -144,6 +144,7 @@ Every major campus destination has its own illustrated study room and a matching
 - **Background-Drift Immune**: Uses absolute target timestamps (`endTimestamp`) stored in `localStorage` (`studyverse_focus_timer`) so timers never freeze or lose time during tab throttling.
 - **Audio & Completion Prompts**: Plays a gentle 4-note peaceful crystal chime via Web Audio API and surfaces an in-app prompt to transition into a break or repeat session.
 - **Independent from Session Tracking**: Runs as a private, client-side productivity tool without disrupting seat occupancy or the campus study duration tracker.
+- **Study History**: Time with a focus timer or the stopwatch running is added up per day in the student's own browser (`localStorage`, key `studyverse_study_log`). A returning student sees today, the last 7 days and all-time totals on the welcome screen and in the Stats tab, and can clear the history there. Nothing is sent to a server, and there is no database. The history stays with that browser on that device, and clearing the site's data deletes it.
 
 ---
 

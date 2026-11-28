@@ -6,11 +6,9 @@ import {
   Flag,
   AlertTriangle,
 } from 'lucide-react';
-import type { StopwatchLap, StoredStopwatchState } from '../../types/stopwatch';
+import { STOPWATCH_STORAGE_KEY, type StopwatchLap, type StoredStopwatchState } from '../../types/stopwatch';
 import { formatStopwatchTime, formatLapSplit } from '../../utils/stopwatchFormatters';
 import { studyStatsService } from '../../services/studyStatsService';
-
-const STOPWATCH_STORAGE_KEY = 'studyverse_stopwatch_state';
 
 interface StopwatchPanelProps {
   onRunningChange?: (isRunning: boolean) => void;

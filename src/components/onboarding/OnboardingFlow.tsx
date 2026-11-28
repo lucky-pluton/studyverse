@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { GenderOption, AvatarConfig, StudentPresence } from '../../types/studyverse';
 import { AVATAR_CATALOG } from '../../constants/avatars';
 import { AvatarPicker } from './AvatarPicker';
+import { StudyHistoryCard } from '../study/StudyHistoryCard';
 import { ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import iitmMainGate from '../../assets/iitm_main_gate.jpg';
@@ -227,6 +228,11 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onComplete }) =>
               <p className="text-sm text-[#6f6457] max-w-md mx-auto">
                 Enter any nickname or first name. Step into the lush virtual campus grounds — no passwords, emails, or accounts required.
               </p>
+            </div>
+
+            {/* a returning student sees how much they have studied, read from this browser */}
+            <div className="max-w-md mx-auto">
+              <StudyHistoryCard variant="welcome" />
             </div>
 
             <form onSubmit={handleStep1Next} className="max-w-md mx-auto space-y-4">
