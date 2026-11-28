@@ -20,17 +20,25 @@ import { StudyStatsPanel } from './StudyStatsPanel';
 import { formatDuration } from '../common/TimerBadge';
 import type { StudentPresence } from '../../types/studyverse';
 import type { TimerTab, FocusMode } from '../../types/focusTimer';
+import { onToggleStudyTimers, publishTimerStatus, type TimerTone } from './timerLauncher';
 
 export type { TimerTab, FocusMode };
 
 interface StudyTimerUtilityProps {
   currentUser?: StudentPresence | null;
   className?: string;
+  /**
+   * 'pill' (default): a launcher pill at the bottom left, and the card opens there.
+   * 'toolbar': no pill; a TimerLauncherButton elsewhere (the campus map's top-left icons) opens the card,
+   * which then opens at the top left under it.
+   */
+  launcher?: 'pill' | 'toolbar';
 }
 
 export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
   currentUser,
   className = '',
+  launcher = 'pill',
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<TimerTab>('pomodoro');
@@ -105,6 +113,19 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
   const isBreak = currentPreset.category === 'break';
   const sessionDuration = currentUser?.sessionEnteredAt ? formatDuration(currentUser.sessionEnteredAt) : '45m';
 
+  // the top-left timer icon opens and closes the card, and shows the running timer's time
+  useEffect(() => onToggleStudyTimers(() => (isOpen ? handleCloseUtility() : handleOpenUtility())));
+  const launcherTone: TimerTone = isPomodoroRunning ? (isBreak ? 'break' : 'focus') : isStopwatchRunning ? 'stopwatch' : 'idle';
+  const launcherTime = isPomodoroRunning
+    ? formatPillTime(remainingSeconds)
+    : isStopwatchRunning
+    ? formatStopwatchPillTime(stopwatchElapsedMs)
+    : '';
+  useEffect(() => {
+    publishTimerStatus({ open: isOpen, tone: launcherTone, time: launcherTime });
+  }, [isOpen, launcherTone, launcherTime]);
+  const inToolbar = launcher === 'toolbar';
+
   return (
     <>
       {/* 1. VISUALLY APPEALING COMPLETION MODAL */}
@@ -117,13 +138,15 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
         onClose={dismissCompletionModal}
       />
 
-      {/* 2. UNIFIED STUDY TIMER UTILITY (Anchored Bottom-Left to Prevent Chat Overlap) */}
+      {/* 2. UNIFIED STUDY TIMER UTILITY (bottom left, or top left under the campus map's icons) */}
       <div
-        className={`fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-40 select-none ${className}`}
+        className={`fixed z-40 select-none ${
+          inToolbar ? 'top-[7.25rem] sm:top-[7.75rem] left-3 sm:left-6' : 'bottom-4 left-4 sm:bottom-6 sm:left-6'
+        } ${className}`}
         style={{ maxWidth: 'calc(100vw - 2rem)' }}
       >
         {/* COMPACT LAUNCHER PILL (Visible when closed) */}
-        {!isOpen && (
+        {!isOpen && !inToolbar && (
           <button
             onClick={handleOpenUtility}
             type="button"
@@ -197,7 +220,7 @@ export const StudyTimerUtility: React.FC<StudyTimerUtilityProps> = ({
 
         {/* EXPANDED UNIFIED TIMER CARD */}
         {isOpen && (
-          <div className="w-[calc(100vw-2rem)] sm:w-96 max-w-sm rounded-3xl bg-[#fffdfa]/98 backdrop-blur-md border-2 border-[#d5e2d9] shadow-2xl p-4 space-y-3 text-[#2d2824] animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col overflow-hidden">
+          <div className={`w-[calc(100vw-2rem)] sm:w-96 max-w-sm rounded-3xl bg-[#fffdfa]/98 backdrop-blur-md border-2 border-[#d5e2d9] shadow-2xl p-4 space-y-3 text-[#2d2824] animate-in fade-in zoom-in-95 duration-200 ${inToolbar ? 'max-h-[calc(100dvh-8.5rem)]' : 'max-h-[85vh]'} flex flex-col overflow-hidden`}>
             {/* 1. Header with Minimize and Sound Toggle */}
             <div className="flex items-center justify-between border-b border-[#e2ede6] pb-2 shrink-0">
               <div className="flex items-center gap-2">

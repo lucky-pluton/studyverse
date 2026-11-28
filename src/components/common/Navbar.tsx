@@ -213,7 +213,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     <>
       <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#faf7f2]/95 border-b border-[#dce7e1] shadow-2xs transition-colors">
         {/* ROW 1: BRAND LOGO + COMPACT LOCATION SELECTOR + ACTIONS */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+        {/* full width, so the brand sits at the left edge and the actions at the right edge */}
+        <div className="w-full px-3 sm:px-5 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Left: Brand Logo & Compact Location Dropdown */}
           <div className="flex items-center gap-1.5 sm:gap-3.5 min-w-0">
             {/* Logo & Campus Title Button */}

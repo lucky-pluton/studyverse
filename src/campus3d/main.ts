@@ -75,7 +75,6 @@ let labels: LabelLayer;
 let rig: CameraRig;
 const route = new RouteView();
 scene.add(route.group);
-let gateDist: Float64Array | null = null;
 let counts: Record<string, number> = {};
 let current: Place | null = null;
 let hour = 15.5;
@@ -163,7 +162,6 @@ async function init(): Promise<void> {
     const a = graph.nearest(gate.x, gate.z), b = graph.nearest(cafe.x, cafe.z);
     const p = graph.path(a, b);
     if (p) busPts = graph.points(p);
-    gateDist = graph.distances(a);
   }
   traffic = new Traffic(data, graph, busPts);
   scene.add(traffic.group);
@@ -260,11 +258,10 @@ function applyGroundStyle(): void {
   // the imagery already shows the real canopy, so the 3D trees are darker and sparser over it
   trees.setTint(useSat ? 0.74 : 1);
   trees.setDensity(treeDensity * treeShare());
-  $('tSat').setAttribute('aria-pressed', String(useSat));
-  $('tMap').setAttribute('aria-pressed', String(!useSat && !useClean));
-  $('tClean').setAttribute('aria-pressed', String(useClean));
   const shown = useSat ? 'sat' : useClean ? 'clean' : 'map';
   document.querySelectorAll<HTMLButtonElement>('[data-ground]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ground === shown)));
+  // the Layers button shows the map type in use
+  $('layersThumb').className = `mt-thumb mt-${shown}`;
   $('tRoads').setAttribute('aria-pressed', String(roadsGroup.visible));
   $('satCredit').hidden = !useSat;
   // the Clean style lifts the daylight a little
@@ -322,12 +319,6 @@ function placeForBuilding(i: number): Place {
   };
 }
 
-function walkDistanceFromGate(p: Place): number | null {
-  if (!gateDist) return null;
-  const v = graph.nearest(p.x, p.z);
-  const d = gateDist[v];
-  return Number.isFinite(d) ? d + Math.hypot(graph.rv[v * 2] - p.x, graph.rv[v * 2 + 1] - p.z) : null;
-}
 const fmtDist = (m: number): string => (m >= 1000 ? (m / 1000).toFixed(1) + ' km' : Math.round(m / 10) * 10 + ' m');
 
 function setHighlight(p: Place | null): void {
@@ -384,32 +375,22 @@ function renderInfo(): void {
   const info = $('info');
   if (!p) { info.hidden = true; return; }
   closePanels();
-  const facts: string[] = [];
-  if (p.cat && p.cat !== 'study') facts.push(CATEGORY_LABEL[p.cat] || p.cat);
-  if (p.floors) facts.push(`${p.floors} floor${p.floors === 1 ? '' : 's'} ${p.floorsFromMap ? '(mapped)' : '(estimated)'}`);
-  if (p.building !== undefined) facts.push(`about ${Math.round(data.buildings[p.building].h)} m tall`);
-  if (p.kind !== 'district' && p.kind !== 'road' && p.id !== 'gate') {
-    const d = walkDistanceFromGate(p);
-    if (d && d > 60) facts.push(`${fmtDist(d)} walk from the Main Gate`);
-  }
+  // just the name and where it is, with the actions; no description, to keep the map uncluttered
   const ll = toLatLon(data, p.x, p.z);
-  facts.push(`${ll.lat.toFixed(4)}° N, ${ll.lon.toFixed(4)}° E`);
   let study = '';
   if (p.kind === 'study' && p.studyId) {
     const n = counts[p.studyId] || 0;
-    study = `<div class="live"><i></i>${n > 0 ? `${n} student${n === 1 ? '' : 's'} studying here now` : 'Desks free, be the first to study here'}</div>
-      <div class="acts"><button class="btn btn-primary enter" type="button" data-act="enter">Enter ${esc(p.name)} <span aria-hidden="true">&rarr;</span></button></div>`;
+    study = `<div class="live"><i></i>${n > 0 ? `${n} studying now` : 'No one studying yet'}</div>
+      <div class="acts"><button class="btn btn-primary enter" type="button" data-act="enter">Enter <span aria-hidden="true">&rarr;</span></button></div>`;
   }
   const canRoute = p.kind !== 'district' && p.id !== 'gate';
   info.innerHTML = `
     <button class="btn close" type="button" data-act="close" aria-label="Close">&times;</button>
-    <span class="tag ${p.kind === 'soon' ? 'soon' : ''}">${p.icon ? `<span aria-hidden="true">${p.icon}</span>` : ''}${esc(p.tag)}</span>
-    <h2>${esc(p.name)}</h2>
-    <p>${esc(p.text)}</p>
-    <div class="facts">${facts.map((f) => `<span>${esc(f)}</span>`).join('')}</div>
+    <h2>${p.icon ? `<span class="ic" aria-hidden="true">${p.icon}</span>` : ''}${esc(p.name)}</h2>
+    <div class="ll">${ll.lat.toFixed(4)}° N, ${ll.lon.toFixed(4)}° E</div>
     ${study}
     <div class="acts">
-      ${canRoute ? '<button class="btn btn-ghost btn-sm" type="button" data-act="route">Walk here from the Main Gate</button>' : ''}
+      ${canRoute ? '<button class="btn btn-ghost btn-sm" type="button" data-act="route" title="Walking route from the Main Gate">Directions</button>' : ''}
       ${p.kind !== 'district' ? '<button class="btn btn-ghost btn-sm" type="button" data-act="walk">Street view</button>' : ''}
     </div>`;
   info.hidden = false;
@@ -457,6 +438,9 @@ function togglePanel(id: string): void {
   if ($(id).hidden) openPanel(id);
   else { closePanels(); if (current) $('info').hidden = false; }
 }
+function closeLayers(): void {
+  if (!$('layersPanel').hidden) togglePanel('layersPanel');
+}
 
 let hintGone = false;
 function hideHint(): void {
@@ -478,14 +462,12 @@ const ORDER: Record<string, number> = { study: 0, major: 1, soon: 2, hostel: 3, 
 
 function setupUi(): void {
   const onCampus = data.buildings.filter((b) => b.c).length;
-  $('subline').innerHTML = `Guindy &middot; Chennai &middot; <b>${data.buildings.length.toLocaleString('en-IN')}</b> buildings placed from the map`;
   $('aboutStats').textContent = `${data.buildings.length.toLocaleString('en-IN')} buildings (${onCampus} inside the campus wall), ${data.roads.length.toLocaleString('en-IN')} roads and paths. Map data downloaded ${data.meta.fetched ? data.meta.fetched.slice(0, 10) : ''}.`;
 
   labels = new LabelLayer($('labels'), marks.places, (p) => select(p));
   labels.setCounts(counts);
 
-  // toolbar
-  $('btn2d').addEventListener('click', () => post({ type: 'SAHEJ_SWITCH_VIEW', view: '2d' }));
+  // map tools: the compass, and the Layers popup that holds everything else
   $('btnCompass').addEventListener('click', () => rig.faceNorth());
   let lastLabelMode: LabelMode = 'all';
   const setLabelMode = (m: LabelMode): void => {
@@ -499,10 +481,7 @@ function setupUi(): void {
   setupMapFilter();
   document.querySelectorAll<HTMLButtonElement>('[data-labels]').forEach((b) => b.addEventListener('click', () => setLabelMode(b.dataset.labels as LabelMode)));
   setLabelMode('all');
-  $('tSat').addEventListener('click', () => { groundStyle = 'sat'; applyGroundStyle(); });
-  $('tMap').addEventListener('click', () => { groundStyle = 'map'; applyGroundStyle(); });
-  $('tClean').addEventListener('click', () => { groundStyle = 'clean'; applyGroundStyle(); });
-  // the on-map view switcher does the same as the Ground buttons in Layers
+  // one click on a map type changes the whole map
   document.querySelectorAll<HTMLButtonElement>('[data-ground]').forEach((b) => b.addEventListener('click', () => {
     groundStyle = b.dataset.ground as typeof groundStyle;
     applyGroundStyle();
@@ -510,15 +489,22 @@ function setupUi(): void {
   // road lines always show in the map style; over satellite imagery they are optional
   $('tRoads').addEventListener('click', () => { if (groundStyle === 'sat' && sat) { roadLines = !roadLines; applyGroundStyle(); } });
   toggle('tTrees', (on) => { trees.group.visible = on; });
-  $('btnDir').addEventListener('click', () => toggleDirectory());
+  $('btnDir').addEventListener('click', () => { closeLayers(); toggleDirectory(); });
   $('dirClose').addEventListener('click', () => toggleDirectory(false));
   $('btnLayers').addEventListener('click', () => togglePanel('layersPanel'));
+  $('layersClose').addEventListener('click', () => closeLayers());
+  // a press on the map closes the Layers popup, as in Google Maps
+  $('stage').addEventListener('pointerdown', () => closeLayers());
   $('btnAbout').addEventListener('click', () => togglePanel('aboutPanel'));
+  $('aboutClose').addEventListener('click', () => togglePanel('aboutPanel'));
+  const closeRoute = (): void => { closePanels(); route.clear(); $('rInfo').textContent = ''; if (current) $('info').hidden = false; };
   $('btnRoute').addEventListener('click', () => {
     if ($('routePanel').hidden) openPanel('routePanel');
-    else { closePanels(); route.clear(); $('rInfo').textContent = ''; }
+    else closeRoute();
   });
-  $('btnWalk').addEventListener('click', () => setWalk(!rig.walking));
+  $('routeClose').addEventListener('click', closeRoute);
+  $('btnWalk').addEventListener('click', () => { closeLayers(); setWalk(!rig.walking); });
+  $('padExit').addEventListener('click', () => setWalk(false));
   $('btnTour').addEventListener('click', () => (tourI >= 0 ? tourStop() : tourStart()));
   $('tourNext').addEventListener('click', () => tourGo(tourI + 1));
   $('tourPrev').addEventListener('click', () => tourGo(tourI - 1));
@@ -981,7 +967,7 @@ let dockTab = 'study';
 /** screen boxes of the visible panels, so place names don't hide underneath them */
 function panelBoxes(): number[] {
   const out: number[] = [];
-  for (const sel of ['.card-title', '.toolbar', '#dock', '#readout', '#info', '#mapType']) {
+  for (const sel of ['.card-title', '.maptools', '#dock', '#readout', '#info', '#layersPanel', '#aboutPanel', '#routePanel']) {
     const el = document.querySelector<HTMLElement>(sel);
     if (!el || el.hidden || el.offsetParent === null) continue;
     const r = el.getBoundingClientRect();
@@ -1144,10 +1130,10 @@ function updateReadout(): void {
     const d = (p.x - t.x) * (p.x - t.x) + (p.z - t.z) * (p.z - t.z);
     if (d < bd) { bd = d; best = p; }
   }
-  const zone = inCampus(t.x, t.z) ? 'IIT Madras campus' : 'Outside the campus';
-  $('where').textContent = best ? `${best.name} · ${zone}` : zone;
+  // just the building's name and where it is
+  $('where').textContent = best ? best.name : inCampus(t.x, t.z) ? 'IIT Madras campus' : 'Outside the campus';
   const ll = toLatLon(data, t.x, t.z);
-  $('coords').textContent = `${ll.lat.toFixed(4)}° N ${ll.lon.toFixed(4)}° E · eye ${Math.round(camera.position.y)} m`;
+  $('coords').textContent = `${ll.lat.toFixed(4)}° N, ${ll.lon.toFixed(4)}° E`;
 }
 
 function frame(now: number): void {

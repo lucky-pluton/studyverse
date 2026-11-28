@@ -380,8 +380,9 @@ export function App() {
         )}
       </main>
 
-      {/* Global Unified Study Timer Utility (Pomodoro, Stopwatch, Study Duration) */}
-      <FocusTimer currentUser={currentUser} />
+      {/* Global Unified Study Timer Utility (Pomodoro, Stopwatch, Study Duration).
+          On the campus map it opens from the timer icon at the top left; in rooms from the pill at the bottom left. */}
+      <FocusTimer currentUser={currentUser} launcher={isAtCampusMap ? 'toolbar' : 'pill'} />
 
       {/* Global Interactive 2.5D Student Avatar Customizer Modal */}
       {currentUser && (
