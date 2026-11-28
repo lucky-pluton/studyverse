@@ -11,3 +11,6 @@ export interface StoredStopwatchState {
   accumulatedMs: number;    // Accumulated milliseconds before current run streak
   laps: StopwatchLap[];
 }
+
+/** the browser storage key the stopwatch state is kept under */
+export const STOPWATCH_STORAGE_KEY = 'studyverse_stopwatch_state';

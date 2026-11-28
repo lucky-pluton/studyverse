@@ -3,6 +3,8 @@ import type { AvatarConfig, LocationId, StudentPresence, TimeOfDay } from './typ
 import { presenceService } from './services/presenceService';
 import { soundService } from './services/soundService';
 import { chatService } from './services/chatService';
+// starts counting study time into the history kept in this browser
+import './services/studyLogService';
 import { OnboardingFlow } from './components/onboarding/OnboardingFlow';
 import { Navbar } from './components/common/Navbar';
 import { CampusMap } from './components/campus/CampusMap';

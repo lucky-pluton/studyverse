@@ -13,6 +13,7 @@ import {
 import type { StudentPresence } from '../../types/studyverse';
 import type { StudyStatistics } from '../../types/statistics';
 import { studyStatsService } from '../../services/studyStatsService';
+import { StudyHistoryCard } from './StudyHistoryCard';
 
 interface StudyStatsPanelProps {
   currentUser?: StudentPresence | null;
@@ -98,6 +99,9 @@ export const StudyStatsPanel: React.FC<StudyStatsPanelProps> = ({
           </div>
         )}
       </div>
+
+      {/* Study history across visits, kept in this browser */}
+      <StudyHistoryCard variant="panel" />
 
       {/* 2. Core 3 Metrics Table / Cards */}
       <div className="space-y-2">
