@@ -19,6 +19,21 @@ export interface WireMessage {
   timestamp: number;
 }
 
+// Resilient presence timing constants
+// 120 seconds prevents peers from disappearing when browser tabs are in background or reading
+const PEER_STALE_THRESHOLD_MS = 120000;
+const HEARTBEAT_INTERVAL_MS = 3500;
+const MAX_MESSAGE_AGE_MS = 300000; // 5 minutes (prevents false discards from client clock drift)
+
+const RELIABLE_NOSTR_RELAYS = [
+  'wss://relay.damus.io',
+  'wss://nos.lol',
+  'wss://relay.current.fyi',
+  'wss://nostr.mom',
+  'wss://purplerelay.com',
+  'wss://relay.primal.net',
+];
+
 const MQTT_BROKERS = [
   { host: 'broker.emqx.io', port: 8084, path: '/mqtt' },
   { host: 'broker.hivemq.com', port: 8884, path: '/mqtt' },
@@ -213,6 +228,8 @@ class PresenceService {
     // 2. Storage event fallback for older / cross-context tabs
     window.addEventListener('storage', this.handleStorageEvent);
     window.addEventListener('beforeunload', this.handleBeforeUnload);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    window.addEventListener('focus', this.handleWindowFocus);
 
     // 3. Connect to Primary Transports
     if (this.mode === 'supabase' && this.supabase) {
@@ -270,7 +287,7 @@ class PresenceService {
 
           // Retain local peers if any
           this.peerMap.forEach((peer, id) => {
-            if (!updatedPeers.has(id) && Date.now() - (peer.lastHeartbeat || 0) < 15000) {
+            if (!updatedPeers.has(id) && Date.now() - (peer.lastHeartbeat || 0) < PEER_STALE_THRESHOLD_MS) {
               updatedPeers.set(id, peer);
             }
           });
@@ -332,7 +349,13 @@ class PresenceService {
 
     try {
       this.trysteroRoom = joinRoom(
-        { appId: 'studyverse_iitm_presence_v2' },
+        {
+          appId: 'studyverse_iitm_presence_v2',
+          relayConfig: {
+            urls: RELIABLE_NOSTR_RELAYS,
+            redundancy: 4,
+          },
+        },
         'campus_global_world'
       );
 
@@ -524,14 +547,16 @@ class PresenceService {
     if (this.isDestroyed || !this.currentPresence) return;
     if (!data || !data.sessionId || data.sessionId === this.currentPresence.sessionId) return;
 
-    // Discard stale retained messages (> 30s old)
+    // Discard only ancient messages (> 5 minutes old).
+    // Never discard due to negative difference (prevents client clock drift from dropping peers).
     const now = Date.now();
-    if (data.timestamp && Math.abs(now - data.timestamp) > 30000) {
+    if (data.timestamp && (now - data.timestamp) > MAX_MESSAGE_AGE_MS) {
       return;
     }
 
     if (data.type === 'join' || data.type === 'update' || data.type === 'heartbeat') {
       const peer = data.payload;
+      const isNewPeer = !this.peerMap.has(peer.sessionId);
 
       // Handle seat conflict: earliest seatEnteredAt wins
       if (
@@ -552,9 +577,12 @@ class PresenceService {
         lastHeartbeat: now,
       });
       this.notifyListeners();
+      this.syncToStorage();
 
-      // If a new peer joined, reply with our heartbeat so they immediately see us
-      if (data.type === 'join') {
+      // Bidirectional presence handshake:
+      // If a peer announces 'join' OR if this is the first time we ever see this peer,
+      // reply immediately with our own presence so both students see each other simultaneously!
+      if (data.type === 'join' || isNewPeer) {
         if (source === 'local') {
           this.broadcastLocalPresence('heartbeat', this.currentPresence);
         } else if (source === 'webrtc') {
@@ -578,6 +606,7 @@ class PresenceService {
       if (this.peerMap.has(data.sessionId)) {
         this.peerMap.delete(data.sessionId);
         this.notifyListeners();
+        this.syncToStorage();
       }
     }
   }
@@ -589,11 +618,37 @@ class PresenceService {
       lastHeartbeat: Date.now(),
     });
     this.notifyListeners();
+    this.syncToStorage();
   }
 
   // =========================================================================
   // LOCAL MULTI-TAB & STORAGE SYNC
   // =========================================================================
+
+  private handleVisibilityChange = () => {
+    if (this.isDestroyed || !this.currentPresence) return;
+
+    if (document.visibilityState === 'visible') {
+      // Tab returned to foreground: refresh heartbeat, hydrate peers, announce presence
+      this.currentPresence.lastHeartbeat = Date.now();
+      this.loadPeersFromStorage();
+      this.dispatchWireMessage('join', this.currentPresence);
+      this.notifyListeners();
+    } else {
+      // Tab moved to background: dispatch immediate heartbeat before browser timer throttling
+      this.currentPresence.lastHeartbeat = Date.now();
+      this.dispatchWireMessage('heartbeat', this.currentPresence);
+      this.syncToStorage();
+    }
+  };
+
+  private handleWindowFocus = () => {
+    if (this.isDestroyed || !this.currentPresence) return;
+    this.currentPresence.lastHeartbeat = Date.now();
+    this.dispatchWireMessage('heartbeat', this.currentPresence);
+    this.loadPeersFromStorage();
+    this.notifyListeners();
+  };
 
   private handleStorageEvent = (event: StorageEvent) => {
     if (event.key === LOCAL_STORAGE_PEER_KEY && event.newValue) {
@@ -611,9 +666,12 @@ class PresenceService {
 
       Object.entries(parsed).forEach(([id, peer]) => {
         if (id !== this.currentPresence?.sessionId) {
-          if (now - (peer.lastHeartbeat || 0) < 15000) {
-            this.peerMap.set(id, peer);
-            changed = true;
+          if (now - (peer.lastHeartbeat || 0) < PEER_STALE_THRESHOLD_MS) {
+            const existing = this.peerMap.get(id);
+            if (!existing || (peer.lastHeartbeat || 0) > (existing.lastHeartbeat || 0)) {
+              this.peerMap.set(id, peer);
+              changed = true;
+            }
           }
         }
       });
@@ -631,9 +689,9 @@ class PresenceService {
       const raw = localStorage.getItem(LOCAL_STORAGE_PEER_KEY);
       const registry: Record<string, StudentPresence> = raw ? JSON.parse(raw) : {};
 
-      // Prune stale entries > 15s
+      // Prune stale entries > PEER_STALE_THRESHOLD_MS (2 minutes)
       Object.keys(registry).forEach((id) => {
-        if (now - (registry[id].lastHeartbeat || 0) > 15000) {
+        if (now - (registry[id].lastHeartbeat || 0) > PEER_STALE_THRESHOLD_MS) {
           delete registry[id];
         }
       });
@@ -643,6 +701,13 @@ class PresenceService {
         ...this.currentPresence,
         lastHeartbeat: now,
       };
+
+      // Also persist active peers so other tabs immediately see everyone
+      this.peerMap.forEach((peer, id) => {
+        if (now - (peer.lastHeartbeat || 0) <= PEER_STALE_THRESHOLD_MS) {
+          registry[id] = peer;
+        }
+      });
 
       localStorage.setItem(LOCAL_STORAGE_PEER_KEY, JSON.stringify(registry));
     } catch {}
@@ -779,16 +844,20 @@ class PresenceService {
       clearInterval(this.heartbeatInterval);
     }
 
+    let tickCount = 0;
+
     this.heartbeatInterval = window.setInterval(() => {
       if (this.isDestroyed || !this.currentPresence) return;
 
       const now = Date.now();
       this.currentPresence.lastHeartbeat = now;
+      tickCount++;
 
-      // Clean up stale peers (> 15s without update)
+      // Clean up stale peers only after PEER_STALE_THRESHOLD_MS (120s / 2 minutes)
+      // This prevents students from vanishing when they are reading in another tab
       let peerRemoved = false;
       this.peerMap.forEach((peer, id) => {
-        if (now - (peer.lastHeartbeat || 0) > 15000) {
+        if (now - (peer.lastHeartbeat || 0) > PEER_STALE_THRESHOLD_MS) {
           this.peerMap.delete(id);
           peerRemoved = true;
         }
@@ -796,11 +865,13 @@ class PresenceService {
 
       if (peerRemoved) {
         this.notifyListeners();
+        this.syncToStorage();
       }
 
-      // Heartbeat transport dispatch
-      this.dispatchWireMessage('heartbeat', this.currentPresence);
-    }, 4000);
+      // Re-announce full presence periodically (every 5th tick ~18s) to heal any dropped updates
+      const dispatchType = tickCount % 5 === 0 ? 'update' : 'heartbeat';
+      this.dispatchWireMessage(dispatchType, this.currentPresence);
+    }, HEARTBEAT_INTERVAL_MS);
   }
 
   private handleBeforeUnload = () => {
@@ -911,6 +982,8 @@ class PresenceService {
 
     window.removeEventListener('storage', this.handleStorageEvent);
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    window.removeEventListener('focus', this.handleWindowFocus);
   }
 }
 
